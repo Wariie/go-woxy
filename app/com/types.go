@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	rand "guilhem-mateo.fr/testgo/app/rand"
+	rand "guilhem-mateo.fr/go-woxy/app/rand"
 )
 
 var defaultPath = "/connect"

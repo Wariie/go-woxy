@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	com "guilhem-mateo.fr/testgo/app/com"
+	com "guilhem-mateo.fr/go-woxy/app/com"
 )
 
 var configFile string
