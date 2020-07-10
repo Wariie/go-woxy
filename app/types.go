@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"guilhem-mateo.fr/go-woxy/app/com"
+	"guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
 )
 
 /*ModuleConfig - Module configuration */
