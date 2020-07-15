@@ -1,4 +1,4 @@
-FROM golang:latest
+FROM golang:1.14.5-alpine3.12
 COPY . /go-woxy
 WORKDIR /go-woxy
 EXPOSE 2000
