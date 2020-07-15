@@ -91,7 +91,7 @@ func (mc *ModuleConfig) Start() {
 	log.Println(string(b))
 
 	startCmd := ""
-	binPath := "./mods/" + mc.NAME + "/" + mc.BIN
+	binPath := "~/mods/" + mc.NAME + "/" + mc.BIN
 	if runtime.GOOS == "windows" {
 		startCmd = binPath //+ " > " + logFileName
 	} else {
