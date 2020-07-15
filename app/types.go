@@ -88,9 +88,9 @@ func (mc *ModuleConfig) Start() {
 
 	cmd := exec.Command("pwd")
 	b, err := cmd.Output()
-	log.Println(string(b))
+	log.Println()
 
-	var startCmd []string
+	var startCmd [3]string
 	binPath := "/mods/" + mc.NAME + "/" + mc.BIN
 	if runtime.GOOS == "windows" {
 		startCmd[0] = binPath //+ " > " + logFileName
