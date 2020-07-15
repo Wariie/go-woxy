@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gin-gonic/gin"
 	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
+	"github.com/gin-gonic/gin"
 )
 
 var configFile string
@@ -91,7 +91,7 @@ func loadModules(router *gin.Engine) {
 }
 
 func connect(context *gin.Context) {
-
+	
 	var cr com.ConnexionRequest
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(context.Request.Body)

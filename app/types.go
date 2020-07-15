@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
+	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
 )
 
 /*ModuleConfig - Module configuration */
@@ -61,7 +61,10 @@ func (mc *ModuleConfig) Build() error {
 func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 	log.Println("Setup mod : ", mc)
 	if strings.Contains(mc.SRC, "http") || strings.Contains(mc.SRC, "git@") {
+		log.Println("Downloading mod : ", mc.NAME)
 		mc.Download()
+	} else {
+		log.Println("LOCAL BUILD or NO BUILD")
 	}
 
 	if mc.BIN != "" {
@@ -97,7 +100,7 @@ func (mc *ModuleConfig) Download() {
 		//TODO
 	}
 	out, err := cmd.Output()
-	log.Println("Downloading mod : ", mc, " - ", string(out), " ", err)
+	log.Println("Downloaded mod : ", mc, " - ", string(out), " ", err)
 
 	mc.BIN = wd + "/mods/" + mc.NAME
 }
