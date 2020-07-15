@@ -88,7 +88,7 @@ func (mc *ModuleConfig) Start() {
 
 	cmd := exec.Command("pwd")
 	//b, err := cmd.Output()
-	log.Println()
+	//log.Println(string(b))
 
 	var startCmd [3]string
 	binPath := "/mods/" + mc.NAME + "/" + mc.BIN
@@ -102,7 +102,7 @@ func (mc *ModuleConfig) Start() {
 
 	cmd = exec.Command(startCmd[0], startCmd[1], startCmd[2])
 	cmd.Stdout = os.Stdout
-	err = cmd.Start()
+	err := cmd.Start()
 	log.Println("Starting mod : ", mc, " - ", err)
 }
 
