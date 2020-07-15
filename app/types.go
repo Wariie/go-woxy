@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 
@@ -53,7 +54,11 @@ func (mc *ModuleConfig) Build() error {
 	out, err := cmd.Output()
 	log.Println("	Building mod : ", mc, " - ", string(out), " ", err)
 
-	mc.BIN = mc.BIN + "/" + mc.NAME + ".exe"
+	mc.BIN = mc.NAME
+
+	if runtime.GOOS == "windows" {
+		mc.BIN += ".exe"
+	}
 	return err
 }
 
@@ -72,33 +77,41 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 		if err != nil {
 			return err
 		}
-		err = mc.Start()
-		if err != nil {
-			return err
-		}
 	}
 	return mc.Hook(router)
 }
 
 //Start - Start module with config args and auto args
-func (mc *ModuleConfig) Start() error {
+func (mc *ModuleConfig) Start() {
 	mc.STATE = "LAUNCHING"
-	cmd := exec.Command(mc.BIN)
+	logFileName := mc.NAME + ".txt"
+	startCmd := ""
+	binPath := "./mods/" + mc.NAME + "/" + mc.BIN
+	if runtime.GOOS == "windows" {
+		startCmd = binPath //+ " > " + logFileName
+	} else {
+		startCmd = "nohup " + binPath + " > " + logFileName + "2>&1"
+	}
+
+	cmd := exec.Command(startCmd)
+	cmd.Stdout = os.Stdout
 	err := cmd.Start()
 	log.Println("Starting mod : ", mc, " - ", err)
-	return err
 }
 
 //Download - Download module from repository
 func (mc *ModuleConfig) Download() {
+
 	cmd := exec.Command("git", "clone", mc.SRC)
 	wd, err := os.Getwd()
 
 	//WORKING DIR + "/mods" (NEED ALREADY CREATED DIR (DO AT STARTUP ?))
 	cmd.Dir = wd + "/mods"
-	if err == nil {
-		//TODO
+
+	if _, err := os.Stat(cmd.Dir + "/" + mc.NAME); !os.IsNotExist(err) {
+		os.RemoveAll(cmd.Dir + "/" + mc.NAME)
 	}
+
 	out, err := cmd.Output()
 	log.Println("Downloaded mod : ", mc, " - ", string(out), " ", err)
 
@@ -109,7 +122,7 @@ func (mc *ModuleConfig) Download() {
 func (mc *ModuleConfig) Hook(router *gin.Engine) error {
 	paths := strings.Split(mc.SERVER.PATH, ";")
 
-	for mc.STATE != "LAUNCHING" {
+	for mc.STATE != "BUILDING" {
 		time.Sleep(time.Second * 2)
 	}
 

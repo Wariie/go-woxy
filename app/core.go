@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
 	"github.com/gin-gonic/gin"
+	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
 )
 
 var configFile string
@@ -86,12 +86,13 @@ func loadModules(router *gin.Engine) {
 		if err != nil {
 			log.Println(err)
 		}
+		go mod.Start()
 		config.MODULES[k] = mod
 	}
 }
 
 func connect(context *gin.Context) {
-	
+
 	var cr com.ConnexionRequest
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(context.Request.Body)

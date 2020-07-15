@@ -17,7 +17,8 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
-	guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com v0.0.0-20200715112946-d9c1e8c141e6
+	guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com v0.0.0-20200715135207-f6b563665c3e
+	guilhem-mateo.fr/git/Wariie/go-woxy.git/app/rand v0.0.0-20200715135207-f6b563665c3e // indirect
 )
 
 replace guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com => ../app/com
