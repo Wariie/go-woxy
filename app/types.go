@@ -90,15 +90,17 @@ func (mc *ModuleConfig) Start() {
 	b, err := cmd.Output()
 	log.Println(string(b))
 
-	startCmd := ""
+	var startCmd []string
 	binPath := "/mods/" + mc.NAME + "/" + mc.BIN
 	if runtime.GOOS == "windows" {
-		startCmd = binPath //+ " > " + logFileName
+		startCmd[0] = binPath //+ " > " + logFileName
 	} else {
-		startCmd = "nohup $PWD" + binPath + " &" // + " > " + logFileName + "2>&1"
+		startCmd[0] = "nohup"
+		startCmd[1] = "$PWD" + binPath
+		startCmd[2] = " &" // + " > " + logFileName + "2>&1"
 	}
 
-	cmd = exec.Command(startCmd)
+	cmd = exec.Command(startCmd[0], startCmd[1], startCmd[2])
 	cmd.Stdout = os.Stdout
 	err = cmd.Start()
 	log.Println("Starting mod : ", mc, " - ", err)
