@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/internal/bytesconv"
 	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
 )
 
@@ -85,6 +86,11 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 func (mc *ModuleConfig) Start() {
 	mc.STATE = "LAUNCHING"
 	//logFileName := mc.NAME + ".txt"
+
+	cmd := exec.Command("pwd")
+	b, err := cmd.Output()
+	log.Println(bytesconv.BytesToString(b))
+
 	startCmd := ""
 	binPath := "./mods/" + mc.NAME + "/" + mc.BIN
 	if runtime.GOOS == "windows" {
