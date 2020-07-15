@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"guilhem-mateo.fr/testgo/app"
+	"guilhem-mateo.fr/git/Wariie/go-woxy.git/app"
 )
 
 func main() {

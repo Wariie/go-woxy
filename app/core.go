@@ -1,14 +1,17 @@
 package app
 
 import (
+	"bufio"
 	"bytes"
+	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	com "guilhem-mateo.fr/testgo/app/com"
+	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
 )
 
 var configFile string
@@ -17,57 +20,72 @@ var config Config
 
 var secret string = "SECRET"
 
-//Path -
-var Path map[string][]string
-
-//Router -
-var Router *gin.Engine
-
 //CORE SOCKET IS THE WHERE ALL THE MODULES EXCHANGE WILL BE TREATED
 //ALL THE APP IS CONSTIUED BY MODULES
 //THE CORE IS THIS HERE TO HANDLE AND LOG THESE DIFFERENTS MODULES
-func launchServer(Router *gin.Engine) {
+func launchServer(router *gin.Engine) {
 	log.Print("START SERVER")
 	//AUTHENTICATION ENDPOINT
-	Router.POST("/connect", connect)
+	router.POST("/connect", connect)
 
 	server := &http.Server{
 		Addr:    config.SERVER.ADDRESS + ":" + config.SERVER.PORT + config.SERVER.PATH,
-		Handler: Router,
+		Handler: router,
 	}
 	log.Fatal("ERROR SERVING : ", server.ListenAndServe())
 }
 
-func initCore() {
+func motd() {
+	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
+	file, err := os.Open("motd.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
+	fmt.Println("------------------------------------------------------------ ")
+}
+
+func initCore() {
+	wd, err := os.Getwd()
+
+	//WORKING DIR + "/mods" (NEED ALREADY CREATED DIR (DO AT STARTUP ?))
+	os.Mkdir(wd+"/mods", os.ModeDir)
+	if err == nil {
+		//TODO
+	}
 }
 
 //LaunchCore - start core server
 func LaunchCore(configPath string) {
-	log.Print("STARTING Core")
+	motd()
 
-	// STEP 1 INIT CORE
+	// STEP 1 Init
 	initCore()
 
 	// STEP 2 READ CONFIG FILE
 	config = readConfig(configPath)
 
-	Router := gin.Default()
+	router := gin.Default()
 
 	// STEP 4 LOAD MODULES
-	go loadModules(Router)
+	go loadModules(router)
 
 	// STEP 5 START SERVER WHERE MODULES WILL REGISTER
-	launchServer(Router)
+	launchServer(router)
 }
 
-func loadModules(Router *gin.Engine) {
-	log.Print("LOAD MODULES")
+func loadModules(router *gin.Engine) {
 	for k := range config.MODULES {
 		mod := config.MODULES[k]
-		log.Print(mod.NAME + " LOADING")
-		mod.BuildAndStart()
-		mod.Hook(Router)
+		err := mod.Setup(router)
+		if err != nil {
+			log.Println(err)
+		}
 		config.MODULES[k] = mod
 	}
 }
