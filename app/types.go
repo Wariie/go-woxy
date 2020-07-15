@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/internal/bytesconv"
 	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
 )
 
@@ -89,7 +88,7 @@ func (mc *ModuleConfig) Start() {
 
 	cmd := exec.Command("pwd")
 	b, err := cmd.Output()
-	log.Println(bytesconv.BytesToString(b))
+	log.Println(string(b))
 
 	startCmd := ""
 	binPath := "./mods/" + mc.NAME + "/" + mc.BIN
