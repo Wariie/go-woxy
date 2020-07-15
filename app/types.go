@@ -87,7 +87,7 @@ func (mc *ModuleConfig) Start() {
 	//logFileName := mc.NAME + ".txt"
 
 	cmd := exec.Command("pwd")
-	b, err := cmd.Output()
+	//b, err := cmd.Output()
 	log.Println()
 
 	var startCmd [3]string
