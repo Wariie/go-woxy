@@ -84,13 +84,13 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 //Start - Start module with config args and auto args
 func (mc *ModuleConfig) Start() {
 	mc.STATE = "LAUNCHING"
-	logFileName := mc.NAME + ".txt"
+	//logFileName := mc.NAME + ".txt"
 	startCmd := ""
 	binPath := "./mods/" + mc.NAME + "/" + mc.BIN
 	if runtime.GOOS == "windows" {
 		startCmd = binPath //+ " > " + logFileName
 	} else {
-		startCmd = "nohup " + binPath + " > " + logFileName + "2>&1"
+		startCmd = "nohup " + binPath + "&" // + " > " + logFileName + "2>&1"
 	}
 
 	cmd := exec.Command(startCmd)
