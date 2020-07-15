@@ -98,9 +98,9 @@ func (mc *ModuleConfig) Start() {
 		startCmd = "nohup " + binPath + " &" // + " > " + logFileName + "2>&1"
 	}
 
-	cmd := exec.Command(startCmd)
+	cmd = exec.Command(startCmd)
 	cmd.Stdout = os.Stdout
-	err := cmd.Start()
+	err = cmd.Start()
 	log.Println("Starting mod : ", mc, " - ", err)
 }
 
