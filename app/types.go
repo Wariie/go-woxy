@@ -90,7 +90,7 @@ func (mc *ModuleConfig) Start() {
 	if runtime.GOOS == "windows" {
 		startCmd = binPath //+ " > " + logFileName
 	} else {
-		startCmd = "nohup " + binPath + "&" // + " > " + logFileName + "2>&1"
+		startCmd = "nohup " + binPath + " &" // + " > " + logFileName + "2>&1"
 	}
 
 	cmd := exec.Command(startCmd)
