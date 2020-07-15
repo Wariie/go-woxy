@@ -6,11 +6,11 @@
     mod.v0: 
       version: 1.0
       src: 'https://guilhem-mateo.fr/git/Wariie/mod.v0'
-      bin: 'C:\Users\Wariie\go\src\guilhem-mateo.fr\mod.v0\'
+      main_file: "testMod.go"
       server:
         path: "/test;/test/css/:file"
         port: 2985
-#    mod.v1: 
+#    mod.v0: 
 #      version: 1.0
-#      bin: 'C:\Users\Wariie\go\src\guilhem-mateo.fr\mod.v1\'
+#      bin: 'C:\Users\Wariie\go\src\guilhem-mateo.fr\mod.v0\'
 #      server:

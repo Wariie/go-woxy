@@ -43,7 +43,7 @@ func checkModulesConfig(mc map[string]ModuleConfig) map[string]ModuleConfig {
 	for k := range mc {
 		m := mc[k]
 		m.NAME = k
-		m.STATE = "DOWN"
+		m.STATE = "UNKNOW"
 
 		if m.SERVER.PROTOCOL == "" {
 			m.SERVER.PROTOCOL = "http"

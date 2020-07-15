@@ -6,9 +6,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"runtime"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
@@ -16,13 +14,14 @@ import (
 
 /*ModuleConfig - Module configuration */
 type ModuleConfig struct {
-	NAME    string
-	VERSION int
-	SRC     string
-	BIN     string
-	SERVER  ServerConfig
-	STATE   string
-	pk      string
+	NAME      string
+	VERSION   int
+	SRC       string
+	BIN       string
+	MAIN_FILE string
+	SERVER    ServerConfig
+	STATE     string
+	pk        string
 }
 
 //GetServer -
@@ -45,23 +44,6 @@ func (mc *ModuleConfig) Stop() int {
 	return 0
 }
 
-//Build - Build Module from src
-func (mc *ModuleConfig) Build() error {
-	mc.STATE = "BUILDING"
-
-	cmd := exec.Command("go", "build")
-	cmd.Dir = mc.BIN
-	out, err := cmd.Output()
-	log.Println("	Building mod : ", mc, " - ", string(out), " ", err)
-
-	mc.BIN = mc.NAME
-
-	if runtime.GOOS == "windows" {
-		mc.BIN += ".exe"
-	}
-	return err
-}
-
 //Setup - Setup module from config
 func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 	log.Println("Setup mod : ", mc)
@@ -72,12 +54,6 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 		log.Println("LOCAL BUILD or NO BUILD")
 	}
 
-	if mc.BIN != "" {
-		err := mc.Build()
-		if err != nil {
-			return err
-		}
-	}
 	return mc.Hook(router)
 }
 
@@ -86,24 +62,14 @@ func (mc *ModuleConfig) Start() {
 	mc.STATE = "LAUNCHING"
 	//logFileName := mc.NAME + ".txt"
 
-	cmd := exec.Command("pwd")
-	//b, err := cmd.Output()
-	//log.Println(string(b))
-
-	var startCmd [3]string
-	binPath := "/mods/" + mc.NAME + "/" + mc.BIN
-	if runtime.GOOS == "windows" {
-		startCmd[0] = binPath //+ " > " + logFileName
-	} else {
-		startCmd[0] = "nohup"
-		startCmd[1] = "$PWD" + binPath
-		startCmd[2] = " &" // + " > " + logFileName + "2>&1"
+	log.Println("Starting mod : ", mc)
+	cmd := exec.Command("go", "run", mc.MAIN_FILE)
+	cmd.Dir = mc.BIN
+	output, err := cmd.Output()
+	if err == nil {
+		log.Println(string(output), err)
 	}
-
-	cmd = exec.Command(startCmd[0], startCmd[1], startCmd[2])
-	cmd.Stdout = os.Stdout
-	err := cmd.Start()
-	log.Println("Starting mod : ", mc, " - ", err)
+	log.Println(string(output), err)
 }
 
 //Download - Download module from repository
@@ -122,16 +88,17 @@ func (mc *ModuleConfig) Download() {
 	out, err := cmd.Output()
 	log.Println("Downloaded mod : ", mc, " - ", string(out), " ", err)
 
-	mc.BIN = wd + "/mods/" + mc.NAME
+	mc.BIN = wd + "/mods/" + mc.NAME + "/" + mc.BIN
+	mc.STATE = "DOWNLOADED"
 }
 
 //Hook -
 func (mc *ModuleConfig) Hook(router *gin.Engine) error {
 	paths := strings.Split(mc.SERVER.PATH, ";")
 
-	for mc.STATE != "BUILDING" {
+	/*for mc.STATE != "DOWNLOADED" {
 		time.Sleep(time.Second * 2)
-	}
+	}*/
 
 	if len(paths) > 1 && len(paths[0]) > 0 {
 		for i := range paths {
