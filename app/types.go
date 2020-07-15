@@ -50,6 +50,7 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 	if strings.Contains(mc.SRC, "http") || strings.Contains(mc.SRC, "git@") {
 		log.Println("Downloading mod : ", mc.NAME)
 		mc.Download()
+		go mc.Start()
 	} else {
 		log.Println("LOCAL BUILD or NO BUILD")
 	}

@@ -86,7 +86,6 @@ func loadModules(router *gin.Engine) {
 		if err != nil {
 			log.Println(err)
 		}
-		go mod.Start()
 		config.MODULES[k] = mod
 	}
 }
