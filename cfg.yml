@@ -10,6 +10,7 @@
       server:
         path: "/;/css/:file;/img/:file;/js:file"
         port: 2985
+        
 #    mod.v0: 
 #      version: 1.0
 #      bin: 'C:\Users\Wariie\go\src\guilhem-mateo.fr\mod.v0\'
