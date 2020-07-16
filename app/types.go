@@ -88,13 +88,13 @@ func (mc *ModuleConfig) Download() {
 		var listArgs []string
 		var action string
 
-		if _, err := os.Stat(wd + "/mods" + "/" + mc.NAME); !os.IsNotExist(err) {
+		if _, err := os.Stat(wd + "/mods" + "/" + mc.NAME); !os.IsExist(err) {
 			//os.RemoveAll(wd + "/mods" + "/" + mc.NAME)
-			listArgs = []string{"pull"}
+			listArgs = []string{"clone", mc.EXE.SRC}
 			action = "Downloaded"
 		} else {
-			listArgs = []string{"pull", mc.NAME}
-			action = "Updated"
+			listArgs = []string{"pull"}
+			action = "Update"
 		}
 
 		cmd := exec.Command("git", listArgs...)
