@@ -1,5 +1,5 @@
 #FROM tikhoplav/go
-FROM golang:1.13.1-alpine3.10 as prepare
+FROM tikhoplav/go as prepare
 ENV GOPROXY direct
 WORKDIR /source
 
