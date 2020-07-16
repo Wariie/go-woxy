@@ -1,4 +1,4 @@
-FROM golang:alpine3.12
+FROM golang:1.14.5-alpine3.12
 ENV GO111MODULE=auto
 ENV GOPROXY direct
 WORKDIR /go/src/guilhem-mateo.fr/go-woxy
