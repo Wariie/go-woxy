@@ -1,7 +1,5 @@
-#FROM tikhoplav/go
 FROM tikhoplav/go as prepare
 ENV GOPROXY direct
-#ENV GOPROXY https://proxy.golang.org
 ENV GOSUMDB off
 WORKDIR /source
 
@@ -10,12 +8,7 @@ COPY . .
 RUN go mod tidy
 RUN go build
 
-#ENV GO111MODULE=auto
+EXPOSE 2000
 
-#WORKDIR /go/src/guilhem-mateo.fr/go-woxy
-#COPY . .
-#RUN go get github.com/gin-gonic/gin
-#RUN go build
-#EXPOSE 2000
-#EXPOSE 53
-#RUN ["./go-woxy","./cfg.yml"] 
+RUN ["./go-woxy","./cfg.yml"] 
+#ENV GO111MODULE=auto
