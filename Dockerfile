@@ -1,6 +1,8 @@
 FROM golang:1.14
 ENV GO111MODULE=auto
-ENV GOPROXY direct
+RUN apt-get update
+RUN apt-get upgrade -y
+ENV GOBIN /go/bin
 WORKDIR /go/src/guilhem-mateo.fr/go-woxy
 COPY . .
 EXPOSE 80
