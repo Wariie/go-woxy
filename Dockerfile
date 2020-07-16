@@ -2,8 +2,8 @@ FROM golang:1.14.5-alpine3.12
 ENV GO111MODULE=auto
 RUN export GOPATH=/go
 ENV GOPATH /go
-COPY . /go/guilhem-mateo.fr/go-woxy
-WORKDIR /go/guilhem-mateo.fr/go-woxy
+COPY . /go/src/guilhem-mateo.fr/go-woxy
+WORKDIR /go/src/guilhem-mateo.fr/go-woxy
 RUN export PATH=$PATH:$GOPATH/bin
 ENV PATH $PATH:$GOPATH/bin
 EXPOSE 2000
