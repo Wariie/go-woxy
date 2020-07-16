@@ -4,6 +4,6 @@ COPY . /go-woxy
 WORKDIR /go-woxy
 EXPOSE 2000
 EXPOSE 53
-RUN go get -u github.com/gin-gonic/gin
+#RUN go get -u github.com/gin-gonic/gin
 RUN go build
 RUN ./go-woxy ./cfg.yml
