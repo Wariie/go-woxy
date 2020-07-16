@@ -4,7 +4,7 @@ ENV GOPROXY direct
 WORKDIR /go/src/guilhem-mateo.fr/go-woxy
 COPY . .
 EXPOSE 80
-RUN echo -e "http://nl.alpinelinux.org/alpine/v3.12/main\nhttp://nl.alpinelinux.org/alpine/v3.12/community" > /etc/apk/repositories
+RUN echo -e "http://dl-cdn.alpinelinux.org/alpine/v3.12/main\nhttp://dl-cdn.alpinelinux.org/alpine/v3.12/community" > /etc/apk/repositories
 RUN apk add git
 RUN go get github.com/gin-gonic/gin
 RUN go build
