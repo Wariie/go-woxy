@@ -1,7 +1,7 @@
 #FROM tikhoplav/go
 FROM tikhoplav/go as prepare
-#ENV GOPROXY direct
-ENV GOPROXY https://proxy.golang.org
+ENV GOPROXY direct
+#ENV GOPROXY https://proxy.golang.org
 ENV GOSUMDB off
 WORKDIR /source
 
