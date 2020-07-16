@@ -1,7 +1,7 @@
 ---
   name: easy-go-test
   server:
-    ip: 0.0.0.0  
+    address: 0.0.0.0  
   modules: 
     mod.v0: 
       version: 1.0
