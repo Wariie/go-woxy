@@ -7,7 +7,8 @@ WORKDIR /source
 
 COPY . .
 
-RUN go mod download
+RUN go mod tidy
+RUN go build
 
 #ENV GO111MODULE=auto
 
