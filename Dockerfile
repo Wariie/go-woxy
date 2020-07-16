@@ -8,7 +8,6 @@ COPY . .
 RUN go mod tidy
 RUN go build
 
-EXPOSE 2000
-
 RUN ["./go-woxy","./cfg.yml"] 
+EXPOSE 2000/tcp
 #ENV GO111MODULE=auto
