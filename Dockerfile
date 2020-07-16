@@ -1,6 +1,7 @@
 #FROM tikhoplav/go
 FROM tikhoplav/go as prepare
 ENV GOPROXY direct
+ENV GOSUMDB off
 WORKDIR /source
 
 COPY . .
