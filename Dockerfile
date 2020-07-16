@@ -8,6 +8,6 @@ RUN export PATH=$PATH:$GOPATH/bin
 ENV PATH $PATH:$GOPATH/bin
 EXPOSE 2000
 EXPOSE 53
-#RUN go get -u github.com/gin-gonic/gin
+RUN go get github.com/gin-gonic/gin
 RUN go build
 RUN ["./go-woxy","./cfg.yml"] 
