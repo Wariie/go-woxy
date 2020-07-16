@@ -1,5 +1,5 @@
 FROM golang:1.14.5-alpine3.12
-ENV GO111MODULE=on
+ENV GO111MODULE=auto
 RUN export GOPATH=/go
 ENV GOPATH /go
 COPY . /go/guilhem-mateo.fr/go-woxy
@@ -10,4 +10,4 @@ EXPOSE 2000
 EXPOSE 53
 #RUN go get -u github.com/gin-gonic/gin
 RUN go build
-RUN ./go-woxy ./cfg.yml
+RUN ["./go-woxy","./cfg.yml"] 
