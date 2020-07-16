@@ -3,6 +3,7 @@ ENV GO111MODULE=auto
 ENV GOPROXY direct
 WORKDIR /go/src/guilhem-mateo.fr/go-woxy
 COPY . .
+RUN apk update -qq && apk add git
 RUN go get github.com/gin-gonic/gin
 RUN go build
 EXPOSE 2000
