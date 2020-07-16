@@ -3,8 +3,7 @@ FROM golang:1.13.1-alpine3.10 as prepare
 ENV GOPROXY direct
 WORKDIR /source
 
-COPY go.mod .
-COPY go.sum .
+COPY . .
 
 RUN go mod download
 
