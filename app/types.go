@@ -1,11 +1,13 @@
 package app
 
 import (
+	"fmt"
 	"log"
 	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/exec"
+	"reflect"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -14,42 +16,45 @@ import (
 
 /*ModuleConfig - Module configuration */
 type ModuleConfig struct {
-	NAME      string
-	VERSION   int
-	SRC       string
-	BIN       string
-	MAIN_FILE string
-	SERVER    ServerConfig
-	STATE     string
-	pk        string
+	NAME    string
+	VERSION int
+	TYPES   string
+	EXE     ModuleExecConfig
+	BINDING ServerConfig
+	STATE   string
+	pk      string
 }
 
 //GetServer -
 func (mc *ModuleConfig) GetServer() com.Server {
-	return com.Server{IP: mc.SERVER.ADDRESS, Path: mc.SERVER.PATH, Port: mc.SERVER.PORT, Protocol: mc.SERVER.PROTOCOL}
+	return com.Server{IP: mc.BINDING.ADDRESS, Path: mc.BINDING.PATH[0], Port: mc.BINDING.PORT, Protocol: mc.BINDING.PROTOCOL}
 }
 
 //Stop -
 func (mc *ModuleConfig) Stop() int {
+
 	if mc.STATE != "ONLINE" {
 		return -1
 	}
 	var sr com.ShutdownRequest
 	sr.Hash = mc.pk
 	sr.Name = mc.NAME
-	r := com.SendRequest(mc.GetServer(), &sr)
+	r := com.SendRequest(mc.GetServer(), &sr, false)
 	log.Println(r)
-	//TODO BETTER HANDLING RESULT
-
+	//TODO BEST GESTURE
+	if true {
+		mc.STATE = "STOPPED"
+	}
 	return 0
 }
 
 //Setup - Setup module from config
 func (mc *ModuleConfig) Setup(router *gin.Engine) error {
-	log.Println("Setup mod : ", mc)
-	if strings.Contains(mc.SRC, "http") || strings.Contains(mc.SRC, "git@") {
-		log.Println("Downloading mod : ", mc.NAME)
-		mc.Download()
+	fmt.Println("Setup mod : ", mc)
+	if !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
+			mc.Download()
+		}
 		go mc.Start()
 	} else {
 		log.Println("LOCAL BUILD or NO BUILD")
@@ -63,9 +68,9 @@ func (mc *ModuleConfig) Start() {
 	mc.STATE = "LAUNCHING"
 	//logFileName := mc.NAME + ".txt"
 
-	log.Println("Starting mod : ", mc)
-	cmd := exec.Command("go", "run", mc.MAIN_FILE)
-	cmd.Dir = mc.BIN
+	fmt.Println("Starting mod : ", mc)
+	cmd := exec.Command("go", "run", mc.EXE.MAIN)
+	cmd.Dir = mc.EXE.BIN
 	output, err := cmd.Output()
 	if err == nil {
 		log.Println(string(output), err)
@@ -73,39 +78,46 @@ func (mc *ModuleConfig) Start() {
 	log.Println(string(output), err)
 }
 
-//Download - Download module from repository
+//Download - Download module from repository ( git clone )
 func (mc *ModuleConfig) Download() {
 
-	cmd := exec.Command("git", "clone", mc.SRC)
-	wd, err := os.Getwd()
+	//fmt.Println("Downloading mod : ", mc.NAME)
+	if mc.STATE != "ONLINE" {
+		wd, err := os.Getwd()
 
-	//WORKING DIR + "/mods" (NEED ALREADY CREATED DIR (DO AT STARTUP ?))
-	cmd.Dir = wd + "/mods"
+		var listArgs []string
+		var action string
 
-	if _, err := os.Stat(cmd.Dir + "/" + mc.NAME); !os.IsNotExist(err) {
-		os.RemoveAll(cmd.Dir + "/" + mc.NAME)
+		if _, err := os.Stat(wd + "/mods" + "/" + mc.NAME); !os.IsNotExist(err) {
+			//os.RemoveAll(wd + "/mods" + "/" + mc.NAME)
+			listArgs = []string{"pull"}
+			action = "Downloaded"
+		} else {
+			listArgs = []string{"pull", mc.NAME}
+			action = "Updated"
+		}
+
+		cmd := exec.Command("git", listArgs...)
+		cmd.Dir = wd + "/mods"
+		out, err := cmd.Output()
+		fmt.Println(action, " mod : ", mc, " - ", string(out), " ", err)
+
+		mc.EXE.BIN = wd + "/mods/" + mc.NAME + "/" + mc.EXE.BIN
+		mc.STATE = "DOWNLOADED"
+	} else {
+		log.Fatalln("Error - Trying to download/update module while running\nStop it before")
 	}
-
-	out, err := cmd.Output()
-	log.Println("Downloaded mod : ", mc, " - ", string(out), " ", err)
-
-	mc.BIN = wd + "/mods/" + mc.NAME + "/" + mc.BIN
-	mc.STATE = "DOWNLOADED"
 }
 
-//Hook -
+//Hook - Create a binding between module config address and gin server
 func (mc *ModuleConfig) Hook(router *gin.Engine) error {
-	paths := strings.Split(mc.SERVER.PATH, ";")
+	paths := mc.BINDING.PATH
 
-	/*for mc.STATE != "DOWNLOADED" {
-		time.Sleep(time.Second * 2)
-	}*/
-
-	if len(paths) > 1 && len(paths[0]) > 0 {
+	if len(paths) > 0 && len(paths[0]) > 0 {
 		for i := range paths {
 			if len(paths[i]) > 0 {
 				router.GET(paths[i], ReverseProxy(mc, paths[i]))
-				log.Print("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + paths[i])
+				fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + paths[i])
 			}
 		}
 	}
@@ -115,12 +127,21 @@ func (mc *ModuleConfig) Hook(router *gin.Engine) error {
 //ReverseProxy - reverse proxy for mod
 func ReverseProxy(mc *ModuleConfig, path string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		url, err := url.Parse(mc.SERVER.PROTOCOL + "://" + mc.SERVER.ADDRESS + ":" + mc.SERVER.PORT)
-		if err != nil {
-			log.Println(err)
+		mod := GetManager().config.MODULES[mc.NAME]
+		if mod.STATE == "ONLINE" {
+			if mod.BINDING.ROOT != "" {
+				c.File(mod.BINDING.ROOT)
+			} else if strings.Contains(mod.TYPES, "web") {
+				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT)
+				if err != nil {
+					log.Println(err)
+				}
+				proxy := httputil.NewSingleHostReverseProxy(url)
+				proxy.ServeHTTP(c.Writer, c.Request)
+			}
+		} else {
+			c.String(503, "MODULE LOADING WAIT A SECOND PLEASE ....")
 		}
-		proxy := httputil.NewSingleHostReverseProxy(url)
-		proxy.ServeHTTP(c.Writer, c.Request)
 	}
 }
 
@@ -132,10 +153,18 @@ type Config struct {
 	SERVER  ServerConfig
 }
 
+/*ModuleExecConfig - Module exec file informations */
+type ModuleExecConfig struct {
+	SRC  string
+	MAIN string
+	BIN  string
+}
+
 /*ServerConfig - Server configuration*/
 type ServerConfig struct {
 	ADDRESS  string
 	PORT     string
-	PATH     string
+	PATH     []string
 	PROTOCOL string
+	ROOT     string
 }

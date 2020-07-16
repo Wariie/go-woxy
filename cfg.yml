@@ -1,16 +1,28 @@
 ---
   name: easy-go-test
   server:
-    address: 0.0.0.0  
+#    address: 0.0.0.0  
   modules: 
     mod.v0: 
       version: 1.0
-      src: 'https://guilhem-mateo.fr/git/Wariie/mod.v0'
-      main_file: "testMod.go"
-      server:
-        path: "/;/css/:file;/img/:file;/js:file"
-        port: 2985
-        
+      types: 'web'
+      exe:
+        src: 'https://guilhem-mateo.fr/git/Wariie/mod.v0'
+        main: "testMod.go"
+      binding:
+        path: 
+          - '/'
+          - '/css/:file'
+          - '/img/:file'
+          - '/js:file'
+        port: 2985  
+    hook:
+      version: 1.0
+      types: 'bind'
+      binding:
+        path:
+          - '/saucisse' 
+        root: "C:/index.html" 
 #    mod.v0: 
 #      version: 1.0
 #      bin: 'C:\Users\Wariie\go\src\guilhem-mateo.fr\mod.v0\'

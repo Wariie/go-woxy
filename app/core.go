@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -16,30 +16,30 @@ import (
 
 var configFile string
 
-var config Config
+var motdFileName string = "motd.txt"
 
 var secret string = "SECRET"
 
 //CORE SOCKET IS THE WHERE ALL THE MODULES EXCHANGE WILL BE TREATED
 //ALL THE APP IS CONSTIUED BY MODULES
 //THE CORE IS THIS HERE TO HANDLE AND LOG THESE DIFFERENTS MODULES
-func launchServer(router *gin.Engine) {
-	log.Print("START SERVER")
-	//AUTHENTICATION ENDPOINT
-	router.POST("/connect", connect)
+func launchServer() {
+	fmt.Print("Start Go-Woxy Server")
 
-	server := &http.Server{
-		Addr:    config.SERVER.ADDRESS + ":" + config.SERVER.PORT + config.SERVER.PATH,
-		Handler: router,
-	}
-	log.Fatal("ERROR SERVING : ", server.ListenAndServe())
+	//AUTHENTICATION ENDPOINT
+	GetManager().router.POST("/connect", connect)
+
+	server := getServerConfig(GetManager().config.SERVER, GetManager().router)
+
+	log.Fatalln("Error ListenAndServer : ", server.ListenAndServe())
 }
 
 func motd() {
 	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
-	file, err := os.Open("motd.txt")
+	file, err := os.Open(motdFileName)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln("No motd file ", motdFileName, " : ", err)
+		return
 	}
 	defer file.Close()
 
@@ -53,11 +53,13 @@ func motd() {
 func initCore() {
 	wd, err := os.Getwd()
 
-	//WORKING DIR + "/mods" (NEED ALREADY CREATED DIR (DO AT STARTUP ?))
 	os.Mkdir(wd+"/mods", os.ModeDir)
-	if err == nil {
-		//TODO
+	if err != nil {
+		log.Fatalln("Error creating mods folder : ", err)
+		os.Exit(1)
 	}
+
+	GetManager()
 }
 
 //LaunchCore - start core server
@@ -68,26 +70,34 @@ func LaunchCore(configPath string) {
 	initCore()
 
 	// STEP 2 READ CONFIG FILE
-	config = readConfig(configPath)
+	config := readConfig(configPath)
 
-	router := gin.Default()
+	man := GetManager()
+	man.config = config
+
+	Router := gin.Default()
+	man.router = Router
 
 	// STEP 4 LOAD MODULES
-	go loadModules(router)
+	go loadModules()
 
 	// STEP 5 START SERVER WHERE MODULES WILL REGISTER
-	launchServer(router)
+	launchServer()
 }
 
-func loadModules(router *gin.Engine) {
+func loadModules() {
+	config := GetManager().config
+	Router := GetManager().router
 	for k := range config.MODULES {
 		mod := config.MODULES[k]
-		err := mod.Setup(router)
+		err := mod.Setup(Router)
 		if err != nil {
-			log.Println(err)
+			log.Fatalln("Error setup module ", mod.NAME, " - ", err)
 		}
 		config.MODULES[k] = mod
 	}
+	GetManager().router = Router
+	GetManager().config = config
 }
 
 func connect(context *gin.Context) {
@@ -96,16 +106,18 @@ func connect(context *gin.Context) {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(context.Request.Body)
 	cr.Decode(buf.Bytes())
-	log.Println(buf.String())
-	modC := config.MODULES[cr.Name]
 
-	if modC == (ModuleConfig{}) {
-		errMsg := "ERROR Reading ConnexionRequest"
+	man := GetManager()
+	var modC ModuleConfig
+	modC = man.config.MODULES[cr.Name]
+
+	if reflect.DeepEqual(modC, ModuleConfig{}) {
+		errMsg := "Error reading ConnexionRequest"
 		log.Println(errMsg)
 		context.Writer.Write([]byte(errMsg))
 	} else {
 
-		modC.SERVER.ADDRESS = strings.Split(context.Request.RemoteAddr, ":")[0]
+		modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
 
 		tS := cr.Secret == secret
 		//CHECK SECRET FOR AUTH
@@ -115,10 +127,10 @@ func connect(context *gin.Context) {
 			modC.pk = cr.ModHash
 			modC.STATE = "ONLINE"
 
-			if modC.SERVER.PORT != "" {
-				cr.Port = modC.SERVER.PORT
+			if modC.BINDING.PORT != "" {
+				cr.Port = modC.BINDING.PORT
 			} else {
-				modC.SERVER.PORT = cr.Port
+				modC.BINDING.PORT = cr.Port
 			}
 
 		} else {
@@ -130,11 +142,11 @@ func connect(context *gin.Context) {
 		var crr com.ConnexionReponseRequest
 
 		result := strconv.FormatBool(tS)
-		log.Println("MOD ", modC.NAME, "CONNECT -", result)
+		fmt.Println("Module ", modC.NAME, " connecting - result : ", result)
 
 		crr.Generate(cr.Name, result, cr.ModHash, cr.Port)
 		context.Writer.Write(crr.Encode())
 	}
 
-	config.MODULES[cr.Name] = modC
+	man.config.MODULES[cr.Name] = modC
 }

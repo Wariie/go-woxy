@@ -3,6 +3,7 @@ package com
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -129,8 +130,11 @@ func (cr *ShutdownRequest) GetPath() string {
 }
 
 //SendRequest - sens request to server
-func SendRequest(s Server, r Request) string {
-	log.Println("	LAUNCH REQUEST - ", r, " TO ", s)
+func SendRequest(s Server, r Request, loging bool) string {
+
+	if loging {
+		fmt.Println("LAUNCH REQUEST - ", r, " TO ", s)
+	}
 
 	var customPath string = defaultPath
 	if r.GetPath() != "" {
