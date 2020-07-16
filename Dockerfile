@@ -1,4 +1,5 @@
 FROM golang:1.14.5-alpine3.12
+ENV GO111MODULE=on
 COPY . /go-woxy
 WORKDIR /go-woxy
 EXPOSE 2000
