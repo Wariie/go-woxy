@@ -1,4 +1,4 @@
-module go-woxy/app
+module github.com/Wariie/go-woxy/app
 
 go 1.14
 
