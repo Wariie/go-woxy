@@ -7,7 +7,7 @@ import (
 	"log"
 	"net/http"
 
-	rand "github.com/Wariie/go-woxy/app/rand"
+	rand "github.com/Wariie/go-woxy/tools"
 )
 
 var defaultPath = "/connect"

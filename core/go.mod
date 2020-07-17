@@ -1,9 +1,9 @@
-module github.com/Wariie/go-woxy/app
+module github.com/Wariie/go-woxy/core
 
 go 1.14
 
 require (
-	github.com/Wariie/go-woxy/app/com v0.0.0-00010101000000-000000000000
+	github.com/Wariie/go-woxy/com v0.0.0-00010101000000-000000000000
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.3.0 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
@@ -20,6 +20,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )
 
-replace github.com/Wariie/go-woxy/app/com => ../app/com
+replace github.com/Wariie/go-woxy/com => ../com
 
-replace github.com/Wariie/go-woxy/app/rand => ../app/rand
+replace github.com/Wariie/go-woxy/tools => ../tools

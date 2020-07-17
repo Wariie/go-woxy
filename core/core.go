@@ -1,4 +1,4 @@
-package app
+package core
 
 import (
 	"bufio"
@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	com "github.com/Wariie/go-woxy/app/com"
+	com "github.com/Wariie/go-woxy/com"
 	"github.com/gin-gonic/gin"
 )
 

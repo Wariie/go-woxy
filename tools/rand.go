@@ -1,4 +1,4 @@
-package rand
+package tools
 
 import (
 	"math/rand"
@@ -11,6 +11,7 @@ const charset = "abcdefghijklmnopqrstuvwxyz" +
 var seededRand *rand.Rand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
 
+//StringWithCharset -
 func StringWithCharset(length int, charset string) string {
 	b := make([]byte, length)
 	for i := range b {
@@ -19,6 +20,7 @@ func StringWithCharset(length int, charset string) string {
 	return string(b)
 }
 
+//String -
 func String(length int) string {
 	return StringWithCharset(length, charset)
 }
