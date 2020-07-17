@@ -7,7 +7,7 @@
       version: 1.0
       types: 'web'
       exe:
-        src: 'https://guilhem-mateo.fr/git/Wariie/mod.v0'
+        src: 'https://github.com/Wariie/mod.v0'
         main: "testMod.go"
       binding:
         path: 

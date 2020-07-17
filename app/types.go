@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"strings"
 
+	com "github.com/Wariie/go-woxy/app/com"
 	"github.com/gin-gonic/gin"
-	com "guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com"
 )
 
 /*ModuleConfig - Module configuration */

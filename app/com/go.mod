@@ -1,5 +1,5 @@
-module guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com
+module go-woxy/app/com
 
 go 1.14
 
-replace guilhem-mateo.fr/git/Wariie/go-woxy.git/app/rand => ../rand
+replace github.com/Wariie/go-woxy/app/rand => ../rand

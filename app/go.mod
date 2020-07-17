@@ -1,4 +1,4 @@
-module guilhem-mateo.fr/git/Wariie/go-woxy.git/app
+module go-woxy/app
 
 go 1.14
 
@@ -17,10 +17,10 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
-	guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com v0.0.0-00010101000000-000000000000
-	guilhem-mateo.fr/git/Wariie/go-woxy.git/app/rand v0.0.0-00010101000000-000000000000 // indirect
+	github.com/Wariie/go-woxy/app/com v0.0.0-00010101000000-000000000000
+	github.com/Wariie/go-woxy/app/rand v0.0.0-00010101000000-000000000000 // indirect
 )
 
-replace guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com => ../app/com
+replace github.com/Wariie/go-woxy/app/com => ../app/com
 
-replace guilhem-mateo.fr/git/Wariie/go-woxy.git/app/rand => ../app/rand
+replace github.com/Wariie/go-woxy/app/rand => ../app/rand

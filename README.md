@@ -5,7 +5,7 @@ Golang reverso proxy / application server
 
 ##### Clone the source code
 
-    git clone https://guilhem-mateo.fr/git/Wariie/go-woxy.git
+    git clone https://github.com/Wariie/go-woxy.git
     cd ./go-woxy
     
 ##### Edit **./cfg.yml** with your config *(or try with the default one)*
@@ -20,7 +20,7 @@ Golang reverso proxy / application server
 
 ### Dockerfile
 
-    git clone http://guilhem-mateo.fr/git/Wariie/go-woxy.git
+    git clone http://github.com/Wariie/go-woxy.git
     cd ./go-woxy
     docker build -t go-woxy .
     docker run -d go-woxy
@@ -39,7 +39,7 @@ Golang reverso proxy / application server
         version: 1.0
         types: 'web'
         exe:
-          src: 'https://guilhem-mateo.fr/git/Wariie/mod.v0'
+          src: 'https://github.com/Wariie/mod.v0'
           main: "testMod.go"
         binding:
           path: 
@@ -89,9 +89,9 @@ Golang reverso proxy / application server
 ## What's a go-woxy module
 
 Want to build your own ?
-See an example right **[there](https://guilhem-mateo.fr/git/Wariie/mod.v0)**
+See an example right **[there](https://github.com/Wariie/mod.v0)**
 
-Check **[here](https://guilhem-mateo.fr/git/Wariie/modbase)** for the module base code
+Check **[here](https://github.com/Wariie/modbase)** for the module base code
 
 
 
