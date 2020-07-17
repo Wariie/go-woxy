@@ -11,7 +11,7 @@ import (
 	gintemplate "github.com/foolin/gin-template"
 	"github.com/gin-gonic/gin"
 
-	com "github.com/Wariie/go-woxy/app/com"
+	com "github.com/Wariie/go-woxy/com"
 )
 
 //HubAddress - Ip Address of thes hub

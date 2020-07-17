@@ -18,5 +18,7 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
-	github.com/Wariie/go-woxy/app/com v0.0.0-20200717164838-825b3044e790
+	github.com/Wariie/go-woxy/com v0.0.0-00010101000000-000000000000
 )
+
+replace github.com/Wariie/go-woxy/com => ../com
