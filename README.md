@@ -28,7 +28,7 @@ Golang reverso proxy / application server
 
 ## Configuration
 
-### <a name="configexample"></a>Example 
+### Example 
 
         ---
     name: easy-go-test
@@ -59,34 +59,36 @@ Golang reverso proxy / application server
 
 **\* (M) is module option only**
 
-### <a name="baseconfig"></a>First declare general configuration
+### General configuration
 
 * **name** - (Required) server config name
-* **server** - (Required) server config (See [Server Configuration](#srvconfig) below for details)
-* **modules** - (Required) list of module config (See [Module Configuration](#modconfig) below for details)
+* **server** - (Required) server config (See [Server Configuration](#server-configuration) below for details)
+* **modules** - (Required) list of module config (See [Module Configuration](#module-configuration) below for details)
 * **version** - server config version
 
 
-### <a name="srvconfig"></a>Server Configuration
+### Server Configuration
 * **address** - server address (example : 127.0.0.1, guilhem-mateo.fr)
 * **port** - server port (example : 2000, 8080)
-* **path** - paths to bind (See example before [Example](#configexample))
+* **path** - paths to bind (See example before [Example](#example))
 * **root** - (M) bind to **root** if no **exe**
 * **protocol** - transfer protocol (supported : http, https)
 
-### <a name="modconfig"></a>Module Configuration
+### Module Configuration
 * **name** - module name
 * **version** - module version
 * **types** - (Required) module types (supported : web, bind)
-* **exe** - module executable informations (See [Module Executable Configuration](#modexeconfig))
-* **binding** - (Required) server config (See [Server Configuration](#srvconfig) below for details)
+* **exe** - module executable informations (See [Module Executable Configuration](#module-executable-configuration))
+* **binding** - (Required) server config (See [Server Configuration](#server-configuration) below for details)
 
-### <a name="modexeconfig"></a>Module Executable Configuration
+### Module Executable Configuration
 * **src** - git path of module repository
 * **main** - module main filename
 * **bin** - source module path
 
 ## What's a go-woxy module
+
+Want to build your own ? See right **[there](https://guilhem-mateo.fr/git/Wariie/modbase)**
 
 
 
