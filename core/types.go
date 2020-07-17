@@ -99,7 +99,7 @@ func (mc *ModuleConfig) Download() {
 
 		cmd := exec.Command("git", listArgs...)
 		cmd.Dir = wd + "/mods"
-		out, err := cmd.Output()
+		out, err := cmd.CombinedOutput()
 		fmt.Println(action, " mod : ", mc, " - ", string(out), " ", err)
 
 		mc.EXE.BIN = wd + "/mods/" + mc.NAME + "/" + mc.EXE.BIN
