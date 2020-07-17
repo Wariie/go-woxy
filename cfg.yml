@@ -22,7 +22,7 @@
       binding:
         path:
           - '/saucisse' 
-        root: "C:/index.html" 
+        root: "./ressources/saucisse.html" 
 #    mod.v0: 
 #      version: 1.0
 #      bin: 'C:\Users\Wariie\go\src\guilhem-mateo.fr\mod.v0\'
