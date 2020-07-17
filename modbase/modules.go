@@ -161,7 +161,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 	cr.Generate(mod.GetName(), "SECRET", ModulePort)
 
 	//SEND REQUEST
-	body := com.SendRequest(com.Server{IP: HubAddress, Port: HubPort, Path: "", Protocol: "http"}, &cr)
+	body := com.SendRequest(com.Server{IP: HubAddress, Port: HubPort, Path: "", Protocol: "http"}, &cr, false)
 
 	var crr com.ConnexionReponseRequest
 	crr.Decode(bytes.NewBufferString(body).Bytes())
