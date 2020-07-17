@@ -88,7 +88,10 @@ Golang reverso proxy / application server
 
 ## What's a go-woxy module
 
-Want to build your own ? See right **[there](https://guilhem-mateo.fr/git/Wariie/modbase)**
+Want to build your own ?
+See an example right **[there](https://guilhem-mateo.fr/git/Wariie/mod.v0)**
+
+Check **[here](https://guilhem-mateo.fr/git/Wariie/modbase)** for the module base code
 
 
 
