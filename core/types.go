@@ -111,7 +111,7 @@ func (mc *ModuleConfig) Download() {
 
 //Hook - Create a binding between module config address and gin server
 func (mc *ModuleConfig) Hook(router *gin.Engine) error {
-	paths := mc.BINDING.PATH
+	paths := append(mc.BINDING.PATH, "/cmd")
 
 	if len(paths) > 0 && len(paths[0]) > 0 {
 		for i := range paths {

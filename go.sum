@@ -1,13 +1,9 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/Wariie/go-woxy/com v0.0.0-20200717172826-a3fdbcd66e66 h1:cZ147WRf/le40eN2PxwqPKVb++qY+xIO1xo8QDAOfZQ=
-github.com/Wariie/go-woxy/com v0.0.0-20200717172826-a3fdbcd66e66/go.mod h1:RwZdf6KzfH5q4C4AjkTVAkACvghPlOEp2kqbWSePLOo=
 github.com/Wariie/go-woxy/com v0.0.0-20200720131430-b0d227e4baaa h1:GLY+wKL+w7jsCtYC2mFo6LfQNJIy7sChxcPF88lQ0SE=
 github.com/Wariie/go-woxy/com v0.0.0-20200720131430-b0d227e4baaa/go.mod h1:PGvNsAHqPqL8btHLEptfi8MU/PXESeVoExv3b6nsDWo=
-github.com/Wariie/go-woxy/com v0.0.0-20200720133307-c8bf56454f2f h1:9etqPHGFlUTUbW69v/Az98pSaNv8nzAswLWwaSqanIM=
-github.com/Wariie/go-woxy/com v0.0.0-20200720133307-c8bf56454f2f/go.mod h1:PGvNsAHqPqL8btHLEptfi8MU/PXESeVoExv3b6nsDWo=
-github.com/Wariie/go-woxy/core v0.0.0-20200717174505-fbf73fb2fd4a h1:/fHY3kFfwb5yU1Rs4e6aOLs2wxXpv+ldrehFzf6tt6Y=
-github.com/Wariie/go-woxy/core v0.0.0-20200717174505-fbf73fb2fd4a/go.mod h1:M1aXrlfZoNwigzU4+vdvzwKIB6B1N8s2hxH7BF6Q/Ls=
+github.com/Wariie/go-woxy/com v0.0.0-20200720141450-b3ed4b4aba63 h1:VRrMtJWKmz92u+YDw4Njcq2LsPbPls82PV8XXDxVozU=
+github.com/Wariie/go-woxy/com v0.0.0-20200720141450-b3ed4b4aba63/go.mod h1:PGvNsAHqPqL8btHLEptfi8MU/PXESeVoExv3b6nsDWo=
 github.com/Wariie/go-woxy/core v0.0.0-20200720133307-c8bf56454f2f h1:i1gs5X+Ecn7k5R+oLvD5V5FaZvbvtPL69F3smHW6iEc=
 github.com/Wariie/go-woxy/core v0.0.0-20200720133307-c8bf56454f2f/go.mod h1:qTCmwS49c6ZK4RuGLUnvQ7bSijK9IUgZ0pVp09odffk=
 github.com/Wariie/go-woxy/tools v0.0.0-20200717173657-ca4e3bb095d6 h1:MNFCOnw0LZSy3lmmmws4sebSprjeprTyV6ugYjRQH/I=

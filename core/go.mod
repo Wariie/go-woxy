@@ -3,8 +3,8 @@ module github.com/Wariie/go-woxy/core
 go 1.14
 
 require (
-	github.com/Wariie/go-woxy/com v0.0.0-20200720131430-b0d227e4baaa
-	github.com/Wariie/go-woxy/tools v0.0.0-20200720131430-b0d227e4baaa // indirect
+	github.com/Wariie/go-woxy/com v0.0.0-20200720141450-b3ed4b4aba63
+	github.com/Wariie/go-woxy/tools v0.0.0-20200720133307-c8bf56454f2f // indirect
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.3.0 // indirect
 	github.com/golang/protobuf v1.4.2 // indirect
