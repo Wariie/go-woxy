@@ -133,8 +133,8 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 
 func cmd(c *gin.Context) {
 	log.Println("Command request")
-	r := com.GetCustomType(c.Request)
-	if r.GetType() == "Shutdown" {
+	t := com.GetCustomRequestType(c.Request)
+	if t == "Shutdown" {
 		log.Println("Shutdown")
 	}
 }
