@@ -121,6 +121,7 @@ func (mc *ModuleConfig) Hook(router *gin.Engine) error {
 			}
 		}
 	}
+
 	return nil
 }
 

@@ -15,7 +15,6 @@
           - '/css/:file'
           - '/img/:file'
           - '/js:file'
-          - '/cmd'
         port: 2985  
     hook:
       version: 1.0

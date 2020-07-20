@@ -217,19 +217,13 @@ func SendRequest(s Server, r Request, loging bool) string {
 	return ""
 }
 
-// GetCustomRequest - get custom request from gin Request Body
-func GetCustomRequest(gRqt *http.Request) Request {
+// GetCustomRequestType - get custom request from gin Request Body
+func GetCustomRequestType(gRqt *http.Request) string {
 
 	var dr DefaultRequest
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(gRqt.Body)
 	dr.Decode(buf.Bytes())
 
-	if dr.Type == "Shutdown" {
-		var sr ShutdownRequest
-		sr.Decode(buf.Bytes())
-		return &sr
-	}
-
-	return nil
+	return dr.Type
 }
