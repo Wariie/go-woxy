@@ -7,7 +7,7 @@
       version: 1.0
       types: 'web'
       exe:
-        src: 'http://github.com/Wariie/mod.v0'
+        src: 'https://github.com/Wariie/mod.v0.git'
         main: "testMod.go"
       binding:
         path: 
@@ -15,6 +15,7 @@
           - '/css/:file'
           - '/img/:file'
           - '/js:file'
+          - '/cmd'
         port: 2985  
     hook:
       version: 1.0

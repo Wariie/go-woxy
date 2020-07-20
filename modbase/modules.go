@@ -120,8 +120,8 @@ func (mod *ModuleImpl) GetInstanceName() string {
 
 /*serve -  */
 func (mod *ModuleImpl) serve(ip string, port string) {
-	mod.Router.POST("/cmd", cmd)
-	mod.Router.POST("/shutdown", shutdown)
+	mod.Router.GET("/cmd", cmd)
+	mod.Router.GET("/shutdown", shutdown)
 	mod.Router.Run(ip + ":" + port)
 
 	Server := &http.Server{
