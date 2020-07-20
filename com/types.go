@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	rand "github.com/Wariie/go-woxy/tools"
 )
 
@@ -26,6 +28,7 @@ type Request interface {
 	Encode() []byte
 	Generate(list ...string)
 	GetPath() string
+	GetType() string
 }
 
 /*ConnexionRequest - server connexion request */
@@ -34,6 +37,7 @@ type ConnexionRequest struct {
 	Secret  string
 	Port    string
 	ModHash string
+	Type    string
 }
 
 //Decode - Decode JSON to ConnexionRequest
@@ -56,11 +60,17 @@ func (cr *ConnexionRequest) Generate(list ...string) {
 	cr.Secret = list[1]
 	cr.Port = list[2]
 	cr.ModHash = rand.String(15)
+	cr.Type = "Connexion"
 }
 
 /*GetPath - ConnexionRequest path string*/
 func (cr *ConnexionRequest) GetPath() string {
 	return defaultPath
+}
+
+/*GetType - ConnexionRequest request type*/
+func (cr *ConnexionRequest) GetType() string {
+	return cr.Type
 }
 
 //ConnexionReponseRequest - ConnexionReponseRequest
@@ -69,6 +79,7 @@ type ConnexionReponseRequest struct {
 	State string
 	Hash  string
 	Port  string
+	Type  string
 }
 
 //Decode - Decode JSON to ConnexionReponseRequest
@@ -91,6 +102,7 @@ func (cr *ConnexionReponseRequest) Generate(list ...string) {
 	cr.State = list[1]
 	cr.Hash = list[2]
 	cr.Port = list[3]
+	cr.Type = "ConnexionResponse"
 }
 
 /*GetPath - ConnexionReponseRequest path string*/
@@ -98,10 +110,16 @@ func (cr *ConnexionReponseRequest) GetPath() string {
 	return defaultPath
 }
 
+/*GetType - ConnexionResponseRequest request type*/
+func (cr *ConnexionReponseRequest) GetType() string {
+	return cr.Type
+}
+
 /*ShutdownRequest - server connexion request */
 type ShutdownRequest struct {
 	Name string
 	Hash string
+	Type string
 }
 
 //Decode - Decode JSON to ShutdownRequest
@@ -118,15 +136,59 @@ func (cr *ShutdownRequest) Encode() []byte {
 	return b
 }
 
-//Generate - Generate ConnexionRequest with params
+//Generate - Generate ShutdownRequest with params
 func (cr *ShutdownRequest) Generate(list ...string) {
 	cr.Name = list[0]
 	cr.Hash = list[1]
+	cr.Type = "Shutdown"
 }
 
 /*GetPath - ShutdownRequest path string*/
 func (cr *ShutdownRequest) GetPath() string {
 	return "/shutdown"
+}
+
+/*GetType - ShutdownRequest request type*/
+func (cr *ShutdownRequest) GetType() string {
+	return cr.Type
+}
+
+/*DefaultRequest - DefaultRequest*/
+type DefaultRequest struct {
+	Name string
+	Hash string
+	Type string
+}
+
+//Decode - Decode JSON to DefaultRequest
+func (cr *DefaultRequest) Decode(b []byte) {
+	json.NewDecoder(bytes.NewBuffer(b)).Decode(cr)
+}
+
+//Encode - Encode DefaultRequest to JSON
+func (cr *DefaultRequest) Encode() []byte {
+	b, err := json.Marshal(cr)
+	if err != nil {
+		log.Println("error:", err)
+	}
+	return b
+}
+
+//Generate - Generate DefaultRequest with params
+func (cr *DefaultRequest) Generate(list ...string) {
+	cr.Name = list[0]
+	cr.Hash = list[1]
+	cr.Type = "Shutdown"
+}
+
+/*GetPath - DefaultRequest path string*/
+func (cr *DefaultRequest) GetPath() string {
+	return "/cdm"
+}
+
+/*GetType - DefaultRequest request type*/
+func (cr *DefaultRequest) GetType() string {
+	return cr.Type
 }
 
 //SendRequest - sens request to server
@@ -155,4 +217,21 @@ func SendRequest(s Server, r Request, loging bool) string {
 		return buf.String()
 	}
 	return ""
+}
+
+// GetCustomRequest - get custom request from gin Request Body
+func GetCustomRequest(gRqt gin.Request) Request {
+
+	var dr DefaultRequest
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(gRqt.Body)
+	dr.Decode(buf.Bytes())
+
+	if dr.Type == "Shutdown" {
+		var sr ShutdownRequest
+		sr.Decode(buf.Bytes())
+		return sr
+	}
+
+	return nil
 }
