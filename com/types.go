@@ -7,8 +7,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-
 	rand "github.com/Wariie/go-woxy/tools"
 )
 
@@ -128,7 +126,7 @@ func (cr *ShutdownRequest) Decode(b []byte) {
 }
 
 //Encode - Encode ShutdownRequest to JSON
-func (cr *ShutdownRequest) Encode() []byte {
+func (cr ShutdownRequest) Encode() []byte {
 	b, err := json.Marshal(cr)
 	if err != nil {
 		log.Println("error:", err)
@@ -137,7 +135,7 @@ func (cr *ShutdownRequest) Encode() []byte {
 }
 
 //Generate - Generate ShutdownRequest with params
-func (cr *ShutdownRequest) Generate(list ...string) {
+func (cr ShutdownRequest) Generate(list ...string) {
 	cr.Name = list[0]
 	cr.Hash = list[1]
 	cr.Type = "Shutdown"
@@ -220,7 +218,7 @@ func SendRequest(s Server, r Request, loging bool) string {
 }
 
 // GetCustomRequest - get custom request from gin Request Body
-func GetCustomRequest(gRqt gin.Request) Request {
+func GetCustomRequest(gRqt *http.Request) Request {
 
 	var dr DefaultRequest
 	buf := new(bytes.Buffer)
@@ -230,7 +228,7 @@ func GetCustomRequest(gRqt gin.Request) Request {
 	if dr.Type == "Shutdown" {
 		var sr ShutdownRequest
 		sr.Decode(buf.Bytes())
-		return sr
+		return &sr
 	}
 
 	return nil
