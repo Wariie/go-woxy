@@ -1,5 +1,9 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/Wariie/go-woxy/com v0.0.0-20200720212153-28468f90ce71 h1:mWqAbJNTJ7PKSvZDYA0Lqz/0xZQcKUFws69jtnaxay8=
+github.com/Wariie/go-woxy/com v0.0.0-20200720212153-28468f90ce71/go.mod h1:f+G8/7iCBZCzpxpyBzjGfHCen5gm00e3SiZjmnPCrqI=
+github.com/Wariie/go-woxy/tools v0.0.0-20200720212153-28468f90ce71 h1:3NIpMM+8Egry5ol/XJYhURaj9uH6P/qT0NVdH8r5Q+Q=
+github.com/Wariie/go-woxy/tools v0.0.0-20200720212153-28468f90ce71/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
