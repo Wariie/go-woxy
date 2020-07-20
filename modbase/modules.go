@@ -120,7 +120,7 @@ func (mod *ModuleImpl) GetInstanceName() string {
 
 /*serve -  */
 func (mod *ModuleImpl) serve(ip string, port string) {
-	mod.Router.POST("/ap", accessPoint)
+	mod.Router.POST("/cmd", cmd)
 	mod.Router.POST("/shutdown", shutdown)
 	mod.Router.Run(ip + ":" + port)
 
@@ -131,8 +131,12 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 	log.Fatal(Server.ListenAndServe())
 }
 
-func accessPoint(c *gin.Context) {
-	log.Println("ACCESS POINT CALL")
+func cmd(c *gin.Context) {
+	log.Println("Command request")
+	r := com.GetCustomRequest(c.Request)
+	if r.Type == "Shutdown" {
+		log.Println("Shutdown")
+	}
 }
 
 func shutdown(c *gin.Context) {

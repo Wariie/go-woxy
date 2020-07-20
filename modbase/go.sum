@@ -1,9 +1,11 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/Wariie/go-woxy/com v0.0.0-20200717172826-a3fdbcd66e66 h1:cZ147WRf/le40eN2PxwqPKVb++qY+xIO1xo8QDAOfZQ=
-github.com/Wariie/go-woxy/com v0.0.0-20200717172826-a3fdbcd66e66/go.mod h1:RwZdf6KzfH5q4C4AjkTVAkACvghPlOEp2kqbWSePLOo=
+github.com/Wariie/go-woxy/com v0.0.0-20200720130819-e63794e4ddf2 h1:QrNb1DPR7RVYwtnY+IIx1BM9iTih121je0jM5yX2jTQ=
+github.com/Wariie/go-woxy/com v0.0.0-20200720130819-e63794e4ddf2/go.mod h1:GohoZQZlO94IQEq+lrLOes1IPO/clZBQGI0jH3SYmis=
 github.com/Wariie/go-woxy/tools v0.0.0-20200717173657-ca4e3bb095d6 h1:MNFCOnw0LZSy3lmmmws4sebSprjeprTyV6ugYjRQH/I=
 github.com/Wariie/go-woxy/tools v0.0.0-20200717173657-ca4e3bb095d6/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
+github.com/Wariie/go-woxy/tools v0.0.0-20200717183902-6dbe6cdd5e72 h1:GX/TmFwCNxbSNMhM15S6kXBf8RCe4nwuBECzVeCuDRM=
+github.com/Wariie/go-woxy/tools v0.0.0-20200717183902-6dbe6cdd5e72/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
@@ -146,5 +148,7 @@ gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c h1:dUUwHk2QECo/6vqA44rthZ8ie
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 h1:tQIYjPdBoyREyB9XMu+nnTclpTYkz2zFM+lzLJFO4gQ=
 gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+guilhem-mateo.fr/git/Wariie/go-woxy.git/app/com v0.0.0-20200717153645-a23f328b7d3a/go.mod h1:pekCcMsI1NteqEbKl9TY4RyeVPOrSY3I+NgxXWN88qw=
+guilhem-mateo.fr/git/Wariie/go-woxy.git/app/rand v0.0.0-20200717153645-a23f328b7d3a/go.mod h1:o3OcqmuLOuljPEL1Ks+t0j8gg/NKMK4VzXNA0BTQU+Q=
 honnef.co/go/tools v0.0.0-20190102054323-c2f93a96b099/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=
 honnef.co/go/tools v0.0.0-20190523083050-ea95bdfd59fc/go.mod h1:rf3lG4BRIbNafJWhAfAdb/ePZxsR/4RtNHQocxwk9r4=

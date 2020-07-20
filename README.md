@@ -75,7 +75,7 @@ Golang reverso proxy / application server
 * **protocol** - transfer protocol (supported : http, https)
 
 ### Module Configuration
-* **name** - module name
+* **name** - (Required) module name
 * **version** - module version
 * **types** - (Required) module types (supported : web, bind)
 * **exe** - module executable informations (See [Module Executable Configuration](#module-executable-configuration))
@@ -91,7 +91,9 @@ Golang reverso proxy / application server
 Want to build your own ?
 See an example right **[there](https://github.com/Wariie/mod.v0)**
 
-Check **[here](https://github.com/Wariie/modbase)** for the module base code
+
+
+Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the module base code
 
 
 
