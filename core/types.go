@@ -75,7 +75,7 @@ func (mc *ModuleConfig) Start() {
 	if runtime.GOOS == "windows" {
 		platformParam = []string{"cmd", "/c"}
 	} else {
-		platformParam = []string{"bash", "-c"}
+		platformParam = []string{"/bin/sh", "-c"}
 	}
 
 	fmt.Println("Starting mod : ", mc)
