@@ -24,9 +24,6 @@ var ModuleAddress = "127.0.0.1"
 //ModulePort -
 var ModulePort = "2501"
 
-//ModT -
-var ModT *ModuleImpl
-
 type (
 	/*HardwareUsage - Module hardware usage */
 	HardwareUsage struct {
@@ -81,7 +78,7 @@ func (mod *ModuleImpl) Run() {
 
 //Init - init module
 func (mod *ModuleImpl) Init() {
-	ModT = mod
+	GetModManager().SetMod(mod)
 	mod.Router = gin.New()
 	mod.Router.Use(gin.Logger())
 	mod.Router.Use(gin.Recovery())
@@ -130,7 +127,7 @@ func cmd(c *gin.Context) {
 
 	var response string
 
-	if t["Hash"] == ModT.Hash {
+	if t["Hash"] == GetModManager().GetMod().Hash {
 		response = "Error reading module Hash"
 	} else {
 
@@ -140,9 +137,9 @@ func cmd(c *gin.Context) {
 			sr.Decode(b)
 			log.Println("Request Content - ", sr)
 
-			response = "SHUTTING DOWN " + ModT.InstanceName
+			response = "SHUTTING DOWN " + GetModManager().GetMod().InstanceName
 
-			go ModT.Stop()
+			go GetModManager().Shutdown()
 		}
 	}
 	c.String(200, response)

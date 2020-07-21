@@ -11,6 +11,7 @@ import (
 type modManager struct {
 	server *http.Server
 	router *gin.Engine
+	mod    *ModuleImpl
 }
 
 var singleton *modManager
@@ -38,6 +39,14 @@ func (sm *modManager) GetRouter() *gin.Engine {
 
 func (sm *modManager) SetRouter(r *gin.Engine) {
 	sm.router = r
+}
+
+func (sm *modManager) SetMod(m *ModuleImpl) {
+	sm.mod = m
+}
+
+func (sm *modManager) GetMod() *ModuleImpl {
+	return sm.mod
 }
 
 func (sm *modManager) Shutdown() {
