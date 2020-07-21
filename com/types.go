@@ -218,12 +218,12 @@ func SendRequest(s Server, r Request, loging bool) string {
 }
 
 // GetCustomRequestType - get custom request from gin Request Body
-func GetCustomRequestType(gRqt *http.Request) string {
+func GetCustomRequestType(gRqt *http.Request) (string, []byte) {
 
 	var dr DefaultRequest
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(gRqt.Body)
 	dr.Decode(buf.Bytes())
 
-	return dr.Type
+	return dr.Type, buf.Bytes()
 }
