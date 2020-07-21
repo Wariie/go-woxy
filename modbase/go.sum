@@ -1,9 +1,9 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/Wariie/go-woxy/com v0.0.0-20200721074911-6f17c3810876 h1:FnHOtMeunlA9kNXaOq2HtUKA971HSOYbqdUlp2TO73A=
-github.com/Wariie/go-woxy/com v0.0.0-20200721074911-6f17c3810876/go.mod h1:f+G8/7iCBZCzpxpyBzjGfHCen5gm00e3SiZjmnPCrqI=
-github.com/Wariie/go-woxy/tools v0.0.0-20200721074340-31e467ffd72a h1:956wI6raSdU6i8OdWyvRraEZzgrsITpJpK1Q3958dBg=
-github.com/Wariie/go-woxy/tools v0.0.0-20200721074340-31e467ffd72a/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
+github.com/Wariie/go-woxy/com v0.0.0-20200721101122-45a38eabb816 h1:Th/Orz/o0YC3I8jvC7JOsXzn3Ys0YmmjqeDoN9wSY4c=
+github.com/Wariie/go-woxy/com v0.0.0-20200721101122-45a38eabb816/go.mod h1:f+G8/7iCBZCzpxpyBzjGfHCen5gm00e3SiZjmnPCrqI=
+github.com/Wariie/go-woxy/tools v0.0.0-20200721075923-59d12bd2d1f7 h1:EvYbfCuN3WfiYBOcNVwovl3x4kHuso/0284EPhi3sEM=
+github.com/Wariie/go-woxy/tools v0.0.0-20200721075923-59d12bd2d1f7/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
