@@ -51,7 +51,7 @@ func (sm *modManager) GetMod() *ModuleImpl {
 }
 
 func (sm *modManager) Shutdown(c *gin.Context) {
-	ctx, cancel := context.WithCancel(c)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if err := singleton.server.Shutdown(ctx); err != nil {
 		log.Fatal("Server force to shutdown:", err)
