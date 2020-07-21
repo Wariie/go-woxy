@@ -1,6 +1,7 @@
 package modbase
 
 import (
+	"context"
 	"net/http"
 	"sync"
 
@@ -37,4 +38,10 @@ func (sm *modManager) GetRouter() *gin.Engine {
 
 func (sm *modManager) SetRouter(r *gin.Engine) {
 	sm.router = r
+}
+
+func (sm *modManager) Shutdown() {
+	ctx, cancel := context.WithCancel(nil)
+	defer cancel()
+	singleton.server.Shutdown(ctx)
 }

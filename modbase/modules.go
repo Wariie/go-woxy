@@ -63,8 +63,7 @@ type (
 
 //Stop - stop module
 func (mod *ModuleImpl) Stop() {
-
-	GetModManager().server.Shutdown()
+	GetModManager().Shutdown()
 }
 
 //Run - start module function
@@ -121,7 +120,7 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 		Handler: mod.Router,
 	}
 
-	GetModManager().server = &Server
+	GetModManager().server = Server
 	log.Fatal(Server.ListenAndServe())
 }
 
@@ -132,22 +131,20 @@ func cmd(c *gin.Context) {
 	var response string
 
 	if t["Hash"] == ModT.Hash {
-		response := "Error reading module Hash"
+		response = "Error reading module Hash"
 	} else {
 
+		if t["Type"] == "Shutdown" {
+			log.Println("Shutdown")
+			var sr com.ShutdownRequest
+			sr.Decode(b)
+			log.Println("Request Content - ", sr)
+
+			response = "SHUTTING DOWN " + ModT.InstanceName
+
+			go ModT.Stop()
+		}
 	}
-
-	if t["Type"] == "Shutdown" {
-		log.Println("Shutdown")
-		var sr com.ShutdownRequest
-		sr.Decode(b)
-		log.Println("Request Content - ", sr)
-
-		response = "SHUTTING DOWN " + ModT.InstanceName
-
-		go ModT.Stop()
-	}
-
 	c.String(200, response)
 }
 
