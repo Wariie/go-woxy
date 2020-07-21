@@ -81,11 +81,11 @@ func (mc *ModuleConfig) Start() {
 	fmt.Println("Starting mod : ", mc)
 	cmd := exec.Command(platformParam[0], platformParam[1], "go", "run", mc.EXE.MAIN, ">", "log.log")
 	cmd.Dir = mc.EXE.BIN
-	err := cmd.Start()
+	output, err := cmd.Output()
 	if err != nil {
-		log.Println("Error", err)
+		log.Println("Error:", err)
 	}
-	//log.Println(string(output), err)
+	log.Println("Output :", string(output), err)
 }
 
 //Download - Download module from repository ( git clone )
