@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"io/ioutil"
 
 	com "github.com/Wariie/go-woxy/com"
 	"github.com/gin-gonic/gin"
@@ -181,7 +182,16 @@ func command(c *gin.Context) {
 				log.Println("Log")
 				var lr com.LogRequest
 				lr.Decode(b)
-				r = &lr
+				file, err := os.Open("./mods/"+mc.NAME+"/log.log")
+				if err != nil {
+        			log.Panicf("failed reading file: %s", err)
+    			}
+				b, err := ioutil.ReadAll(file)
+				fmt.Printf("\nLength: %d bytes", len(b))
+    			fmt.Printf("\nData: %s", b)
+    			fmt.Printf("\nError: %v", err)
+				lr.Content = string(b)
+
 			case "":
 				log.Println("Other")
 			}
