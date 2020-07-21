@@ -87,11 +87,12 @@ func (mod *ModuleImpl) Init() {
 //Register - register http handler for path
 func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerFunc, typeM string) {
 	log.Println("REGISTER - ", path)
-	mod.Router.Handle(method, path, handler)
+	GetModManager().GetRouter().Handle(method, path, handler)
 
 	if typeM == "WEB" {
-		mod.Router.HTMLRender = gintemplate.Default()
-		mod.Router.Static(path+"/ressources/", "./ressources/")
+		GetModManager().GetRouter().HTMLRender = gintemplate.Default()
+		GetModManager().GetRouter().Use(path+"/ressources/", static.LocalFile("/ressources", false))
+		//mod.Router.Static(path+"/ressources/", "./ressources/")
 		mod.Router.LoadHTMLGlob("./ressources/html/*.html")
 	}
 }

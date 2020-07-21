@@ -55,10 +55,9 @@ Golang reverso proxy / application server
           path:
             - '/saucisse' 
           root: "./ressources/saucisse.html"
-
-
-**\* (M) is module option only**
-
+  
+** (M) is module option only**
+  
 #### General configuration
 
 * **name** - (Required) server config name
