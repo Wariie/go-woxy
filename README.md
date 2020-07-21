@@ -3,7 +3,7 @@
 
 Golang reverso proxy / application server
 
-## How to use it ?
+## How to use it
 
 ### Installation
 
@@ -53,10 +53,10 @@ Golang reverso proxy / application server
         types: 'bind'
         binding:
           path:
-            - '/saucisse' 
+            - from: '/saucisse' 
           root: "./ressources/saucisse.html"
   
-** (M) is module option only**
+##### **(M) is module option only**
   
 #### General configuration
 
@@ -69,7 +69,7 @@ Golang reverso proxy / application server
 
 * **address** - server address (example : 127.0.0.1, guilhem-mateo.fr)
 * **port** - server port (example : 2000, 8080)
-* **path** - paths to bind (See example before [Example](#example))
+* **path** - paths to bind (from: 'path', to: 'customPath') (See example before [Example](#example))
 * **root** - (M) bind to **root** if no **exe**
 * **protocol** - transfer protocol (supported : http, https)
 

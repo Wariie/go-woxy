@@ -159,10 +159,13 @@ func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 			} else if strings.Contains(mod.TYPES, "web") {
 				//ELSE IF BINDING IS TYPE **WEB**
 				//REVERSE PROXY TO IT
+				query := ""
 				if r.TO == "" {
-					r.TO = c.Request.URL.Path
+					query = c.Request.URL.Path
+				} else {
+					query = r.TO
 				}
-				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
+				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + query)
 				if err != nil {
 					log.Println(err)
 				}
@@ -174,6 +177,7 @@ func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 			//RETURN 503 WHILE MODULE IS LOADING
 			c.String(503, "MODULE LOADING WAIT A SECOND PLEASE ....")
 		}
+		//GetManager().config.MODULES[mc.NAME] = mod
 	}
 }
 
