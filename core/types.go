@@ -77,9 +77,9 @@ func (mc *ModuleConfig) Start() {
 	} else {
 		platformParam = []string{"bash", "-c"}
 	}
-	
+
 	fmt.Println("Starting mod : ", mc)
-	cmd := exec.Command(platformParam[0], platformParam[1], "cmd", "/c", "go", "run", mc.EXE.MAIN, ">", "log.log")
+	cmd := exec.Command(platformParam[0], platformParam[1], "go", "run", mc.EXE.MAIN, ">", "log.log")
 	cmd.Dir = mc.EXE.BIN
 	err := cmd.Start()
 	if err != nil {
