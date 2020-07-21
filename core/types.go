@@ -113,6 +113,11 @@ func (mc *ModuleConfig) Download() {
 //HookAll - Create all binding between module config address and gin server
 func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	paths := mc.BINDING.PATH
+
+	if strings.Contains(mc.TYPES, "web") {
+		router.Static("/ressources", "./ressources")
+	}
+
 	if len(paths) > 0 && len(paths[0]) > 0 {
 		for i := range paths {
 			err := mc.Hook(router, paths[i], "", "GET")
@@ -136,7 +141,7 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, from string, to string, typeR s
 	}
 
 	if len(from) > 0 {
-		router.Handle("GET", from, ReverseProxy(mc, to))
+		router.Handle("GET", from, ReverseProxy(mc, from, to))
 		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + from + " => " + to)
 	}
 	return nil

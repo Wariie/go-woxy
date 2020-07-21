@@ -12,9 +12,6 @@
       binding:
         path: 
           - '/'
-          - '/css/:file'
-          - '/img/:file'
-          - '/js:file'
         port: 2985  
     hook:
       version: 1.0
