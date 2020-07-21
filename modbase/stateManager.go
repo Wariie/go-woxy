@@ -49,8 +49,8 @@ func (sm *modManager) GetMod() *ModuleImpl {
 	return sm.mod
 }
 
-func (sm *modManager) Shutdown() {
-	ctx, cancel := context.WithCancel(nil)
+func (sm *modManager) Shutdown(c *gin.Context) {
+	ctx, cancel := context.WithCancel(c)
 	defer cancel()
 	singleton.server.Shutdown(ctx)
 }

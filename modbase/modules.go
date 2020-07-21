@@ -139,7 +139,7 @@ func cmd(c *gin.Context) {
 
 			response = "SHUTTING DOWN " + GetModManager().GetMod().InstanceName
 
-			go GetModManager().Shutdown()
+			go GetModManager().Shutdown(c)
 		}
 	}
 	c.String(200, response)
