@@ -6,6 +6,10 @@ github.com/Wariie/go-woxy/com v0.0.0-20200721103644-c8e09825c6ea h1:TaaNJuimV/BI
 github.com/Wariie/go-woxy/com v0.0.0-20200721103644-c8e09825c6ea/go.mod h1:f+G8/7iCBZCzpxpyBzjGfHCen5gm00e3SiZjmnPCrqI=
 github.com/Wariie/go-woxy/com v0.0.0-20200721133627-33f0cea0d168 h1:Vn0QvtZu0TWFTLqLxOmk7vg8Fcee/WCkLhmW/Yf3dYE=
 github.com/Wariie/go-woxy/com v0.0.0-20200721133627-33f0cea0d168/go.mod h1:gW2ULgRwM3Zh5yeFPfOzr06i9sx10M1vdKISq7iw9eI=
+github.com/Wariie/go-woxy/com v0.0.0-20200721144426-4749d7319139 h1:WF8WxeDH+AZbEhfQfzF5OCLiXzZc3iFvBklKIibUiNQ=
+github.com/Wariie/go-woxy/com v0.0.0-20200721144426-4749d7319139/go.mod h1:gW2ULgRwM3Zh5yeFPfOzr06i9sx10M1vdKISq7iw9eI=
+github.com/Wariie/go-woxy/com v0.0.0-20200721145107-86ce2f1c1d23 h1:cUXaNo8MbSsJLW8dN+OLZGvSdTE6VpGWnupfPG0y48k=
+github.com/Wariie/go-woxy/com v0.0.0-20200721145107-86ce2f1c1d23/go.mod h1:gW2ULgRwM3Zh5yeFPfOzr06i9sx10M1vdKISq7iw9eI=
 github.com/Wariie/go-woxy/tools v0.0.0-20200721075923-59d12bd2d1f7 h1:EvYbfCuN3WfiYBOcNVwovl3x4kHuso/0284EPhi3sEM=
 github.com/Wariie/go-woxy/tools v0.0.0-20200721075923-59d12bd2d1f7/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
 github.com/Wariie/go-woxy/tools v0.0.0-20200721101316-26e2d26494a9 h1:xywNjEkFn1f7cp9w9geuOkX4oPMMt/BGNfSAjxg+lug=
@@ -14,6 +18,8 @@ github.com/Wariie/go-woxy/tools v0.0.0-20200721105108-6ed13a942a59 h1:Eh61zqpxYo
 github.com/Wariie/go-woxy/tools v0.0.0-20200721105108-6ed13a942a59/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
 github.com/Wariie/go-woxy/tools v0.0.0-20200721133627-33f0cea0d168 h1:v+gVrb2fEFLwxDtMlKnOFKRTUoeVr4ufoL/BqkteSm4=
 github.com/Wariie/go-woxy/tools v0.0.0-20200721133627-33f0cea0d168/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
+github.com/Wariie/go-woxy/tools v0.0.0-20200721144426-4749d7319139 h1:Bzo5l2H2zaIgNRyiV+QfQYsmdtfoqcueHl7O+Ee6b2Y=
+github.com/Wariie/go-woxy/tools v0.0.0-20200721144426-4749d7319139/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=

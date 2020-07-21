@@ -3,8 +3,8 @@ module github.com/Wariie/go-woxy/modbase
 go 1.14
 
 require (
-	github.com/Wariie/go-woxy/com v0.0.0-20200721133627-33f0cea0d168
-	github.com/Wariie/go-woxy/tools v0.0.0-20200721133627-33f0cea0d168 // indirect
+	github.com/Wariie/go-woxy/com v0.0.0-20200721145107-86ce2f1c1d23
+	github.com/Wariie/go-woxy/tools v0.0.0-20200721144426-4749d7319139 // indirect
 	github.com/foolin/gin-template v0.0.0-20190415034731-41efedfb393b
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.3.0 // indirect
