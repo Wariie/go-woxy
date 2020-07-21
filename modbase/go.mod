@@ -3,8 +3,8 @@ module github.com/Wariie/go-woxy/modbase
 go 1.14
 
 require (
-	github.com/Wariie/go-woxy/com v0.0.0-20200721074340-31e467ffd72a
-	github.com/Wariie/go-woxy/tools v0.0.0-20200721074340-31e467ffd72a // indirect
+	github.com/Wariie/go-woxy/com v0.0.0-20200721074911-6f17c3810876
+	github.com/Wariie/go-woxy/tools v0.0.0-20200721074911-6f17c3810876 // indirect
 	github.com/foolin/gin-template v0.0.0-20190415034731-41efedfb393b
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-playground/validator/v10 v10.3.0 // indirect
@@ -15,7 +15,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
-	golang.org/x/sys v0.0.0-20200625212154-ddb9806d33ae // indirect
+	golang.org/x/sys v0.0.0-20200720211630-cb9d2d5c5666 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
