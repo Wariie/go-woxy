@@ -75,17 +75,17 @@ func checkServerConfig(sc ServerConfig) ServerConfig {
 		sc.PORT = "2000"
 	}
 
-	if len(sc.PATH) == 0 {
-		sc.PATH = []string{""}
-	}
-
 	return sc
 }
 
 func getServerConfig(sc ServerConfig, router *gin.Engine) http.Server {
-	fmt.Println("SERVER ADDRESS : \"" + sc.ADDRESS + ":" + sc.PORT + sc.PATH[0] + "\"")
+	path := ""
+	if len(sc.PATH) > 0 {
+		path = sc.PATH[0].FROM
+	}
+	fmt.Println("SERVER ADDRESS : \"" + sc.ADDRESS + ":" + sc.PORT + path + "\"")
 	return http.Server{
-		Addr:    sc.ADDRESS + ":" + sc.PORT + sc.PATH[0],
+		Addr:    sc.ADDRESS + ":" + sc.PORT + path,
 		Handler: router,
 	}
 }

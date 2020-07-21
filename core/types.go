@@ -27,20 +27,22 @@ type ModuleConfig struct {
 }
 
 //GetServer -
-func (mc *ModuleConfig) GetServer() com.Server {
-	return com.Server{IP: mc.BINDING.ADDRESS, Path: mc.BINDING.PATH[0], Port: mc.BINDING.PORT, Protocol: mc.BINDING.PROTOCOL}
+func (mc *ModuleConfig) GetServer(path string) com.Server {
+	if path == "" {
+		path = mc.BINDING.PATH[0].FROM
+	}
+	return com.Server{IP: mc.BINDING.ADDRESS, Path: path, Port: mc.BINDING.PORT, Protocol: mc.BINDING.PROTOCOL}
 }
 
 //Stop -
 func (mc *ModuleConfig) Stop() int {
-
 	if mc.STATE != "ONLINE" {
 		return -1
 	}
 	var sr com.ShutdownRequest
 	sr.Hash = mc.pk
 	sr.Name = mc.NAME
-	r := com.SendRequest(mc.GetServer(), &sr, false)
+	r := com.SendRequest(mc.GetServer(""), &sr, false)
 	log.Println(r)
 	//TODO BEST GESTURE
 	if true {
@@ -115,12 +117,13 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	paths := mc.BINDING.PATH
 
 	if strings.Contains(mc.TYPES, "web") {
-		router.Static("/ressources", "./ressources")
+		r := Route{FROM: "/ressources/*filepath"}
+		mc.Hook(router, r, "GET")
 	}
 
-	if len(paths) > 0 && len(paths[0]) > 0 {
+	if len(paths) > 0 && len(paths[0].FROM) > 0 {
 		for i := range paths {
-			err := mc.Hook(router, paths[i], "", "GET")
+			err := mc.Hook(router, paths[i], "GET")
 			if err != nil {
 				return err
 			}
@@ -131,40 +134,44 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 }
 
 //Hook - Create a binding between module and gin server
-func (mc *ModuleConfig) Hook(router *gin.Engine, from string, to string, typeR string) error {
+func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 	if typeR == "" {
 		typeR = "GET"
 	}
-
-	if to == "" {
-		to = from
-	}
-
-	if len(from) > 0 {
-		router.Handle("GET", from, ReverseProxy(mc, from, to))
-		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + from + " => " + to)
+	if len(r.FROM) > 0 {
+		router.Handle("GET", r.FROM, ReverseProxy(mc, r))
+		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
 	return nil
 }
 
 //ReverseProxy - reverse proxy for mod
-func ReverseProxy(mc *ModuleConfig, path string, to string) gin.HandlerFunc {
+func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		mod := GetManager().config.MODULES[mc.NAME]
+
+		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == "ONLINE" {
+			//IF ROOT IS PRESENT REDIRECT TO IT
 			if mod.BINDING.ROOT != "" {
 				c.File(mod.BINDING.ROOT)
+
 			} else if strings.Contains(mod.TYPES, "web") {
-				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
+				//ELSE IF BINDING IS TYPE **WEB**
+				//REVERSE PROXY TO IT
+				if r.TO == "" {
+					r.TO = c.Request.URL.Path
+				}
+				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
 				if err != nil {
 					log.Println(err)
 				}
-
-				//TODO REFACTOR REVERSO PROXY WITH CUSTOM ONE TO REWRITE HOST
 				proxy := NewSingleHostReverseProxy(url)
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
+			//TODO HANDLE MORE STATES
 		} else {
+			//RETURN 503 WHILE MODULE IS LOADING
 			c.String(503, "MODULE LOADING WAIT A SECOND PLEASE ....")
 		}
 	}
@@ -176,7 +183,7 @@ func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
-		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
+		req.URL.Path = target.Path //singleJoiningSlash(target.Path, req.URL.Path)
 		if targetQuery == "" || req.URL.RawQuery == "" {
 			req.URL.RawQuery = targetQuery + req.URL.RawQuery
 		} else {
@@ -223,7 +230,13 @@ type ModuleExecConfig struct {
 type ServerConfig struct {
 	ADDRESS  string
 	PORT     string
-	PATH     []string
+	PATH     []Route
 	PROTOCOL string
 	ROOT     string
+}
+
+// Route - Route redirection
+type Route struct {
+	FROM string
+	TO   string
 }

@@ -28,6 +28,7 @@ func launchServer() {
 
 	//AUTHENTICATION ENDPOINT
 	GetManager().router.POST("/connect", connect)
+	GetManager().router.POST("/cmd", command)
 
 	server := getServerConfig(GetManager().config.SERVER, GetManager().router)
 
@@ -126,14 +127,13 @@ func connect(context *gin.Context) {
 			//UPDATE MOD ATTRIBUTES
 			modC.pk = cr.ModHash
 			modC.STATE = "ONLINE"
+			log.Println("HASH : ", modC.pk, " - MOD : ", modC.NAME)
 
 			if modC.BINDING.PORT != "" {
 				cr.Port = modC.BINDING.PORT
 			} else {
 				modC.BINDING.PORT = cr.Port
 			}
-
-			modC.Hook(GetManager().GetRouter(), "/"+modC.pk+"/cmd", "/cmd", "")
 
 		} else {
 			modC.STATE = "FAILED"
@@ -151,4 +151,50 @@ func connect(context *gin.Context) {
 	}
 
 	man.config.MODULES[cr.Name] = modC
+}
+
+// Command - Access point to manage go-woxy modules
+func command(c *gin.Context) {
+	log.Print("Go-Woxy Module Command request : ")
+	t, b := com.GetCustomRequestType(c.Request)
+
+	response := ""
+
+	switch t {
+	case "Shutdown":
+		log.Println("Shutdown")
+		var sr com.ShutdownRequest
+		sr.Decode(b)
+		log.Println("Request Content - ", sr)
+
+		if sr.Hash == "hub" {
+			//STOP SERVER
+			//TODO ACCESS HANDLING
+		} else if len(sr.Hash) > 0 {
+			mc := SearchModWithHash(sr.Hash)
+
+			if mc.NAME == "error" {
+				response = "Error reading module Hash"
+			} else {
+				s := mc.GetServer("")
+				com.SendRequest(s, &sr, true)
+			}
+
+		}
+
+	case "":
+		log.Println("Other")
+	}
+	c.String(200, response, nil)
+}
+
+//SearchModWithHash -
+func SearchModWithHash(hash string) ModuleConfig {
+	mods := GetManager().config.MODULES
+	for i := range mods {
+		if mods[i].pk == hash {
+			return mods[i]
+		}
+	}
+	return ModuleConfig{NAME: "error"}
 }

@@ -11,14 +11,14 @@
         main: "testMod.go"
       binding:
         path: 
-          - '/'
+          - from: '/'
         port: 2985  
     hook:
       version: 1.0
       types: 'bind'
       binding:
         path:
-          - '/saucisse' 
+          - from: '/saucisse' 
         root: "./ressources/saucisse.html" 
 #    mod.v0: 
 #      version: 1.0
