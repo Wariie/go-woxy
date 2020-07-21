@@ -59,8 +59,8 @@ type (
 )
 
 //Stop - stop module
-func (mod *ModuleImpl) Stop() {
-	GetModManager().Shutdown()
+func (mod *ModuleImpl) Stop(c *gin.Context) {
+	GetModManager().Shutdown(c)
 }
 
 //Run - start module function
