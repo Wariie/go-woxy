@@ -2,11 +2,15 @@ package modbase
 
 import (
 	"bytes"
+	"context"
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
 	gintemplate "github.com/foolin/gin-template"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 
 	com "github.com/Wariie/go-woxy/com"
@@ -91,7 +95,7 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 
 	if typeM == "WEB" {
 		GetModManager().GetRouter().HTMLRender = gintemplate.Default()
-		GetModManager().GetRouter().Use(path+"/ressources/", static.LocalFile("/ressources", false))
+		GetModManager().GetRouter().Use(static.Serve(path+"/ressources/", static.LocalFile("/ressources", false)))
 		//mod.Router.Static(path+"/ressources/", "./ressources/")
 		mod.Router.LoadHTMLGlob("./ressources/html/*.html")
 	}
@@ -169,4 +173,54 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 	ModulePort = crr.Port
 	return s && err == nil
+}
+
+type modManager struct {
+	server *http.Server
+	router *gin.Engine
+	mod    *ModuleImpl
+}
+
+var singleton *modManager
+var once sync.Once
+
+//GetModManager -
+func GetModManager() *modManager {
+	once.Do(func() {
+		singleton = &modManager{}
+	})
+	return singleton
+}
+
+func (sm *modManager) GetServer() *http.Server {
+	return sm.server
+}
+
+func (sm *modManager) SetServer(s *http.Server) {
+	sm.server = s
+}
+
+func (sm *modManager) GetRouter() *gin.Engine {
+	return sm.router
+}
+
+func (sm *modManager) SetRouter(r *gin.Engine) {
+	sm.router = r
+}
+
+func (sm *modManager) SetMod(m *ModuleImpl) {
+	sm.mod = m
+}
+
+func (sm *modManager) GetMod() *ModuleImpl {
+	return sm.mod
+}
+
+func (sm *modManager) Shutdown(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := singleton.server.Shutdown(ctx); err != nil {
+		log.Fatal("Server force to shutdown:", err)
+	}
+	log.Println("Server exiting")
 }
