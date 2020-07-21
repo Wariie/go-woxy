@@ -29,7 +29,7 @@ func (sm *modManager) GetServer() *http.Server {
 	return sm.server
 }
 
-func (sm *modManager) SetState(s *http.Server) {
+func (sm *modManager) SetServer(s *http.Server) {
 	sm.server = s
 }
 

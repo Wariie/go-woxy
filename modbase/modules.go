@@ -82,7 +82,6 @@ func (mod *ModuleImpl) Init() {
 	mod.Router = gin.New()
 	mod.Router.Use(gin.Logger())
 	mod.Router.Use(gin.Recovery())
-
 }
 
 //Register - register http handler for path
@@ -117,7 +116,7 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 		Handler: mod.Router,
 	}
 
-	GetModManager().server = Server
+	GetModManager().SetServer(Server)
 	log.Fatal(Server.ListenAndServe())
 }
 
