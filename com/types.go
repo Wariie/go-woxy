@@ -156,6 +156,7 @@ type LogRequest struct {
 	Name string
 	Hash string
 	Type string
+	Content string
 }
 
 //Decode - Decode JSON to LogRequest
