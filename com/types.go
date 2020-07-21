@@ -143,7 +143,7 @@ func (cr ShutdownRequest) Generate(list ...string) {
 
 /*GetPath - ShutdownRequest path string*/
 func (cr *ShutdownRequest) GetPath() string {
-	return "/shutdown"
+	return "cmd"
 }
 
 /*GetType - ShutdownRequest request type*/
@@ -176,12 +176,12 @@ func (cr *DefaultRequest) Encode() []byte {
 func (cr *DefaultRequest) Generate(list ...string) {
 	cr.Name = list[0]
 	cr.Hash = list[1]
-	cr.Type = "Shutdown"
+	cr.Type = "Default"
 }
 
 /*GetPath - DefaultRequest path string*/
 func (cr *DefaultRequest) GetPath() string {
-	return "/cdm"
+	return "cmd"
 }
 
 /*GetType - DefaultRequest request type*/

@@ -118,8 +118,7 @@ func (mod *ModuleImpl) GetInstanceName() string {
 
 /*serve -  */
 func (mod *ModuleImpl) serve(ip string, port string) {
-	mod.Router.GET("/cmd", cmd)
-	mod.Router.GET("/shutdown", shutdown)
+	mod.Router.POST("/cmd", cmd)
 	mod.Router.Run(ip + ":" + port)
 
 	Server := &http.Server{
@@ -137,25 +136,15 @@ func cmd(c *gin.Context) {
 		var sr com.ShutdownRequest
 		sr.Decode(b)
 		log.Println("Request Content - ", sr)
+
+		var b []byte
+		b = bytes.NewBufferString("SHUTTING DOWN " + ModT.InstanceName).Bytes()
+
+		c.Writer.Write(b)
+		c.AbortWithStatus(205)
+
+		go ModT.Stop()
 	}
-}
-
-func shutdown(c *gin.Context) {
-	log.Println("SHUTTING DOWN - FROM ", c.Request.RemoteAddr)
-
-	var sr com.ShutdownRequest
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(c.Request.Body)
-	sr.Decode(buf.Bytes())
-	log.Println(sr)
-
-	var b []byte
-	b = bytes.NewBufferString("SHUTTING DOWN " + ModT.InstanceName).Bytes()
-
-	c.Writer.Write(b)
-	c.AbortWithStatus(205)
-
-	go ModT.Stop()
 }
 
 func (mod *ModuleImpl) connectToHub() bool {
