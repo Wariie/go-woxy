@@ -32,6 +32,8 @@ func launchServer() {
 
 	server := getServerConfig(GetManager().config.SERVER, GetManager().router)
 
+	//GetManager().server = server
+
 	log.Fatalln("Error ListenAndServer : ", server.ListenAndServe())
 }
 
@@ -108,9 +110,8 @@ func connect(context *gin.Context) {
 	buf.ReadFrom(context.Request.Body)
 	cr.Decode(buf.Bytes())
 
-	man := GetManager()
 	var modC ModuleConfig
-	modC = man.config.MODULES[cr.Name]
+	modC = GetManager().config.MODULES[cr.Name]
 
 	if reflect.DeepEqual(modC, ModuleConfig{}) {
 		errMsg := "Error reading ConnexionRequest"
@@ -150,7 +151,7 @@ func connect(context *gin.Context) {
 		context.Writer.Write(crr.Encode())
 	}
 
-	man.config.MODULES[cr.Name] = modC
+	GetManager().config.MODULES[cr.Name] = modC
 }
 
 // Command - Access point to manage go-woxy modules
@@ -158,34 +159,45 @@ func command(c *gin.Context) {
 	log.Print("Go-Woxy Module Command request : ")
 	t, b := com.GetCustomRequestType(c.Request)
 
+	log.Println(string(t["Type"]))
+	//TODO HANDLE HUB ACCESS WITH CREDENTIALS
 	response := ""
 
-	switch t {
-	case "Shutdown":
-		log.Println("Shutdown")
-		var sr com.ShutdownRequest
-		sr.Decode(b)
-		log.Println("Request Content - ", sr)
+	if t["Hash"] == "hub" {
+		commandForHub(t, b)
+	} else {
+		mc := SearchModWithHash(t["Hash"])
 
-		if sr.Hash == "hub" {
-			//STOP SERVER
-			//TODO ACCESS HANDLING
-		} else if len(sr.Hash) > 0 {
-			mc := SearchModWithHash(sr.Hash)
-
-			if mc.NAME == "error" {
-				response = "Error reading module Hash"
-			} else {
-				s := mc.GetServer("")
-				com.SendRequest(s, &sr, true)
+		if mc.NAME == "error" {
+			response = "Error reading module Hash"
+		} else {
+			var r com.Request
+			switch t["Type"] {
+			case "Shutdown":
+				var sr com.ShutdownRequest
+				sr.Decode(b)
+				r = &sr
+			case "Log":
+				log.Println("Log")
+				var lr com.LogRequest
+				lr.Decode(b)
+				r = &lr
+			case "":
+				log.Println("Other")
 			}
-
+			com.SendRequest(mc.GetServer(""), r, true)
 		}
-
-	case "":
-		log.Println("Other")
 	}
 	c.String(200, response, nil)
+}
+
+func commandForHub(t map[string]string, b []byte) {
+
+	switch t["Type"] {
+	case "Shutdown":
+	case "Log":
+	case "test":
+	}
 }
 
 //SearchModWithHash -

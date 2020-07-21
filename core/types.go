@@ -72,7 +72,7 @@ func (mc *ModuleConfig) Start() {
 	//logFileName := mc.NAME + ".txt"
 
 	fmt.Println("Starting mod : ", mc)
-	cmd := exec.Command("go", "run", mc.EXE.MAIN)
+	cmd := exec.Command("go", "run", mc.EXE.MAIN, ">", "log.log")
 	cmd.Dir = mc.EXE.BIN
 	output, err := cmd.Output()
 	if err == nil {

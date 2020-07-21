@@ -151,20 +151,20 @@ func (cr *ShutdownRequest) GetType() string {
 	return cr.Type
 }
 
-/*DefaultRequest - DefaultRequest*/
-type DefaultRequest struct {
+/*LogRequest - LogRequest*/
+type LogRequest struct {
 	Name string
 	Hash string
 	Type string
 }
 
-//Decode - Decode JSON to DefaultRequest
-func (cr *DefaultRequest) Decode(b []byte) {
+//Decode - Decode JSON to LogRequest
+func (cr *LogRequest) Decode(b []byte) {
 	json.NewDecoder(bytes.NewBuffer(b)).Decode(cr)
 }
 
-//Encode - Encode DefaultRequest to JSON
-func (cr *DefaultRequest) Encode() []byte {
+//Encode - Encode LogRequest to JSON
+func (cr *LogRequest) Encode() []byte {
 	b, err := json.Marshal(cr)
 	if err != nil {
 		log.Println("error:", err)
@@ -172,20 +172,20 @@ func (cr *DefaultRequest) Encode() []byte {
 	return b
 }
 
-//Generate - Generate DefaultRequest with params
-func (cr *DefaultRequest) Generate(list ...string) {
+//Generate - Generate LogRequest with params
+func (cr *LogRequest) Generate(list ...string) {
 	cr.Name = list[0]
 	cr.Hash = list[1]
-	cr.Type = "Default"
+	cr.Type = "Log"
 }
 
 /*GetPath - DefaultRequest path string*/
-func (cr *DefaultRequest) GetPath() string {
+func (cr *LogRequest) GetPath() string {
 	return "cmd"
 }
 
-/*GetType - DefaultRequest request type*/
-func (cr *DefaultRequest) GetType() string {
+/*GetType - LogRequest request type*/
+func (cr *LogRequest) GetType() string {
 	return cr.Type
 }
 
@@ -218,12 +218,19 @@ func SendRequest(s Server, r Request, loging bool) string {
 }
 
 // GetCustomRequestType - get custom request from gin Request Body
-func GetCustomRequestType(gRqt *http.Request) (string, []byte) {
+func GetCustomRequestType(gRqt *http.Request) (map[string]string, []byte) {
 
-	var dr DefaultRequest
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(gRqt.Body)
-	dr.Decode(buf.Bytes())
 
-	return dr.Type, buf.Bytes()
+	c := make(map[string]string)
+
+	// unmarschal JSON
+	e := json.Unmarshal(buf.Bytes(), &c)
+
+	if e != nil {
+		return map[string]string{"error": "error"}, nil
+	}
+
+	return c, buf.Bytes()
 }

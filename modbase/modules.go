@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"log"
 	"net/http"
-	"os"
 	"strconv"
-	"time"
 
 	gintemplate "github.com/foolin/gin-template"
 	"github.com/gin-gonic/gin"
@@ -59,17 +57,14 @@ type (
 		Name         string
 		InstanceName string
 		Router       *gin.Engine
+		Hash         string
 	}
 )
 
 //Stop - stop module
 func (mod *ModuleImpl) Stop() {
 
-	//WAIT 2 SECOND FOR LAST HEADER REPONSE TO BE SENT
-	time.Sleep(2 * time.Second)
-
-	//KILL MODULE
-	os.Exit(0)
+	GetModManager().server.Shutdown()
 }
 
 //Run - start module function
@@ -125,26 +120,35 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 		Addr:    ip + ":" + port,
 		Handler: mod.Router,
 	}
+
+	GetModManager().server = Server
 	log.Fatal(Server.ListenAndServe())
 }
 
 func cmd(c *gin.Context) {
 	log.Println("Command request")
 	t, b := com.GetCustomRequestType(c.Request)
-	if t == "Shutdown" {
+
+	var response string
+
+	if t["Hash"] == ModT.Hash {
+		response := "Error reading module Hash"
+	} else {
+
+	}
+
+	if t["Type"] == "Shutdown" {
 		log.Println("Shutdown")
 		var sr com.ShutdownRequest
 		sr.Decode(b)
 		log.Println("Request Content - ", sr)
 
-		var b []byte
-		b = bytes.NewBufferString("SHUTTING DOWN " + ModT.InstanceName).Bytes()
-
-		c.Writer.Write(b)
-		c.AbortWithStatus(205)
+		response = "SHUTTING DOWN " + ModT.InstanceName
 
 		go ModT.Stop()
 	}
+
+	c.String(200, response)
 }
 
 func (mod *ModuleImpl) connectToHub() bool {
