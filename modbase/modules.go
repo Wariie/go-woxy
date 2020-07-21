@@ -121,7 +121,7 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 		Handler: mod.Router,
 	}
 
-	GetModManager().server = Server
+	GetModManager().server = &Server
 	log.Fatal(Server.ListenAndServe())
 }
 

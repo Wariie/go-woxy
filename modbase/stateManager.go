@@ -8,7 +8,7 @@ import (
 )
 
 type modManager struct {
-	server http.Server
+	server *http.Server
 	router *gin.Engine
 }
 
@@ -23,11 +23,11 @@ func GetModManager() *modManager {
 	return singleton
 }
 
-func (sm *modManager) GetServer() http.Server {
+func (sm *modManager) GetServer() *http.Server {
 	return sm.server
 }
 
-func (sm *modManager) SetState(s http.Server) {
+func (sm *modManager) SetState(s *http.Server) {
 	sm.server = s
 }
 
