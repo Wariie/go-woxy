@@ -4,12 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
-	"io/ioutil"
 
 	com "github.com/Wariie/go-woxy/com"
 	"github.com/gin-gonic/gin"
@@ -179,23 +179,21 @@ func command(c *gin.Context) {
 				sr.Decode(b)
 				r = &sr
 			case "Log":
-				log.Println("Log")
 				var lr com.LogRequest
 				lr.Decode(b)
-				file, err := os.Open("./mods/"+mc.NAME+"/log.log")
+				file, err := os.Open("./mods/" + mc.NAME + "/log.log")
 				if err != nil {
-        			log.Panicf("failed reading file: %s", err)
-    			}
+					log.Panicf("failed reading file: %s", err)
+				}
 				b, err := ioutil.ReadAll(file)
-				fmt.Printf("\nLength: %d bytes", len(b))
-    			fmt.Printf("\nData: %s", b)
-    			fmt.Printf("\nError: %v", err)
+				fmt.Printf("\nData: %s", b)
+				fmt.Printf("\nError: %v", err)
 				lr.Content = string(b)
-
+				r = &lr
 			case "":
 				log.Println("Other")
 			}
-			com.SendRequest(mc.GetServer(""), r, true)
+			com.SendRequest(mc.GetServer(""), r, false)
 		}
 	}
 	c.String(200, response, nil)
