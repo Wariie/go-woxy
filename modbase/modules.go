@@ -83,22 +83,25 @@ func (mod *ModuleImpl) Run() {
 //Init - init module
 func (mod *ModuleImpl) Init() {
 	GetModManager().SetMod(mod)
-	mod.Router = gin.New()
-	mod.Router.Use(gin.Logger())
-	mod.Router.Use(gin.Recovery())
+	r := gin.New()
+	r.Use(gin.Logger())
+	r.Use(gin.Recovery())
+	GetModManager().SetRouter(r)
 }
 
 //Register - register http handler for path
 func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerFunc, typeM string) {
 	log.Println("REGISTER - ", path)
-	GetModManager().GetRouter().Handle(method, path, handler)
+	r := GetModManager().GetRouter()
+	r.Handle(method, path, handler)
 
 	if typeM == "WEB" {
-		GetModManager().GetRouter().HTMLRender = gintemplate.Default()
-		GetModManager().GetRouter().Use(static.Serve(path+"/ressources/", static.LocalFile("/ressources", false)))
+		r.HTMLRender = gintemplate.Default()
+		r.Use(static.Serve(path+"/ressources/", static.LocalFile("/ressources", false)))
 		//mod.Router.Static(path+"/ressources/", "./ressources/")
-		mod.Router.LoadHTMLGlob("./ressources/html/*.html")
+		r.LoadHTMLGlob("./ressources/html/*.html")
 	}
+	GetModManager().SetRouter(r)
 }
 
 //GetName - get module name
@@ -113,15 +116,17 @@ func (mod *ModuleImpl) GetInstanceName() string {
 
 /*serve -  */
 func (mod *ModuleImpl) serve(ip string, port string) {
-	mod.Router.POST("/cmd", cmd)
-	mod.Router.Run(ip + ":" + port)
+	r := GetModManager().GetRouter()
+	r.POST("/cmd", cmd)
+	r.Run(ip + ":" + port)
 
 	Server := &http.Server{
 		Addr:    ip + ":" + port,
-		Handler: mod.Router,
+		Handler: r,
 	}
 
 	GetModManager().SetServer(Server)
+	GetModManager().SetRouter(r)
 	log.Fatal(Server.ListenAndServe())
 }
 
