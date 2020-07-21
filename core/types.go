@@ -79,7 +79,7 @@ func (mc *ModuleConfig) Start() {
 	}
 
 	fmt.Println("Starting mod : ", mc)
-	cmd := exec.Command(platformParam[0], platformParam[1], "go", "run", mc.EXE.MAIN, ">", "log.log")
+	cmd := exec.Command(platformParam[0], platformParam[1], "go run "+mc.EXE.MAIN+" > log.log")
 	cmd.Dir = mc.EXE.BIN
 	output, err := cmd.Output()
 	if err != nil {
