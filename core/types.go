@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
+	"runtime"
 	"strings"
 
 	com "github.com/Wariie/go-woxy/com"
@@ -70,15 +71,21 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 func (mc *ModuleConfig) Start() {
 	mc.STATE = "LAUNCHING"
 	//logFileName := mc.NAME + ".txt"
-
-	fmt.Println("Starting mod : ", mc)
-	cmd := exec.Command("go", "run", mc.EXE.MAIN, ">", "log.log")
-	cmd.Dir = mc.EXE.BIN
-	output, err := cmd.Output()
-	if err == nil {
-		log.Println(string(output), err)
+	var platformParam []string
+	if runtime.GOOS == "windows" {
+		platformParam = []string{"cmd", "/c"}
+	} else {
+		platformParam = []string{"bash", "-c"}
 	}
-	log.Println(string(output), err)
+	
+	fmt.Println("Starting mod : ", mc)
+	cmd := exec.Command(platformParam[0], platformParam[1], "cmd", "/c", "go", "run", mc.EXE.MAIN, ">", "log.log")
+	cmd.Dir = mc.EXE.BIN
+	err := cmd.Start()
+	if err != nil {
+		log.Println("Error", err)
+	}
+	//log.Println(string(output), err)
 }
 
 //Download - Download module from repository ( git clone )
