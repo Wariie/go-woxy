@@ -133,6 +133,8 @@ func connect(context *gin.Context) {
 				modC.BINDING.PORT = cr.Port
 			}
 
+			modC.Hook(GetManager().GetRouter(), "/"+modC.pk+"/cmd", "/cmd", "")
+
 		} else {
 			modC.STATE = "FAILED"
 			log.Println("")

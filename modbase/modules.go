@@ -101,9 +101,7 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 
 	if typeM == "WEB" {
 		mod.Router.HTMLRender = gintemplate.Default()
-		mod.Router.Static(path+"/css/", "./ressources/css")
-		mod.Router.Static(path+"/img/", "./ressources/img")
-		mod.Router.Static(path+"/js/", "./ressources/js")
+		mod.Router.Static(path+"/ressources/", "./ressources/")
 		mod.Router.LoadHTMLGlob("./ressources/html/*.html")
 	}
 }

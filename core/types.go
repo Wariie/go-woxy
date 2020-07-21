@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
@@ -60,7 +61,7 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 		log.Println("LOCAL BUILD or NO BUILD")
 	}
 
-	return mc.Hook(router)
+	return mc.HookAll(router)
 }
 
 //Start - Start module with config args and auto args
@@ -109,15 +110,14 @@ func (mc *ModuleConfig) Download() {
 	}
 }
 
-//Hook - Create a binding between module config address and gin server
-func (mc *ModuleConfig) Hook(router *gin.Engine) error {
-	paths := append(mc.BINDING.PATH, "/cmd")
-
+//HookAll - Create all binding between module config address and gin server
+func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
+	paths := mc.BINDING.PATH
 	if len(paths) > 0 && len(paths[0]) > 0 {
 		for i := range paths {
-			if len(paths[i]) > 0 {
-				router.GET(paths[i], ReverseProxy(mc, paths[i]))
-				fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + paths[i])
+			err := mc.Hook(router, paths[i], "", "GET")
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -125,25 +125,78 @@ func (mc *ModuleConfig) Hook(router *gin.Engine) error {
 	return nil
 }
 
+//Hook - Create a binding between module and gin server
+func (mc *ModuleConfig) Hook(router *gin.Engine, from string, to string, typeR string) error {
+	if typeR == "" {
+		typeR = "GET"
+	}
+
+	if to == "" {
+		to = from
+	}
+
+	if len(from) > 0 {
+		router.Handle("GET", from, ReverseProxy(mc, to))
+		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + from + " => " + to)
+	}
+	return nil
+}
+
 //ReverseProxy - reverse proxy for mod
-func ReverseProxy(mc *ModuleConfig, path string) gin.HandlerFunc {
+func ReverseProxy(mc *ModuleConfig, path string, to string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		mod := GetManager().config.MODULES[mc.NAME]
 		if mod.STATE == "ONLINE" {
 			if mod.BINDING.ROOT != "" {
 				c.File(mod.BINDING.ROOT)
 			} else if strings.Contains(mod.TYPES, "web") {
-				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT)
+				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
 				if err != nil {
 					log.Println(err)
 				}
-				proxy := httputil.NewSingleHostReverseProxy(url)
+
+				//TODO REFACTOR REVERSO PROXY WITH CUSTOM ONE TO REWRITE HOST
+				proxy := NewSingleHostReverseProxy(url)
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
 		} else {
 			c.String(503, "MODULE LOADING WAIT A SECOND PLEASE ....")
 		}
 	}
+}
+
+// NewSingleHostReverseProxy -
+func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
+	targetQuery := target.RawQuery
+	director := func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
+		if targetQuery == "" || req.URL.RawQuery == "" {
+			req.URL.RawQuery = targetQuery + req.URL.RawQuery
+		} else {
+			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+		}
+		if _, ok := req.Header["User-Agent"]; !ok {
+			// explicitly disable User-Agent so it's not set to default value
+			req.Header.Set("User-Agent", "")
+		}
+	}
+	return &httputil.ReverseProxy{Director: director}
+
+}
+
+func singleJoiningSlash(a, b string) string {
+	aslash := strings.HasSuffix(a, "/")
+	bslash := strings.HasPrefix(b, "/")
+	switch {
+	case aslash && bslash:
+		return a + b[1:]
+	case !aslash && !bslash:
+		return a + "/" + b
+	}
+	return a + b
+
 }
 
 /*Config - Global configuration */
