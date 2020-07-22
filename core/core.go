@@ -177,21 +177,17 @@ func command(c *gin.Context) {
 			var r com.Request
 
 			switch t["Type"] {
-			case "Shutdown":
+			case "Command":
+				var cr com.CommandRequest
+				cr.Decode(b)
 
-				var sr com.ShutdownRequest
-				forward = true
-				sr.Decode(b)
-				r = &sr
-			case "Log":
-
-				var lr com.LogRequest
-				lr.Decode(b)
-				response = mc.GetLog()
-
-				/*lr.Content = string(b)
-				r = &lr*/
-			case "":
+				switch cr.Command {
+				case "Shutdown":
+					forward = true
+					r = &cr
+				case "Log":
+					response = mc.GetLog()
+				}
 				log.Println("Other")
 			}
 

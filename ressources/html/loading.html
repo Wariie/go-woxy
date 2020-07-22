@@ -1,6 +1,7 @@
 <!doctype html>
 <head>
-    <title>Site Maintenance</title>
+    <title>Loading Page - guilhem-mateo.fr</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style>
         p {
             line-height: 1.33em;
@@ -16,8 +17,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            z-index: 1000;
         }
+        
         #loader {
             display: block;
             position: relative;
@@ -33,7 +34,7 @@
             -webkit-animation: spin 2s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
             animation: spin 2s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
 
-            z-index: 1001;
+            z-index: 1;
         }
 
         #loader:before {
@@ -94,10 +95,9 @@
         #loader-wrapper .loader-section {
             position: fixed;
             top: 0;
-            width: 51%;
+            width: 50%;
             height: 100%;
             background: #222222;
-            z-index: 1000;
             -webkit-transform: translateX(0);  /* Chrome, Opera 15+, Safari 3.1+ */
             -ms-transform: translateX(0);  /* IE 9 */
             transform: translateX(0);  /* Firefox 16+, IE 10+, Opera */
@@ -112,12 +112,27 @@
         }
 
         #content {
-            margin: 0 auto;
-            padding-bottom: 50px;
-            width: 80%;
-            max-width: 978px;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #content p {
+            left: 50%;
+            top: 62%;
+            margin: 0;
             color: white;
-        }  
+            position: absolute;
+            font: 1.2em "Open Sans", sans-serif ;
+            margin-right: -50%;
+            transform: translate(-50%, -50%) 
+        }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
 
         .ir {
             background-color: transparent;
@@ -309,10 +324,12 @@
         <div class="loader-section section-left"></div>
         <div class="loader-section section-right"></div>
     </div>
+    <div id="content">
+        <p>Loading...</p>
+    </div>
     <script>
         window.onload = function() {
             setTimeout(() => { location.href = window.location.href }, 2000);
-            
         }
     </script>
 </body>

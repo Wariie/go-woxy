@@ -24,9 +24,21 @@ type ModuleConfig struct {
 	TYPES   string
 	EXE     ModuleExecConfig
 	BINDING ServerConfig
-	STATE   string
+	STATE   ModuleState
 	pk      string
 }
+
+//ModuleState - State of ModuleConfig
+type ModuleState string
+
+const (
+	Unknown    ModuleState = "UNKNOWN"
+	Loading    ModuleState = "LOADING"
+	Online     ModuleState = "ONLINE"
+	Stopped    ModuleState = "STOPPED"
+	Downloaded ModuleState = "DOWNLOADED"
+	Error      ModuleState = "ERROR"
+)
 
 //GetServer -
 func (mc *ModuleConfig) GetServer(path string) com.Server {
@@ -38,17 +50,16 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 
 //Stop -
 func (mc *ModuleConfig) Stop() int {
-	if mc.STATE != "ONLINE" {
+	if mc.STATE != Online {
 		return -1
 	}
-	var sr com.ShutdownRequest
-	sr.Hash = mc.pk
-	sr.Name = mc.NAME
-	r := com.SendRequest(mc.GetServer(""), &sr, false)
-	log.Println(r)
+	var cr com.CommandRequest
+	cr.Generate(mc.NAME, mc.pk, "Shutdown")
+	r := com.SendRequest(mc.GetServer(""), &cr, false)
+	log.Println("SHUTDOWN RESULT : ", r)
 	//TODO BEST GESTURE
 	if true {
-		mc.STATE = "STOPPED"
+		mc.STATE = Stopped
 	}
 	return 0
 }
@@ -83,7 +94,7 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 
 //Start - Start module with config args and auto args
 func (mc *ModuleConfig) Start() {
-	mc.STATE = "LAUNCHING"
+	mc.STATE = Loading
 	//logFileName := mc.NAME + ".txt"
 	var platformParam []string
 	if runtime.GOOS == "windows" {
@@ -106,7 +117,7 @@ func (mc *ModuleConfig) Start() {
 func (mc *ModuleConfig) Download() {
 
 	//fmt.Println("Downloading mod : ", mc.NAME)
-	if mc.STATE != "ONLINE" {
+	if mc.STATE != Online {
 		wd, err := os.Getwd()
 
 		var listArgs []string
@@ -127,7 +138,7 @@ func (mc *ModuleConfig) Download() {
 		fmt.Println(action, " mod : ", mc, " - ", string(out), " ", err)
 
 		mc.EXE.BIN = wd + "/mods/" + mc.NAME + "/" + mc.EXE.BIN
-		mc.STATE = "DOWNLOADED"
+		mc.STATE = Downloaded
 	} else {
 		log.Fatalln("Error - Trying to download/update module while running\nStop it before")
 	}
@@ -172,7 +183,7 @@ func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 		mod := GetManager().config.MODULES[mc.NAME]
 
 		//CHECK IF MODULE IS ONLINE
-		if mod.STATE == "ONLINE" {
+		if mod.STATE == Online {
 			//IF ROOT IS PRESENT REDIRECT TO IT
 			if mod.BINDING.ROOT != "" {
 				c.File(mod.BINDING.ROOT)
@@ -194,10 +205,11 @@ func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
 			//TODO HANDLE MORE STATES
-		} else {
+		} else if mc.STATE == Loading {
 			//RETURN 503 WHILE MODULE IS LOADING
-			c.HTML(503, "maintenance.html", nil)
-			//c.String(503, "MODULE LOADING WAIT A SECOND PLEASE ....")
+			c.HTML(503, "loading.html", nil)
+		} else if mc.STATE == Error {
+			c.String(504, "Error")
 		}
 		//GetManager().config.MODULES[mc.NAME] = mod
 	}

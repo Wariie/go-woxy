@@ -45,10 +45,10 @@ func checkModulesConfig(mc map[string]ModuleConfig) map[string]ModuleConfig {
 	for k := range mc {
 		m := mc[k]
 		m.NAME = k
-		m.STATE = "UNKNOW"
+		m.STATE = Unknown
 
 		if strings.Contains(m.TYPES, "bind") {
-			m.STATE = "ONLINE"
+			m.STATE = Online
 		}
 
 		if m.BINDING.PROTOCOL == "" {
