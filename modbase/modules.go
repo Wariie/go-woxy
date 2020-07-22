@@ -5,12 +5,8 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
 	"strconv"
 	"sync"
-	"syscall"
-	"time"
 
 	gintemplate "github.com/foolin/gin-template"
 	"github.com/gin-contrib/static"
@@ -132,32 +128,11 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 	GetModManager().SetRouter(r)
 
 	go func() {
-		if err := GetModManager().GetServer().ListenAndServe(); err != http.ErrServerClosed {
+		if err := Server.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
 	}()
 
-	//graceful(GetModManager().GetServer(), 20*time.Second)
-
-}
-
-func graceful(hs *http.Server, timeout time.Duration) {
-	stop := make(chan os.Signal, 1)
-
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-
-	<-stop
-
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	log.Printf("\nShutdown with timeout: %s\n", timeout)
-
-	if err := hs.Shutdown(ctx); err != nil {
-		log.Printf("Error: %v\n", err)
-	} else {
-		log.Println("Server stopped")
-	}
 }
 
 func cmd(c *gin.Context) {
@@ -256,9 +231,9 @@ func (sm *modManager) GetMod() *ModuleImpl {
 func (sm *modManager) Shutdown(c context.Context) {
 	//ctx, cancel := context.WithTimeout(c.Background(), 10*time.Second)
 
-	if err := sm.server.Close(); err != nil {
+	/*if err := sm.server.Close(); err != nil {
 		log.Fatal("Close ERROR", err)
-	}
+	}*/
 	if err := sm.server.Shutdown(c); err != nil {
 		log.Fatal("Server force to shutdown:", err)
 	}
