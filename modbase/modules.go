@@ -151,7 +151,7 @@ func cmd(c *gin.Context) {
 			switch sr.Command {
 			case "Shutdown":
 				response = "SHUTTING DOWN " + GetModManager().GetMod().Name
-				defer GetModManager().Shutdown(c)
+				go GetModManager().Shutdown(c)
 			}
 		}
 
@@ -227,6 +227,7 @@ func (sm *modManager) GetMod() *ModuleImpl {
 }
 
 func (sm *modManager) Shutdown(c context.Context) {
+	time.Sleep(10 * time.Second)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := sm.server.Shutdown(ctx); err != nil {
