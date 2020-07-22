@@ -137,7 +137,7 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 		}
 	}()
 
-	graceful(GetModManager().GetServer(), 5*time.Second)
+	//graceful(GetModManager().GetServer(), 20*time.Second)
 
 }
 
@@ -256,6 +256,9 @@ func (sm *modManager) GetMod() *ModuleImpl {
 func (sm *modManager) Shutdown(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	if err := sm.server.Close(); err != nil {
+		log.Fatal("Close ERROR", err)
+	}
 	if err := sm.server.Shutdown(ctx); err != nil {
 		log.Fatal("Server force to shutdown:", err)
 	}
