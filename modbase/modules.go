@@ -234,7 +234,7 @@ func (sm *modManager) Shutdown(c context.Context) {
 	/*if err := sm.server.Close(); err != nil {
 		log.Fatal("Close ERROR", err)
 	}*/
-	if err := sm.server.Shutdown(c); err != nil {
+	if err := sm.server.Shutdown(context.Background()); err != nil {
 		log.Fatal("Server force to shutdown:", err)
 	}
 	log.Println("Server exiting")
