@@ -117,7 +117,6 @@ func (mod *ModuleImpl) GetInstanceName() string {
 func (mod *ModuleImpl) serve(ip string, port string) {
 	r := GetModManager().GetRouter()
 	r.POST("/cmd", cmd)
-	r.Run(ip + ":" + port)
 
 	Server := &http.Server{
 		Addr:    ip + ":" + port,
