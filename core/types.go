@@ -78,7 +78,7 @@ func (mc *ModuleConfig) GetLog() string {
 }
 
 //Setup - Setup module from config
-func (mc *ModuleConfig) Setup(router *gin.Engine) error {
+func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool) error {
 	fmt.Println("Setup mod : ", mc)
 	if !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
 		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
@@ -89,7 +89,10 @@ func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 		log.Println("LOCAL BUILD or NO BUILD")
 	}
 
-	return mc.HookAll(router)
+	if hook {
+		return mc.HookAll(router)
+	}
+	return nil
 }
 
 //Start - Start module with config args and auto args
@@ -118,26 +121,27 @@ func (mc *ModuleConfig) Download() {
 
 	//fmt.Println("Downloading mod : ", mc.NAME)
 	if mc.STATE != Online {
-		wd, err := os.Getwd()
 
 		var listArgs []string
 		var action string
 
-		if _, err := os.Stat(wd + "/mods" + "/" + mc.NAME); !os.IsExist(err) {
+		wd := "./mods/"
+		if _, err := os.Stat(wd + mc.NAME + "/"); os.IsNotExist(err) {
 			//os.RemoveAll(wd + "/mods" + "/" + mc.NAME)
 			listArgs = []string{"clone", mc.EXE.SRC}
 			action = "Downloaded"
 		} else {
 			listArgs = []string{"pull"}
 			action = "Update"
+			wd += mc.NAME + "/"
 		}
 
 		cmd := exec.Command("git", listArgs...)
-		cmd.Dir = wd + "/mods"
+		cmd.Dir = wd
 		out, err := cmd.CombinedOutput()
 		fmt.Println(action, " mod : ", mc, " - ", string(out), " ", err)
 
-		mc.EXE.BIN = wd + "/mods/" + mc.NAME + "/" + mc.EXE.BIN
+		mc.EXE.BIN = "./mods/" + mc.NAME + "/"
 		mc.STATE = Downloaded
 	} else {
 		log.Fatalln("Error - Trying to download/update module while running\nStop it before")

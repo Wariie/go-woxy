@@ -99,7 +99,7 @@ func loadModules() {
 	Router := GetManager().router
 	for k := range config.MODULES {
 		mod := config.MODULES[k]
-		err := mod.Setup(Router)
+		err := mod.Setup(Router, true)
 		if err != nil {
 			log.Fatalln("Error setup module ", mod.NAME, " - ", err)
 		}
@@ -165,12 +165,15 @@ func command(c *gin.Context) {
 	log.Print("Go-Woxy Module Command request : ")
 	t, b := com.GetCustomRequestType(c.Request)
 
+	from := c.Request.RemoteAddr
+
 	log.Println(string(t["Type"]))
 	//TODO HANDLE HUB ACCESS WITH CREDENTIALS
 	response := ""
+	action := ""
 
 	if t["Hash"] == "hub" {
-		commandForHub(t, b)
+		response = commandForHub(t, b)
 	} else {
 		forward := false
 		mc := SearchModWithHash(t["Hash"])
@@ -178,7 +181,7 @@ func command(c *gin.Context) {
 		if mc.NAME == "error" {
 			response = "Error reading module Hash"
 		} else {
-
+			action += "To " + mc.NAME + " - "
 			var r com.Request
 
 			switch t["Type"] {
@@ -192,25 +195,37 @@ func command(c *gin.Context) {
 					r = &cr
 				case "Log":
 					response = mc.GetLog()
+				case "Restart":
+					cr.Command = "Shutdown"
+					r = &cr
+					rqtS := com.SendRequest(mc.GetServer(""), r, true)
+					mc.STATE = Stopped
+					log.Println("STOP : ", rqtS)
+					mc.Setup(GetManager().GetRouter(), false)
 				}
+				action += "Command [ " + cr.Command + " ] "
 			}
 
 			if forward {
 				response = com.SendRequest(mc.GetServer(""), r, false)
 			}
+
 		}
 	}
+	action += " - Result : " + response
+	log.Println("Request from", from, "-", action)
 	c.String(200, response, nil)
 }
 
 //TODO
-func commandForHub(t map[string]string, b []byte) {
+func commandForHub(t map[string]string, b []byte) string {
 
 	switch t["Type"] {
 	case "Shutdown":
 	case "Log":
 	case "test":
 	}
+	return ""
 }
 
 //SearchModWithHash -
