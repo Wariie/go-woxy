@@ -227,7 +227,6 @@ func (sm *modManager) GetMod() *ModuleImpl {
 }
 
 func (sm *modManager) Shutdown(c context.Context) {
-	time.Sleep(10 * time.Second)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	go cancel()
 	if err := sm.server.Shutdown(ctx); err != nil {
