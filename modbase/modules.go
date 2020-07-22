@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	gintemplate "github.com/foolin/gin-template"
 	"github.com/gin-contrib/static"
@@ -226,14 +227,10 @@ func (sm *modManager) GetMod() *ModuleImpl {
 }
 
 func (sm *modManager) Shutdown(c context.Context) {
-	//ctx, cancel := context.WithTimeout(c.Background(), 10*time.Second)
-
-	/*if err := sm.server.Close(); err != nil {
-		log.Fatal("Close ERROR", err)
-	}*/
-	if err := sm.server.Shutdown(context.Background()); err != nil {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := sm.server.Shutdown(ctx); err != nil {
 		log.Fatal("Server force to shutdown:", err)
 	}
 	log.Println("Server exiting")
-	//defer cancel()
 }
