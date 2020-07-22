@@ -205,9 +205,11 @@ func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
 			//TODO HANDLE MORE STATES
-		} else if mc.STATE == Loading {
+		} else if mc.STATE == Loading || mc.STATE == Downloaded {
 			//RETURN 503 WHILE MODULE IS LOADING
 			c.HTML(503, "loading.html", nil)
+		} else if mc.STATE == Stopped {
+			c.String(504, "Module Stopped")
 		} else if mc.STATE == Error {
 			c.String(504, "Error")
 		}

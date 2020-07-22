@@ -54,6 +54,7 @@ func motd() {
 }
 
 func initCore() {
+	//INIT MODULE DIRECTORY
 	wd, err := os.Getwd()
 
 	os.Mkdir(wd+"/mods", os.ModeDir)
@@ -62,7 +63,14 @@ func initCore() {
 		os.Exit(1)
 	}
 
-	GetManager()
+	//INIT ROUTER
+	router := gin.Default()
+	router.LoadHTMLGlob("ressources/*/*")
+	router.NoRoute(func(c *gin.Context) {
+		c.HTML(404, "404.html", nil)
+	})
+
+	GetManager().SetRouter(router)
 }
 
 //LaunchCore - start core server
@@ -75,12 +83,9 @@ func LaunchCore(configPath string) {
 	// STEP 2 READ CONFIG FILE
 	config := readConfig(configPath)
 
+	//SAVE CONFIG
 	man := GetManager()
 	man.config = config
-
-	Router := gin.Default()
-	man.router = Router
-	man.router.LoadHTMLGlob("ressources/*/*")
 
 	// STEP 4 LOAD MODULES
 	go loadModules()
@@ -188,7 +193,6 @@ func command(c *gin.Context) {
 				case "Log":
 					response = mc.GetLog()
 				}
-				log.Println("Other")
 			}
 
 			if forward {
