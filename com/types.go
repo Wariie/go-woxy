@@ -113,59 +113,22 @@ func (cr *ConnexionReponseRequest) GetType() string {
 	return cr.Type
 }
 
-/*ShutdownRequest - server connexion request */
-type ShutdownRequest struct {
-	Name string
-	Hash string
-	Type string
-}
-
-//Decode - Decode JSON to ShutdownRequest
-func (cr *ShutdownRequest) Decode(b []byte) {
-	json.NewDecoder(bytes.NewBuffer(b)).Decode(cr)
-}
-
-//Encode - Encode ShutdownRequest to JSON
-func (cr ShutdownRequest) Encode() []byte {
-	b, err := json.Marshal(cr)
-	if err != nil {
-		log.Println("error:", err)
-	}
-	return b
-}
-
-//Generate - Generate ShutdownRequest with params
-func (cr ShutdownRequest) Generate(list ...string) {
-	cr.Name = list[0]
-	cr.Hash = list[1]
-	cr.Type = "Shutdown"
-}
-
-/*GetPath - ShutdownRequest path string*/
-func (cr *ShutdownRequest) GetPath() string {
-	return "cmd"
-}
-
-/*GetType - ShutdownRequest request type*/
-func (cr *ShutdownRequest) GetType() string {
-	return cr.Type
-}
-
-/*LogRequest - LogRequest*/
-type LogRequest struct {
-	Name string
-	Hash string
-	Type string
+/*CommandRequest - CommandRequest*/
+type CommandRequest struct {
+	Name    string
+	Hash    string
+	Type    string
 	Content string
+	Command string
 }
 
-//Decode - Decode JSON to LogRequest
-func (cr *LogRequest) Decode(b []byte) {
+//Decode - Decode JSON to CommandRequest
+func (cr *CommandRequest) Decode(b []byte) {
 	json.NewDecoder(bytes.NewBuffer(b)).Decode(cr)
 }
 
-//Encode - Encode LogRequest to JSON
-func (cr *LogRequest) Encode() []byte {
+//Encode - Encode CommandRequest to JSON
+func (cr *CommandRequest) Encode() []byte {
 	b, err := json.Marshal(cr)
 	if err != nil {
 		log.Println("error:", err)
@@ -173,20 +136,24 @@ func (cr *LogRequest) Encode() []byte {
 	return b
 }
 
-//Generate - Generate LogRequest with params
-func (cr *LogRequest) Generate(list ...string) {
+//Generate - Generate CommandRequest with params
+//- Name 	  string
+//- Hash 	  string
+//- Command string
+func (cr *CommandRequest) Generate(list ...string) {
 	cr.Name = list[0]
 	cr.Hash = list[1]
-	cr.Type = "Log"
+	cr.Type = "Command"
+	cr.Command = list[2]
 }
 
-/*GetPath - DefaultRequest path string*/
-func (cr *LogRequest) GetPath() string {
+/*GetPath - CommandRequest path string*/
+func (cr *CommandRequest) GetPath() string {
 	return "cmd"
 }
 
-/*GetType - LogRequest request type*/
-func (cr *LogRequest) GetType() string {
+/*GetType - CommandRequest request type*/
+func (cr *CommandRequest) GetType() string {
 	return cr.Type
 }
 

@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -52,6 +53,19 @@ func (mc *ModuleConfig) Stop() int {
 	return 0
 }
 
+//GetLog - GetLog
+func (mc *ModuleConfig) GetLog() string {
+
+	file, err := os.Open("./mods/" + mc.NAME + "/log.log")
+	if err != nil {
+		log.Panicf("failed reading file: %s", err)
+	}
+	b, err := ioutil.ReadAll(file)
+	//fmt.Printf("\nData: %s\n\n", b)
+	//fmt.Printf("\nError: %v\n\n", err)
+	return string(b)
+}
+
 //Setup - Setup module from config
 func (mc *ModuleConfig) Setup(router *gin.Engine) error {
 	fmt.Println("Setup mod : ", mc)
@@ -73,9 +87,9 @@ func (mc *ModuleConfig) Start() {
 	//logFileName := mc.NAME + ".txt"
 	var platformParam []string
 	if runtime.GOOS == "windows" {
-		platformParam = []string{"cmd", "/c ", "go", "run", mc.EXE.MAIN, ">", "log.log"}
+		platformParam = []string{"cmd", "/c ", "go", "run", mc.EXE.MAIN, "1>", "log.log", "2>&1"}
 	} else {
-		platformParam = []string{"/bin/sh", "-c", "go run " + mc.EXE.MAIN + " > log.log"}
+		platformParam = []string{"/bin/sh", "-c", "go run " + mc.EXE.MAIN + " > log.log 2>&1"}
 	}
 
 	fmt.Println("Starting mod : ", mc)
@@ -182,7 +196,8 @@ func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 			//TODO HANDLE MORE STATES
 		} else {
 			//RETURN 503 WHILE MODULE IS LOADING
-			c.String(503, "MODULE LOADING WAIT A SECOND PLEASE ....")
+			c.HTML(503, "maintenance.html", nil)
+			//c.String(503, "MODULE LOADING WAIT A SECOND PLEASE ....")
 		}
 		//GetManager().config.MODULES[mc.NAME] = mod
 	}

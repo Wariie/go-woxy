@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
@@ -81,6 +80,7 @@ func LaunchCore(configPath string) {
 
 	Router := gin.Default()
 	man.router = Router
+	man.router.LoadHTMLGlob("ressources/*/*")
 
 	// STEP 4 LOAD MODULES
 	go loadModules()
@@ -167,38 +167,43 @@ func command(c *gin.Context) {
 	if t["Hash"] == "hub" {
 		commandForHub(t, b)
 	} else {
+		forward := false
 		mc := SearchModWithHash(t["Hash"])
 
 		if mc.NAME == "error" {
 			response = "Error reading module Hash"
 		} else {
+
 			var r com.Request
+
 			switch t["Type"] {
 			case "Shutdown":
+
 				var sr com.ShutdownRequest
+				forward = true
 				sr.Decode(b)
 				r = &sr
 			case "Log":
+
 				var lr com.LogRequest
 				lr.Decode(b)
-				file, err := os.Open("./mods/" + mc.NAME + "/log.log")
-				if err != nil {
-					log.Panicf("failed reading file: %s", err)
-				}
-				b, err := ioutil.ReadAll(file)
-				fmt.Printf("\nData: %s", b)
-				fmt.Printf("\nError: %v", err)
-				lr.Content = string(b)
-				r = &lr
+				response = mc.GetLog()
+
+				/*lr.Content = string(b)
+				r = &lr*/
 			case "":
 				log.Println("Other")
 			}
-			com.SendRequest(mc.GetServer(""), r, false)
+
+			if forward {
+				response = com.SendRequest(mc.GetServer(""), r, false)
+			}
 		}
 	}
 	c.String(200, response, nil)
 }
 
+//TODO
 func commandForHub(t map[string]string, b []byte) {
 
 	switch t["Type"] {
