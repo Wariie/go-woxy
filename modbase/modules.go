@@ -253,13 +253,13 @@ func (sm *modManager) GetMod() *ModuleImpl {
 	return sm.mod
 }
 
-func (sm *modManager) Shutdown(c *context.Context) {
+func (sm *modManager) Shutdown(c context.Context) {
 	//ctx, cancel := context.WithTimeout(c.Background(), 10*time.Second)
 
 	if err := sm.server.Close(); err != nil {
 		log.Fatal("Close ERROR", err)
 	}
-	if err := sm.server.Shutdown(*c); err != nil {
+	if err := sm.server.Shutdown(c); err != nil {
 		log.Fatal("Server force to shutdown:", err)
 	}
 	log.Println("Server exiting")
