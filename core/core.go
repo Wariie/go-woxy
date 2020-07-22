@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	com "github.com/Wariie/go-woxy/com"
 	"github.com/gin-gonic/gin"
@@ -166,8 +167,6 @@ func command(c *gin.Context) {
 	t, b := com.GetCustomRequestType(c.Request)
 
 	from := c.Request.RemoteAddr
-
-	log.Println(string(t["Type"]))
 	//TODO HANDLE HUB ACCESS WITH CREDENTIALS
 	response := ""
 	action := ""
@@ -201,9 +200,10 @@ func command(c *gin.Context) {
 					rqtS := com.SendRequest(mc.GetServer(""), r, false)
 					mc.STATE = Stopped
 					if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) {
+						time.Sleep(10 * time.Second)
 						if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
 							response += "Error :" + err.Error()
-							log.Panicln()
+							log.Panicln(err)
 						} else {
 							response += "Success"
 						}
