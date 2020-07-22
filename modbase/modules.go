@@ -140,16 +140,18 @@ func cmd(c *gin.Context) {
 		response = "Error reading module Hash"
 	} else {
 
-		if t["Type"] == "Shutdown" {
-			log.Println("Shutdown")
-			var sr com.ShutdownRequest
+		switch t["Type"] {
+		case "Command":
+			var sr com.CommandRequest
 			sr.Decode(b)
 			log.Println("Request Content - ", sr)
-
-			response = "SHUTTING DOWN " + GetModManager().GetMod().InstanceName
-
-			go GetModManager().Shutdown(c)
+			switch sr.Command {
+			case "Shutdown":
+				response = "SHUTTING DOWN " + GetModManager().GetMod().InstanceName
+				go GetModManager().Shutdown(c)
+			}
 		}
+
 	}
 	c.String(200, response)
 }
