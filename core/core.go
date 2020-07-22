@@ -134,7 +134,7 @@ func connect(context *gin.Context) {
 			//UPDATE MOD ATTRIBUTES
 			modC.pk = cr.ModHash
 			modC.STATE = "ONLINE"
-			log.Println("HASH : ", modC.pk, " - MOD : ", modC.NAME)
+			log.Println("HASH :", modC.pk, "- MOD :", modC.NAME)
 
 			if modC.BINDING.PORT != "" {
 				cr.Port = modC.BINDING.PORT
@@ -198,12 +198,13 @@ func command(c *gin.Context) {
 				case "Restart":
 					cr.Command = "Shutdown"
 					r = &cr
-					rqtS := com.SendRequest(mc.GetServer(""), r, true)
+					rqtS := com.SendRequest(mc.GetServer(""), r, false)
 					mc.STATE = Stopped
-					log.Println("STOP : ", rqtS)
-					mc.Setup(GetManager().GetRouter(), false)
+					if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) {
+						mc.Setup(GetManager().GetRouter(), false)
+					}
 				}
-				action += "Command [ " + cr.Command + " ] "
+				action += "Command [ " + cr.Command + " ]"
 			}
 
 			if forward {

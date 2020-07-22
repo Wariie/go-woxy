@@ -150,7 +150,7 @@ func cmd(c *gin.Context) {
 			log.Println("Request Content - ", sr)
 			switch sr.Command {
 			case "Shutdown":
-				response = "SHUTTING DOWN " + GetModManager().GetMod().InstanceName
+				response = "SHUTTING DOWN " + GetModManager().GetMod().Name
 				go GetModManager().Shutdown(c)
 			}
 		}

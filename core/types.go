@@ -101,7 +101,7 @@ func (mc *ModuleConfig) Start() {
 	//logFileName := mc.NAME + ".txt"
 	var platformParam []string
 	if runtime.GOOS == "windows" {
-		platformParam = []string{"cmd", "/c ", "go", "run", mc.EXE.MAIN, "1>", "log.log", "2>&1"}
+		platformParam = []string{"runas", "/user:administrator", "cmd", "/c ", "go", "run", mc.EXE.MAIN, "1>", "log.log", "2>&1"}
 	} else {
 		platformParam = []string{"/bin/sh", "-c", "go run " + mc.EXE.MAIN + " > log.log 2>&1"}
 	}
