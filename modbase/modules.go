@@ -226,7 +226,7 @@ func (sm *modManager) GetMod() *ModuleImpl {
 func (sm *modManager) Shutdown(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := singleton.server.Shutdown(ctx); err != nil {
+	if err := sm.server.Shutdown(ctx); err != nil {
 		log.Fatal("Server force to shutdown:", err)
 	}
 	log.Println("Server exiting")
