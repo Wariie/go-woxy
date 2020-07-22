@@ -3,6 +3,7 @@ package core
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -233,10 +234,28 @@ func command(c *gin.Context) {
 func commandForHub(t map[string]string, b []byte) string {
 
 	switch t["Type"] {
-	case "Shutdown":
-	case "Log":
-	case "test":
+	case "Command":
+		var cr com.CommandRequest
+		cr.Decode(b)
+
+		if strings.Contains(cr.Command, "Get") {
+			todo := strings.Split(cr.Command, ":")
+			if len(todo) == 3 {
+				switch todo[1] {
+				case "List":
+					switch todo[2] {
+					case "Module":
+						rb, err := json.Marshal(GetManager().GetConfig().MODULES)
+						if err != nil {
+							return "Error JSON - 420"
+						}
+						return string(rb)
+					}
+				}
+			}
+		}
 	}
+
 	return ""
 }
 
