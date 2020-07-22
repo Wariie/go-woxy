@@ -126,11 +126,9 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 	GetModManager().SetServer(Server)
 	GetModManager().SetRouter(r)
 
-	go func() {
-		if err := Server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatal(err)
-		}
-	}()
+	if err := GetModManager().GetServer().ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 
 }
 
