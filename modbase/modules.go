@@ -151,7 +151,7 @@ func cmd(c *gin.Context) {
 			switch sr.Command {
 			case "Shutdown":
 				response = "SHUTTING DOWN " + GetModManager().GetMod().Name
-				go GetModManager().Shutdown(c)
+				defer GetModManager().Shutdown(c)
 			}
 		}
 

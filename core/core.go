@@ -201,7 +201,14 @@ func command(c *gin.Context) {
 					rqtS := com.SendRequest(mc.GetServer(""), r, false)
 					mc.STATE = Stopped
 					if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) {
-						mc.Setup(GetManager().GetRouter(), false)
+						if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
+							response += "Error :" + err.Error()
+							log.Panicln()
+						} else {
+							response += "Success"
+						}
+					} else {
+						response += "Error :" + rqtS
 					}
 				}
 				action += "Command [ " + cr.Command + " ]"
