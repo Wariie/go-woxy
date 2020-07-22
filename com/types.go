@@ -158,7 +158,7 @@ func (cr *CommandRequest) GetType() string {
 }
 
 //SendRequest - sens request to server
-func SendRequest(s Server, r Request, loging bool) string {
+func SendRequest(s Server, r Request, loging bool) (string, error) {
 
 	if loging {
 		fmt.Println("LAUNCH REQUEST - ", r, " TO ", s)
@@ -180,9 +180,9 @@ func SendRequest(s Server, r Request, loging bool) string {
 	if resp != nil && resp.Body != nil {
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(resp.Body)
-		return buf.String()
+		return buf.String(), err
 	}
-	return ""
+	return "", err
 }
 
 // GetCustomRequestType - get custom request from gin Request Body

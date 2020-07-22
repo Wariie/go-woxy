@@ -55,8 +55,8 @@ func (mc *ModuleConfig) Stop() int {
 	}
 	var cr com.CommandRequest
 	cr.Generate(mc.NAME, mc.pk, "Shutdown")
-	r := com.SendRequest(mc.GetServer(""), &cr, false)
-	log.Println("SHUTDOWN RESULT : ", r)
+	r, err := com.SendRequest(mc.GetServer(""), &cr, false)
+	log.Println("SHUTDOWN RESULT : ", r, err)
 	//TODO BEST GESTURE
 	if true {
 		mc.STATE = Stopped

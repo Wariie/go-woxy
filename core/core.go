@@ -197,9 +197,9 @@ func command(c *gin.Context) {
 				case "Restart":
 					cr.Command = "Shutdown"
 					r = &cr
-					rqtS := com.SendRequest(mc.GetServer(""), r, false)
+					rqtS, err := com.SendRequest(mc.GetServer(""), r, false)
 					mc.STATE = Stopped
-					if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) {
+					if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host") {
 						time.Sleep(10 * time.Second)
 						if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
 							response += "Error :" + err.Error()
@@ -215,7 +215,11 @@ func command(c *gin.Context) {
 			}
 
 			if forward {
-				response = com.SendRequest(mc.GetServer(""), r, false)
+				resp, err := com.SendRequest(mc.GetServer(""), r, false)
+				response += resp
+				if err != nil {
+					response += err.Error()
+				}
 			}
 
 		}
