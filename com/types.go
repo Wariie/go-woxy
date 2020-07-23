@@ -149,7 +149,7 @@ func (cr *CommandRequest) Generate(list ...string) {
 
 /*GetPath - CommandRequest path string*/
 func (cr *CommandRequest) GetPath() string {
-	return "cmd"
+	return "/cmd"
 }
 
 /*GetType - CommandRequest request type*/

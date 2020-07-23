@@ -28,6 +28,9 @@ var ModuleAddress = "127.0.0.1"
 //ModulePort -
 var ModulePort = "2501"
 
+//ResPath - Ressources main path (css, js, img, ......)
+var ResPath = ""
+
 type (
 	/*HardwareUsage - Module hardware usage */
 	HardwareUsage struct {
@@ -87,6 +90,10 @@ func (mod *ModuleImpl) Init() {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	GetModManager().SetRouter(r)
+
+	if ResPath == "" {
+		ResPath = "ressources/"
+	}
 }
 
 //Register - register http handler for path
@@ -100,8 +107,7 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 			path += "/"
 		}
 		r.HTMLRender = gintemplate.Default()
-		r.Use(static.ServeRoot(path+"ressources/", "./ressources/"))
-		//mod.Router.Static(path+"/ressources/", "./ressources/")
+		r.Use(static.ServeRoot(path+ResPath, "./"+ResPath))
 	}
 	GetModManager().SetRouter(r)
 }
