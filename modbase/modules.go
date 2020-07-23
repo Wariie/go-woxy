@@ -173,7 +173,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 	//CREATE CONNEXION REQUEST
 	cr := com.ConnexionRequest{}
 	cr.Generate(mod.GetName(), "SECRET", ModulePort)
-
+	mod.Hash = cr.ModHash
 	//SEND REQUEST
 	body, err := com.SendRequest(com.Server{IP: HubAddress, Port: HubPort, Path: "", Protocol: "http"}, &cr, false)
 
