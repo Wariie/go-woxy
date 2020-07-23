@@ -7,7 +7,7 @@
       version: 1.0
       types: 'web'
       exe:
-        bin: 'C:\Users\Wariie\go\src\github.com\Wariie\mod-manager'
+        bin: 'https://github.com/Wariie/mod-manager.git'
         main: 'main.go'
       binding:
         path:
