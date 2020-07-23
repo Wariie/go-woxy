@@ -102,7 +102,6 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 		r.HTMLRender = gintemplate.Default()
 		r.Use(static.ServeRoot(path+"ressources/", "./ressources/"))
 		//mod.Router.Static(path+"/ressources/", "./ressources/")
-		r.LoadHTMLGlob("./ressources/html/*.html")
 	}
 	GetModManager().SetRouter(r)
 }
