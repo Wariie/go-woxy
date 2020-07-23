@@ -96,6 +96,9 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 	r.Handle(method, path, handler)
 
 	if typeM == "WEB" {
+		if len(path) > 1 {
+			path += "/"
+		}
 		r.HTMLRender = gintemplate.Default()
 		r.Use(static.ServeRoot(path+"ressources/", "./ressources/"))
 		//mod.Router.Static(path+"/ressources/", "./ressources/")

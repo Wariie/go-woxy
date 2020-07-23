@@ -3,6 +3,17 @@
   server:
 #    address: 0.0.0.0  
   modules: 
+    hub:
+      version: 1.0
+      types: 'web'
+      exe:
+        bin: 'C:\Users\Wariie\go\src\github.com\Wariie\mod-manager'
+        main: 'main.go'
+      binding:
+        path:
+          - from: '/hub'
+            to: '/'
+        port: 2001
     mod.v0: 
       version: 1.0
       types: 'web'

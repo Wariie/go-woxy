@@ -28,18 +28,6 @@ type ModuleConfig struct {
 	pk      string
 }
 
-//ModuleState - State of ModuleConfig
-type ModuleState string
-
-const (
-	Unknown    ModuleState = "UNKNOWN"
-	Loading    ModuleState = "LOADING"
-	Online     ModuleState = "ONLINE"
-	Stopped    ModuleState = "STOPPED"
-	Downloaded ModuleState = "DOWNLOADED"
-	Error      ModuleState = "ERROR"
-)
-
 //GetServer -
 func (mc *ModuleConfig) GetServer(path string) com.Server {
 	if path == "" {
@@ -153,7 +141,11 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	paths := mc.BINDING.PATH
 
 	if strings.Contains(mc.TYPES, "web") {
-		r := Route{FROM: "/ressources/*filepath"}
+		sP := ""
+		if len(paths[0].FROM) > 1 {
+			sP = paths[0].FROM
+		}
+		r := Route{FROM: sP + "/ressources/*filepath", TO: "/ressources/*filepath"}
 		mc.Hook(router, r, "GET")
 	}
 
@@ -175,16 +167,16 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 		typeR = "GET"
 	}
 	if len(r.FROM) > 0 {
-		router.Handle("GET", r.FROM, ReverseProxy(mc, r))
+		router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
 		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
 	return nil
 }
 
 //ReverseProxy - reverse proxy for mod
-func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
+func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		mod := GetManager().config.MODULES[mc.NAME]
+		mod := GetManager().config.MODULES[modName]
 
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
@@ -195,13 +187,9 @@ func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 			} else if strings.Contains(mod.TYPES, "web") {
 				//ELSE IF BINDING IS TYPE **WEB**
 				//REVERSE PROXY TO IT
-				query := ""
-				if r.TO == "" {
-					query = c.Request.URL.Path
-				} else {
-					query = r.TO
-				}
-				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + query)
+				//query := r.TO + c.Request.URL.Path
+				//if r.TO != ""
+				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
 				if err != nil {
 					log.Println(err)
 				}
@@ -209,12 +197,12 @@ func ReverseProxy(mc *ModuleConfig, r Route) gin.HandlerFunc {
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
 			//TODO HANDLE MORE STATES
-		} else if mc.STATE == Loading || mc.STATE == Downloaded {
+		} else if mod.STATE == Loading || mod.STATE == Downloaded {
 			//RETURN 503 WHILE MODULE IS LOADING
 			c.HTML(503, "loading.html", nil)
-		} else if mc.STATE == Stopped {
+		} else if mod.STATE == Stopped {
 			c.String(504, "Module Stopped")
-		} else if mc.STATE == Error {
+		} else if mod.STATE == Error {
 			c.String(504, "Error")
 		}
 		//GetManager().config.MODULES[mc.NAME] = mod
@@ -227,7 +215,7 @@ func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
-		req.URL.Path = target.Path //singleJoiningSlash(target.Path, req.URL.Path)
+		//req.URL.Path = target.Path //singleJoiningSlash(target.Path, req.URL.Path)
 		if targetQuery == "" || req.URL.RawQuery == "" {
 			req.URL.RawQuery = targetQuery + req.URL.RawQuery
 		} else {
@@ -284,3 +272,15 @@ type Route struct {
 	FROM string
 	TO   string
 }
+
+//ModuleState - State of ModuleConfig
+type ModuleState string
+
+const (
+	Unknown    ModuleState = "UNKNOWN"
+	Loading    ModuleState = "LOADING"
+	Online     ModuleState = "ONLINE"
+	Stopped    ModuleState = "STOPPED"
+	Downloaded ModuleState = "DOWNLOADED"
+	Error      ModuleState = "ERROR"
+)
