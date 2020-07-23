@@ -2,10 +2,14 @@ cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMT
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/Wariie/go-woxy/com v0.0.0-20200722180642-6fd48aac312e h1:eZYEWz7FNOwQurB6eFB3YoF+bU/RKCi7w+Qbg85tRvw=
 github.com/Wariie/go-woxy/com v0.0.0-20200722180642-6fd48aac312e/go.mod h1:gW2ULgRwM3Zh5yeFPfOzr06i9sx10M1vdKISq7iw9eI=
+github.com/Wariie/go-woxy/com v0.0.0-20200723141016-5b690c9c4fc3 h1:tKQIRcFrP/4xxB5VZubXRtTIzzwB0lZoy5barGMIELE=
+github.com/Wariie/go-woxy/com v0.0.0-20200723141016-5b690c9c4fc3/go.mod h1:gW2ULgRwM3Zh5yeFPfOzr06i9sx10M1vdKISq7iw9eI=
 github.com/Wariie/go-woxy/tools v0.0.0-20200721105108-6ed13a942a59 h1:Eh61zqpxYonu94gOAXbqaERhNKaRYclOsUiEQpcATGU=
 github.com/Wariie/go-woxy/tools v0.0.0-20200721105108-6ed13a942a59/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
 github.com/Wariie/go-woxy/tools v0.0.0-20200722180642-6fd48aac312e h1:aHDp7boeFVpYmtR0dqhvwz+inEla7idmu1uEqXKNuqU=
 github.com/Wariie/go-woxy/tools v0.0.0-20200722180642-6fd48aac312e/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
+github.com/Wariie/go-woxy/tools v0.0.0-20200723135422-60a8526e4fcd h1:UHdkOftAzRyMxxeZwORf4+rK/ozbSDQL4dpUzY4sYjM=
+github.com/Wariie/go-woxy/tools v0.0.0-20200723135422-60a8526e4fcd/go.mod h1:7rH9sj5tIXT1+DbhuurPY0sgPMuk+VEDGtc+JONAU9Y=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
