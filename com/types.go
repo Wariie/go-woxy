@@ -36,6 +36,7 @@ type ConnexionRequest struct {
 	Port    string
 	ModHash string
 	Type    string
+	Pid     string
 }
 
 //Decode - Decode JSON to ConnexionRequest
@@ -59,6 +60,7 @@ func (cr *ConnexionRequest) Generate(list ...string) {
 	cr.Port = list[2]
 	cr.ModHash = rand.String(15)
 	cr.Type = "Connexion"
+	cr.Pid = list[3]
 }
 
 /*GetPath - ConnexionRequest path string*/
