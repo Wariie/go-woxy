@@ -3,7 +3,7 @@
   server:
 #    address: 0.0.0.0  
   modules: 
-    hub:
+    mod-manager:
       version: 1.0
       types: 'web'
       exe:
