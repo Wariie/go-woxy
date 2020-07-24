@@ -107,7 +107,7 @@ func (mod *ModuleImpl) readSecret() {
 		log.Println("Error reading server secret")
 		os.exit(2)
 	}
-	mod.Secret = string(sha256.Sum256(b))
+	mod.Secret = string(sha256.Sum256(b)[:])
 }
 
 //Register - register http handler for path
