@@ -28,3 +28,4 @@
 /mods
 
 .htpasswd
+.secret

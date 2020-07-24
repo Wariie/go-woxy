@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -73,6 +74,7 @@ func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool) error {
 		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
 			mc.Download()
 		}
+		mc.copySecret()
 		go mc.Start()
 	} // ELSE NO BUILD
 
@@ -101,6 +103,24 @@ func (mc *ModuleConfig) Start() {
 		log.Println("Error:", err)
 	}
 	log.Println("Output :", string(output), err)
+}
+
+func (mc *ModuleConfig) copySecret() {
+	source, err := os.Open(".secret")
+	if err != nil {
+		log.Println("Error reading generated secret file")
+	}
+	defer source.Close()
+
+	destination, err := os.Create(mc.EXE.BIN + "/.secret")
+	if err != nil {
+		log.Println("Error creating mod secret file")
+	}
+	defer destination.Close()
+	nBytes, err := io.Copy(destination, source)
+	if err != nil {
+		log.Println("Error Copy Secret:", err, nBytes)
+	}
 }
 
 //Download - Download module from repository ( git clone )

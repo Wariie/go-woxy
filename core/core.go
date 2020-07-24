@@ -3,8 +3,10 @@ package core
 import (
 	"bufio"
 	"bytes"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	com "github.com/Wariie/go-woxy/com"
+	"github.com/Wariie/go-woxy/tools"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,7 +23,7 @@ var configFile string
 
 var motdFileName string = "motd.txt"
 
-var secret string = "SECRET"
+var secretHash string = "SECRET"
 
 //CORE SOCKET IS THE WHERE ALL THE MODULES EXCHANGE WILL BE TREATED
 //ALL THE APP IS CONSTIUED BY MODULES
@@ -79,6 +82,8 @@ func initCore() {
 func LaunchCore(configPath string) {
 	motd()
 
+	generateSecret()
+
 	// STEP 1 Init
 	initCore()
 
@@ -94,6 +99,16 @@ func LaunchCore(configPath string) {
 
 	// STEP 5 START SERVER WHERE MODULES WILL REGISTER
 	launchServer()
+}
+
+func generateSecret() {
+	s := []byte(tools.String(64))
+	err := ioutil.WriteFile(".secret", s, 0644)
+	if err != nil {
+		log.Println("Error trying create secret file :", err)
+	}
+	b := sha256.Sum256(s)
+	secretHash = string(b[:])
 }
 
 func loadModules() {
@@ -128,9 +143,9 @@ func connect(context *gin.Context) {
 	} else {
 
 		modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
-
-		tS := cr.Secret == secret
+		rs := bytes.Compare([]byte(strings.Trim(cr.Secret, " ")), []byte(secretHash))
 		//CHECK SECRET FOR AUTH
+		tS := rs == 1
 		if tS && cr.ModHash != "" {
 
 			//UPDATE MOD ATTRIBUTES
