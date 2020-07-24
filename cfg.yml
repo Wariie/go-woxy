@@ -11,7 +11,7 @@
         main: 'main.go'
       binding:
         path:
-          - from: '/hub'
+          - from: '/mod-manager'
             to: '/'
         port: 2001
     mod.v0: 
