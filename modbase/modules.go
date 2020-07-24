@@ -3,6 +3,8 @@ package modbase
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strconv"
@@ -62,6 +64,7 @@ type (
 		InstanceName string
 		Router       *gin.Engine
 		Hash         string
+		Secret       string
 	}
 )
 
@@ -91,9 +94,20 @@ func (mod *ModuleImpl) Init() {
 	r.Use(gin.Recovery())
 	GetModManager().SetRouter(r)
 
+	mod.readSecret()
+
 	if ResPath == "" {
 		ResPath = "ressources/"
 	}
+}
+
+func (mod *ModuleImpl) readSecret() {
+	b, err := ioutil.ReadFile(".secret")
+	if err != nil {
+		log.Println("Error reading server secret")
+		os.exit(2)
+	}
+	mod.Secret = string(sha256.Sum256(b))
 }
 
 //Register - register http handler for path
@@ -172,7 +186,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 	//CREATE CONNEXION REQUEST
 	cr := com.ConnexionRequest{}
-	cr.Generate(mod.GetName(), "SECRET", ModulePort)
+	cr.Generate(mod.GetName(), mod.Secret, ModulePort)
 	mod.Hash = cr.ModHash
 	//SEND REQUEST
 	body, err := com.SendRequest(com.Server{IP: HubAddress, Port: HubPort, Path: "", Protocol: "http"}, &cr, false)
