@@ -14,6 +14,9 @@
           - from: '/mod-manager'
             to: '/'
         port: 2001
+      auth:
+        enabled: true
+        type: 'http'
     mod.v0: 
       version: 1.0
       types: 'web'

@@ -11,9 +11,11 @@ import (
 	"os/exec"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	com "github.com/Wariie/go-woxy/com"
+	auth "github.com/abbot/go-http-auth"
 	"github.com/gin-gonic/gin"
 )
 
@@ -26,9 +28,10 @@ type ModuleConfig struct {
 	BINDING ServerConfig
 	STATE   ModuleState
 	pk      string
+	AUTH    ModuleAuthConfig
 }
 
-//GetServer -
+//GetServer - Get Module Server configuration
 func (mc *ModuleConfig) GetServer(path string) com.Server {
 	if path == "" {
 		path = mc.BINDING.PATH[0].FROM
@@ -36,7 +39,7 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 	return com.Server{IP: mc.BINDING.ADDRESS, Path: path, Port: mc.BINDING.PORT, Protocol: mc.BINDING.PROTOCOL}
 }
 
-//Stop -
+//Stop - Stop Module
 func (mc *ModuleConfig) Stop() int {
 	if mc.STATE != Online {
 		return -1
@@ -52,7 +55,7 @@ func (mc *ModuleConfig) Stop() int {
 	return 0
 }
 
-//GetLog - GetLog
+//GetLog - GetLog from Module
 func (mc *ModuleConfig) GetLog() string {
 
 	file, err := os.Open("./mods/" + mc.NAME + "/log.log")
@@ -60,8 +63,6 @@ func (mc *ModuleConfig) GetLog() string {
 		log.Panicf("failed reading file: %s", err)
 	}
 	b, err := ioutil.ReadAll(file)
-	//fmt.Printf("\nData: %s\n\n", b)
-	//fmt.Printf("\nError: %v\n\n", err)
 	return string(b)
 }
 
@@ -73,9 +74,7 @@ func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool) error {
 			mc.Download()
 		}
 		go mc.Start()
-	} else {
-		log.Println("LOCAL BUILD or NO BUILD")
-	}
+	} // ELSE NO BUILD
 
 	if hook {
 		return mc.HookAll(router)
@@ -107,7 +106,6 @@ func (mc *ModuleConfig) Start() {
 //Download - Download module from repository ( git clone )
 func (mc *ModuleConfig) Download() {
 
-	//fmt.Println("Downloading mod : ", mc.NAME)
 	if mc.STATE != Online {
 
 		var listArgs []string
@@ -115,7 +113,6 @@ func (mc *ModuleConfig) Download() {
 
 		wd := "./mods/"
 		if _, err := os.Stat(wd + mc.NAME + "/"); os.IsNotExist(err) {
-			//os.RemoveAll(wd + "/mods" + "/" + mc.NAME)
 			listArgs = []string{"clone", mc.EXE.SRC}
 			action = "Downloaded"
 		} else {
@@ -167,10 +164,32 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 		typeR = "GET"
 	}
 	if len(r.FROM) > 0 {
-		router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+		if mc.AUTH.ENABLED {
+			htpasswd := auth.HtpasswdFileProvider(".htpasswd")
+			authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
+			authorized := router.Group("/", BasicAuth(authenticator))
+			authorized.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+		} else {
+			router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+		}
 		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
 	return nil
+}
+
+// BasicAuth - Authentification gin middleware
+func BasicAuth(a *auth.BasicAuth) gin.HandlerFunc {
+	realmHeader := "Basic realm=" + strconv.Quote(a.Realm)
+
+	return func(c *gin.Context) {
+		user := a.CheckAuth(c.Request)
+		if user == "" {
+			c.Header("WWW-Authenticate", realmHeader)
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+		c.Set("user", user)
+	}
 }
 
 //ReverseProxy - reverse proxy for mod
@@ -181,14 +200,12 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
 			//IF ROOT IS PRESENT REDIRECT TO IT
-			if mod.BINDING.ROOT != "" {
+			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
 				c.File(mod.BINDING.ROOT)
 
 			} else if strings.Contains(mod.TYPES, "web") {
 				//ELSE IF BINDING IS TYPE **WEB**
 				//REVERSE PROXY TO IT
-				//query := r.TO + c.Request.URL.Path
-				//if r.TO != ""
 				url, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
 				if err != nil {
 					log.Println(err)
@@ -215,7 +232,6 @@ func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	director := func(req *http.Request) {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
-		//req.URL.Path = target.Path //singleJoiningSlash(target.Path, req.URL.Path)
 		if targetQuery == "" || req.URL.RawQuery == "" {
 			req.URL.RawQuery = targetQuery + req.URL.RawQuery
 		} else {
@@ -265,6 +281,12 @@ type ServerConfig struct {
 	PATH     []Route
 	PROTOCOL string
 	ROOT     string
+}
+
+/*ModuleAuthConfig - Auth configuration*/
+type ModuleAuthConfig struct {
+	ENABLED bool
+	TYPE    string
 }
 
 // Route - Route redirection
