@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync"
 	"time"
@@ -105,9 +106,10 @@ func (mod *ModuleImpl) readSecret() {
 	b, err := ioutil.ReadFile(".secret")
 	if err != nil {
 		log.Println("Error reading server secret")
-		os.exit(2)
+		os.Exit(2)
 	}
-	mod.Secret = string(sha256.Sum256(b)[:])
+	bs := sha256.Sum256(b)
+	mod.Secret = string(bs[:])
 }
 
 //Register - register http handler for path
