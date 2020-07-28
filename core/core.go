@@ -149,6 +149,11 @@ func connect(context *gin.Context) {
 		if tS && cr.ModHash != "" {
 
 			//UPDATE MOD ATTRIBUTES
+			pid, err := strconv.Atoi(cr.Pid)
+			if err != nil {
+				log.Println("Error reading PID :", err)
+			}
+			modC.pid = pid
 			modC.pk = cr.ModHash
 			modC.STATE = "ONLINE"
 			log.Println("HASH :", modC.pk, "- MOD :", modC.NAME)
@@ -226,7 +231,11 @@ func command(c *gin.Context) {
 					} else {
 						response += "Error :" + rqtS
 					}
+				case "Performance":
+					c, r := mc.GetPerf()
+					response += "CPU/RAM : " + fmt.Sprintf("%f", c) + "/" + fmt.Sprintf("%f", r)
 				}
+
 				action += "Command [ " + cr.Command + " ]"
 			}
 

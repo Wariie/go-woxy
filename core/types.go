@@ -18,6 +18,7 @@ import (
 	com "github.com/Wariie/go-woxy/com"
 	auth "github.com/abbot/go-http-auth"
 	"github.com/gin-gonic/gin"
+	"github.com/shirou/gopsutil/process"
 )
 
 /*ModuleConfig - Module configuration */
@@ -30,6 +31,7 @@ type ModuleConfig struct {
 	STATE   ModuleState
 	pk      string
 	AUTH    ModuleAuthConfig
+	pid     int
 }
 
 //GetServer - Get Module Server configuration
@@ -65,6 +67,21 @@ func (mc *ModuleConfig) GetLog() string {
 	}
 	b, err := ioutil.ReadAll(file)
 	return string(b)
+}
+
+//GetPerf - GetPerf from Module
+func (mc *ModuleConfig) GetPerf() (float64, float32) {
+	p, err := process.NewProcess(int32(mc.pid))
+	//sysinfo, err := pidusage.GetStat(mc.pid)
+	log.Println(p, err)
+	ram, err := p.MemoryPercent()
+	log.Println(ram, err)
+	cpu, err := p.Percent(0)
+	log.Println(cpu, err)
+	name, err := p.Name()
+	log.Println(name, err)
+
+	return cpu, ram
 }
 
 //Setup - Setup module from config
