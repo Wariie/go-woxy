@@ -168,10 +168,14 @@ func SendRequest(s Server, r Request, loging bool) (string, error) {
 
 	var customPath string = defaultPath
 	if r.GetPath() != "" {
-		customPath = r.GetPath()
+		if s.Path == "/" || (s.Path == r.GetPath()) {
+			customPath = r.GetPath()
+		} else {
+			customPath = s.Path + r.GetPath()
+		}
 	}
 
-	var url string = s.Protocol + "://" + s.IP + ":" + s.Port + s.Path + customPath
+	var url string = s.Protocol + "://" + s.IP + ":" + s.Port + customPath
 
 	//SEND REQUEST
 	resp, err := http.Post(url, "text/json", bytes.NewBuffer(r.Encode()))
