@@ -89,13 +89,14 @@ func (mod *ModuleImpl) Run() {
 
 //Init - init module
 func (mod *ModuleImpl) Init() {
-	GetModManager().SetMod(mod)
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	GetModManager().SetRouter(r)
 
 	mod.readSecret()
+
+	GetModManager().SetMod(mod)
 
 	if ResPath == "" {
 		ResPath = "ressources/"
@@ -190,6 +191,8 @@ func (mod *ModuleImpl) connectToHub() bool {
 	cr := com.ConnexionRequest{}
 	cr.Generate(mod.GetName(), mod.Secret, ModulePort, strconv.Itoa(os.Getpid()))
 	mod.Hash = cr.ModHash
+
+	GetModManager().SetMod(mod)
 	//SEND REQUEST
 	body, err := com.SendRequest(com.Server{IP: HubAddress, Port: HubPort, Path: "", Protocol: "http"}, &cr, false)
 
