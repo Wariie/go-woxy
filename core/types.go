@@ -29,7 +29,7 @@ type ModuleConfig struct {
 	EXE     ModuleExecConfig
 	BINDING ServerConfig
 	STATE   ModuleState
-	pk      string
+	PK      string
 	AUTH    ModuleAuthConfig
 	pid     int
 }
@@ -48,7 +48,7 @@ func (mc *ModuleConfig) Stop() int {
 		return -1
 	}
 	var cr com.CommandRequest
-	cr.Generate(mc.NAME, mc.pk, "Shutdown")
+	cr.Generate(mc.NAME, mc.PK, "Shutdown")
 	r, err := com.SendRequest(mc.GetServer(""), &cr, false)
 	log.Println("SHUTDOWN RESULT : ", r, err)
 	//TODO BEST GESTURE

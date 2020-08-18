@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"reflect"
 	"strconv"
@@ -145,7 +146,7 @@ func connect(context *gin.Context) {
 		modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
 		rs := bytes.Compare([]byte(strings.Trim(cr.Secret, " ")), []byte(secretHash))
 		//CHECK SECRET FOR AUTH
-		tS := rs == 1
+		tS := math.Abs(float64(rs)) == 1
 		if tS && cr.ModHash != "" {
 
 			//UPDATE MOD ATTRIBUTES
@@ -154,9 +155,9 @@ func connect(context *gin.Context) {
 				log.Println("Error reading PID :", err)
 			}
 			modC.pid = pid
-			modC.pk = cr.ModHash
+			modC.PK = cr.ModHash
 			modC.STATE = "ONLINE"
-			log.Println("HASH :", modC.pk, "- MOD :", modC.NAME)
+			log.Println("HASH :", modC.PK, "- MOD :", modC.NAME)
 
 			if modC.BINDING.PORT != "" {
 				cr.Port = modC.BINDING.PORT
@@ -194,49 +195,54 @@ func command(c *gin.Context) {
 
 	if t["Hash"] == "hub" {
 		response = commandForHub(t, b)
-	} else {
+	} else if t["Hash"] != "" {
 		forward := false
-		mc := SearchModWithHash(t["Hash"])
 
-		if mc.NAME == "error" {
+		if t["error"] == "error" {
 			response = "Error reading module Hash"
 		} else {
-			action += "To " + mc.NAME + " - "
+			mc := SearchModWithHash(t["Hash"])
+
 			var r com.Request
+			if mc.NAME == "error" {
+				response = "Error module not found"
+			} else {
+				action += "To " + mc.NAME + " - "
 
-			switch t["Type"] {
-			case "Command":
-				var cr com.CommandRequest
-				cr.Decode(b)
+				switch t["Type"] {
+				case "Command":
+					var cr com.CommandRequest
+					cr.Decode(b)
 
-				switch cr.Command {
-				case "Shutdown":
-					forward = true
-					r = &cr
-				case "Log":
-					response = mc.GetLog()
-				case "Restart":
-					cr.Command = "Shutdown"
-					r = &cr
-					rqtS, err := com.SendRequest(mc.GetServer(""), r, false)
-					mc.STATE = Stopped
-					if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host") {
-						time.Sleep(10 * time.Second)
-						if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
-							response += "Error :" + err.Error()
-							log.Panicln(err)
+					switch cr.Command {
+					case "Shutdown":
+						forward = true
+						r = &cr
+					case "Log":
+						response = mc.GetLog()
+					case "Restart":
+						cr.Command = "Shutdown"
+						r = &cr
+						rqtS, err := com.SendRequest(mc.GetServer("/cmd"), r, false)
+						mc.STATE = Stopped
+						if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
+							time.Sleep(10 * time.Second)
+							if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
+								response += "Error :" + err.Error()
+								log.Panicln(err)
+							} else {
+								response += "Success"
+							}
 						} else {
-							response += "Success"
+							response += "Error :" + rqtS + err.Error()
 						}
-					} else {
-						response += "Error :" + rqtS
+					case "Performance":
+						c, r := mc.GetPerf()
+						response += "CPU/RAM : " + fmt.Sprintf("%f", c) + "/" + fmt.Sprintf("%f", r)
 					}
-				case "Performance":
-					c, r := mc.GetPerf()
-					response += "CPU/RAM : " + fmt.Sprintf("%f", c) + "/" + fmt.Sprintf("%f", r)
-				}
 
-				action += "Command [ " + cr.Command + " ]"
+					action += "Command [ " + cr.Command + " ]"
+				}
 			}
 
 			if forward {
@@ -248,6 +254,8 @@ func command(c *gin.Context) {
 			}
 
 		}
+	} else {
+		response = "Empty Hash : Try to start module"
 	}
 	action += " - Result : " + response
 	log.Println("Request from", from, "-", action)
@@ -287,7 +295,7 @@ func commandForHub(t map[string]string, b []byte) string {
 func SearchModWithHash(hash string) ModuleConfig {
 	mods := GetManager().config.MODULES
 	for i := range mods {
-		if mods[i].pk == hash {
+		if mods[i].PK == hash {
 			return mods[i]
 		}
 	}
