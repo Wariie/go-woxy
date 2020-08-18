@@ -163,11 +163,10 @@ func cmd(c *gin.Context) {
 
 	var response string
 
-	var hash = GetModManager().GetMod().Hash
-	if t["Hash"] == hash {
+	var hash =
+	if t["Hash"] != GetModManager().GetMod().Hash {
 		response = "Error reading module Hash"
 	} else {
-
 		switch t["Type"] {
 		case "Command":
 			var sr com.CommandRequest
