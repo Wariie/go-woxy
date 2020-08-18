@@ -85,7 +85,6 @@ func (mod *ModuleImpl) Run() {
 	} else {
 		mod.serve(ModuleAddress, ModulePort)
 	}
-	GetModManager().SetMod(mod)
 }
 
 //Init - init module
@@ -96,8 +95,6 @@ func (mod *ModuleImpl) Init() {
 	GetModManager().SetRouter(r)
 
 	mod.readSecret()
-
-	GetModManager().SetMod(mod)
 
 	if ResPath == "" {
 		ResPath = "ressources/"
@@ -152,6 +149,7 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 
 	GetModManager().SetServer(Server)
 	GetModManager().SetRouter(r)
+	GetModManager().SetMod(mod)
 
 	if err := GetModManager().GetServer().ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatal(err)
