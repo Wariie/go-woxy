@@ -234,7 +234,10 @@ func command(c *gin.Context) {
 								response += "Success"
 							}
 						} else {
-							response += "Error :" + rqtS + err.Error()
+							response += "Error :" + rqtS
+							if err != nil {
+								response += " - " + err.Error()
+							}
 						}
 					case "Performance":
 						c, r := mc.GetPerf()
@@ -246,7 +249,7 @@ func command(c *gin.Context) {
 			}
 
 			if forward {
-				resp, err := com.SendRequest(mc.GetServer(""), r, false)
+				resp, err := com.SendRequest(mc.GetServer("/cmd"), r, false)
 				response += resp
 				if err != nil {
 					response += err.Error()

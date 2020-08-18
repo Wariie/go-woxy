@@ -85,6 +85,7 @@ func (mod *ModuleImpl) Run() {
 	} else {
 		mod.serve(ModuleAddress, ModulePort)
 	}
+	GetModManager().SetMod(mod)
 }
 
 //Init - init module
