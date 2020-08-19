@@ -93,6 +93,7 @@ func (mod *ModuleImpl) Init() {
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
 	GetModManager().SetRouter(r)
+	GetModManager().SetMod(mod)
 
 	mod.readSecret()
 
@@ -157,40 +158,14 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 
 }
 
-func cmd(c *gin.Context) {
-	log.Println("Command request")
-	t, b := com.GetCustomRequestType(c.Request)
-
-	var response string
-
-	if t["Hash"] != GetModManager().GetMod().Hash {
-		response = "Error reading module Hash"
-	} else {
-		switch t["Type"] {
-		case "Command":
-			var sr com.CommandRequest
-			sr.Decode(b)
-			log.Println("Request Content - ", sr)
-			switch sr.Command {
-			case "Shutdown":
-				response = "SHUTTING DOWN " + GetModManager().GetMod().Name
-				go GetModManager().Shutdown(c)
-			}
-		}
-
-	}
-	c.String(200, response)
-}
-
 func (mod *ModuleImpl) connectToHub() bool {
 	log.Println("	HUB CONNECT")
 
 	//CREATE CONNEXION REQUEST
 	cr := com.ConnexionRequest{}
-	cr.Generate(mod.GetName(), mod.Secret, ModulePort, strconv.Itoa(os.Getpid()))
+	cr.Generate(mod.GetName(), ModulePort, strconv.Itoa(os.Getpid()), mod.Secret)
 	mod.Hash = cr.ModHash
 
-	GetModManager().SetMod(mod)
 	//SEND REQUEST
 	body, err := com.SendRequest(com.Server{IP: HubAddress, Port: HubPort, Path: "", Protocol: "http"}, &cr, false)
 
@@ -249,6 +224,10 @@ func (sm *modManager) SetMod(m *ModuleImpl) {
 
 func (sm *modManager) GetMod() *ModuleImpl {
 	return sm.mod
+}
+
+func (sm *modManager) GetSecret() string {
+	return sm.mod.Secret
 }
 
 func (sm *modManager) Shutdown(c context.Context) {
