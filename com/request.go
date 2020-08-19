@@ -3,9 +3,7 @@ package com
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
-	"net/http"
 
 	rand "github.com/Wariie/go-woxy/tools"
 )
@@ -27,16 +25,17 @@ type Request interface {
 	Generate(list ...string)
 	GetPath() string
 	GetType() string
+	GetSecret() string
 }
 
 /*ConnexionRequest - server connexion request */
 type ConnexionRequest struct {
-	Name    string
-	Secret  string
-	Port    string
 	ModHash string
-	Type    string
+	Name    string
 	Pid     string
+	Port    string
+	Secret  string
+	Type    string
 }
 
 //Decode - Decode JSON to ConnexionRequest
@@ -56,11 +55,12 @@ func (cr *ConnexionRequest) Encode() []byte {
 //Generate - Generate ConnexionRequest with params
 func (cr *ConnexionRequest) Generate(list ...string) {
 	cr.Name = list[0]
-	cr.Secret = list[1]
-	cr.Port = list[2]
 	cr.ModHash = rand.String(15)
+	cr.Port = list[1]
+	cr.Pid = list[2]
+	cr.Secret = list[3]
 	cr.Type = "Connexion"
-	cr.Pid = list[3]
+
 }
 
 /*GetPath - ConnexionRequest path string*/
@@ -73,12 +73,17 @@ func (cr *ConnexionRequest) GetType() string {
 	return cr.Type
 }
 
+/*GetSecret - ConnexionRequest request secret*/
+func (cr *ConnexionRequest) GetSecret() string {
+	return cr.ModHash
+}
+
 //ConnexionReponseRequest - ConnexionReponseRequest
 type ConnexionReponseRequest struct {
-	Name  string
-	State string
 	Hash  string
+	Name  string
 	Port  string
+	State string
 	Type  string
 }
 
@@ -98,16 +103,21 @@ func (cr *ConnexionReponseRequest) Encode() []byte {
 
 //Generate - Generate ConnexionReponseRequest with params
 func (cr *ConnexionReponseRequest) Generate(list ...string) {
-	cr.Name = list[0]
-	cr.State = list[1]
-	cr.Hash = list[2]
-	cr.Port = list[3]
+	cr.Hash = list[0]
+	cr.Name = list[1]
+	cr.Port = list[2]
+	cr.State = list[3]
 	cr.Type = "ConnexionResponse"
 }
 
 /*GetPath - ConnexionReponseRequest path string*/
 func (cr *ConnexionReponseRequest) GetPath() string {
 	return defaultPath
+}
+
+/*GetSecret - ConnexionReponseRequest request secret*/
+func (cr *ConnexionReponseRequest) GetSecret() string {
+	return cr.Hash
 }
 
 /*GetType - ConnexionResponseRequest request type*/
@@ -117,11 +127,12 @@ func (cr *ConnexionReponseRequest) GetType() string {
 
 /*CommandRequest - CommandRequest*/
 type CommandRequest struct {
-	Name    string
-	Hash    string
-	Type    string
-	Content string
 	Command string
+	Content string
+	Hash    string
+	Name    string
+	Secret  string
+	Type    string
 }
 
 //Decode - Decode JSON to CommandRequest
@@ -143,10 +154,11 @@ func (cr *CommandRequest) Encode() []byte {
 //- Hash 	  string
 //- Command string
 func (cr *CommandRequest) Generate(list ...string) {
-	cr.Name = list[0]
+	cr.Command = list[0]
 	cr.Hash = list[1]
+	cr.Name = list[2]
 	cr.Type = "Command"
-	cr.Command = list[2]
+	cr.Secret = list[3]
 }
 
 /*GetPath - CommandRequest path string*/
@@ -154,57 +166,12 @@ func (cr *CommandRequest) GetPath() string {
 	return "/cmd"
 }
 
+/*GetSecret - CommandRequest request secret*/
+func (cr *CommandRequest) GetSecret() string {
+	return cr.Secret
+}
+
 /*GetType - CommandRequest request type*/
 func (cr *CommandRequest) GetType() string {
 	return cr.Type
-}
-
-//SendRequest - sens request to server
-func SendRequest(s Server, r Request, loging bool) (string, error) {
-
-	if loging {
-		fmt.Println("LAUNCH REQUEST - ", r, " TO ", s)
-	}
-
-	var customPath string = defaultPath
-	if r.GetPath() != "" {
-		if s.Path == "/" || (s.Path == r.GetPath()) {
-			customPath = r.GetPath()
-		} else {
-			customPath = s.Path + r.GetPath()
-		}
-	}
-
-	var url string = s.Protocol + "://" + s.IP + ":" + s.Port + customPath
-
-	//SEND REQUEST
-	resp, err := http.Post(url, "text/json", bytes.NewBuffer(r.Encode()))
-	if err != nil {
-		log.Println(err)
-	}
-	//defer resp.Body.Close()
-	if resp != nil && resp.Body != nil {
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
-		return buf.String(), err
-	}
-	return "", err
-}
-
-// GetCustomRequestType - get custom request from gin Request Body
-func GetCustomRequestType(gRqt *http.Request) (map[string]string, []byte) {
-
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(gRqt.Body)
-
-	c := make(map[string]string)
-
-	// unmarschal JSON
-	e := json.Unmarshal(buf.Bytes(), &c)
-
-	if e != nil {
-		return map[string]string{"error": "error"}, nil
-	}
-
-	return c, buf.Bytes()
 }
