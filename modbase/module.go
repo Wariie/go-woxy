@@ -3,7 +3,6 @@ package modbase
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -108,8 +107,9 @@ func (mod *ModuleImpl) readSecret() {
 		log.Println("Error reading server secret")
 		os.Exit(2)
 	}
-	bs := sha256.Sum256(b)
-	mod.Secret = string(bs[:])
+	/*bs := sha256.Sum256(b)
+	mod.Secret = string(bs[:])*/
+	mod.Secret = string(b)
 }
 
 //Register - register http handler for path
