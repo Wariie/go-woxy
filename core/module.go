@@ -48,7 +48,7 @@ func (mc *ModuleConfig) Stop() int {
 		return -1
 	}
 	var cr com.CommandRequest
-	cr.Generate(mc.NAME, mc.PK, "Shutdown")
+	cr.Generate("Shutdown", mc.PK, mc.NAME, secretHash)
 	r, err := com.SendRequest(mc.GetServer(""), &cr, false)
 	log.Println("SHUTDOWN RESULT : ", r, err)
 	//TODO BEST GESTURE

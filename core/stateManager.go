@@ -9,6 +9,7 @@ import (
 type manager struct {
 	config Config
 	router *gin.Engine
+	cp     *CommandProcessorImpl
 }
 
 var singleton *manager
@@ -36,4 +37,16 @@ func (sm *manager) GetRouter() *gin.Engine {
 
 func (sm *manager) SetRouter(r *gin.Engine) {
 	sm.router = r
+}
+
+func (sm *manager) GetCommandProcessor() *CommandProcessorImpl {
+	return sm.cp
+}
+
+func (sm *manager) SetCommandProcessor(cp *CommandProcessorImpl) {
+	sm.cp = cp
+}
+
+func (sm *manager) SaveModuleChanges(mc *ModuleConfig) {
+	sm.config.MODULES[mc.NAME] = *mc
 }

@@ -1,12 +1,15 @@
 package core
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
+	"github.com/Wariie/go-woxy/tools"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v2"
 )
@@ -78,6 +81,34 @@ func checkServerConfig(sc ServerConfig) ServerConfig {
 	return sc
 }
 
+func loadModules() {
+	//INIT MODULE DIRECTORY
+	wd, err := os.Getwd()
+
+	os.Mkdir(wd+"/mods", os.ModeDir)
+	if err != nil {
+		log.Fatalln("Error creating mods folder : ", err)
+		os.Exit(1)
+	}
+
+	config := GetManager().config
+	Router := GetManager().router
+	for k := range config.MODULES {
+		mod := config.MODULES[k]
+		err := mod.Setup(Router, true)
+		if err != nil {
+			log.Fatalln("Error setup module ", mod.NAME, " - ", err)
+		}
+		config.MODULES[k] = mod
+	}
+
+	//ADD HUB MODULE FOR COMMAND GESTURE
+	config.MODULES["hub"] = ModuleConfig{NAME: "hub", PK: "hub"}
+
+	GetManager().router = Router
+	GetManager().config = config
+}
+
 func getServerConfig(sc ServerConfig, router *gin.Engine) http.Server {
 	path := ""
 	if len(sc.PATH) > 0 {
@@ -88,4 +119,42 @@ func getServerConfig(sc ServerConfig, router *gin.Engine) http.Server {
 		Addr:    sc.ADDRESS + ":" + sc.PORT + path,
 		Handler: router,
 	}
+}
+
+func generateSecret() {
+	s := tools.String(64)
+	sb := []byte(s)
+	err := ioutil.WriteFile(".secret", sb, 0644)
+	if err != nil {
+		log.Println("Error trying create secret file :", err)
+	}
+	/*b := sha256.Sum256(s)
+	secretHash = string(b[:])*/
+	secretHash = s
+}
+
+func motd() {
+	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
+	file, err := os.Open(motdFileName)
+	if err != nil {
+		log.Fatalln("No motd file ", motdFileName, " : ", err)
+		return
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
+	fmt.Println("------------------------------------------------------------ ")
+}
+
+func searchModWithHash(hash string) ModuleConfig {
+	mods := GetManager().config.MODULES
+	for i := range mods {
+		if mods[i].PK == hash {
+			return mods[i]
+		}
+	}
+	return ModuleConfig{NAME: "error"}
 }

@@ -1,22 +1,14 @@
 package core
 
 import (
-	"bufio"
 	"bytes"
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"math"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
-	"time"
 
-	com "github.com/Wariie/go-woxy/com"
-	"github.com/Wariie/go-woxy/tools"
+	"github.com/Wariie/go-woxy/com"
 	"github.com/gin-gonic/gin"
 )
 
@@ -43,32 +35,7 @@ func launchServer() {
 	log.Fatalln("Error ListenAndServer : ", server.ListenAndServe())
 }
 
-func motd() {
-	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
-	file, err := os.Open(motdFileName)
-	if err != nil {
-		log.Fatalln("No motd file ", motdFileName, " : ", err)
-		return
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-	}
-	fmt.Println("------------------------------------------------------------ ")
-}
-
 func initCore() {
-	//INIT MODULE DIRECTORY
-	wd, err := os.Getwd()
-
-	os.Mkdir(wd+"/mods", os.ModeDir)
-	if err != nil {
-		log.Fatalln("Error creating mods folder : ", err)
-		os.Exit(1)
-	}
-
 	//INIT ROUTER
 	router := gin.Default()
 	router.LoadHTMLGlob("ressources/*/*")
@@ -76,11 +43,15 @@ func initCore() {
 		c.HTML(404, "404.html", nil)
 	})
 
+	cp := CommandProcessorImpl{}
+	cp.Init()
+	GetManager().SetCommandProcessor(&cp)
 	GetManager().SetRouter(router)
 }
 
 //LaunchCore - start core server
 func LaunchCore(configPath string) {
+
 	motd()
 
 	generateSecret()
@@ -102,31 +73,6 @@ func LaunchCore(configPath string) {
 	launchServer()
 }
 
-func generateSecret() {
-	s := []byte(tools.String(64))
-	err := ioutil.WriteFile(".secret", s, 0644)
-	if err != nil {
-		log.Println("Error trying create secret file :", err)
-	}
-	b := sha256.Sum256(s)
-	secretHash = string(b[:])
-}
-
-func loadModules() {
-	config := GetManager().config
-	Router := GetManager().router
-	for k := range config.MODULES {
-		mod := config.MODULES[k]
-		err := mod.Setup(Router, true)
-		if err != nil {
-			log.Fatalln("Error setup module ", mod.NAME, " - ", err)
-		}
-		config.MODULES[k] = mod
-	}
-	GetManager().router = Router
-	GetManager().config = config
-}
-
 func connect(context *gin.Context) {
 
 	var cr com.ConnexionRequest
@@ -144,10 +90,10 @@ func connect(context *gin.Context) {
 	} else {
 
 		modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
-		rs := bytes.Compare([]byte(strings.Trim(cr.Secret, " ")), []byte(secretHash))
+		s := secretHash
+		rs := strings.TrimSuffix(cr.Secret, "\n\t") == strings.TrimSuffix(s, "\n\t")
 		//CHECK SECRET FOR AUTH
-		tS := math.Abs(float64(rs)) == 1
-		if tS && cr.ModHash != "" {
+		if rs && cr.ModHash != "" {
 
 			//UPDATE MOD ATTRIBUTES
 			pid, err := strconv.Atoi(cr.Pid)
@@ -173,10 +119,10 @@ func connect(context *gin.Context) {
 		//SEND RESPONSE
 		var crr com.ConnexionReponseRequest
 
-		result := strconv.FormatBool(tS)
+		result := strconv.FormatBool(rs)
 		fmt.Println("Module ", modC.NAME, " connecting - result : ", result)
 
-		crr.Generate(cr.Name, result, cr.ModHash, cr.Port)
+		crr.Generate(cr.ModHash, cr.Name, cr.Port, result)
 		context.Writer.Write(crr.Encode())
 	}
 
@@ -189,118 +135,43 @@ func command(c *gin.Context) {
 	t, b := com.GetCustomRequestType(c.Request)
 
 	from := c.Request.RemoteAddr
-	//TODO HANDLE HUB ACCESS WITH CREDENTIALS
+	//TODO HANDLE ACCESS WITH CREDENTIALS
 	response := ""
 	action := ""
 
-	if t["Hash"] == "hub" {
-		response = commandForHub(t, b)
+	// IF ERROR READING DATA
+	if t["error"] == "error" {
+		response = "Error reading module Hash"
 	} else if t["Hash"] != "" {
-		forward := false
+		//CHECK THERE IS NO ERROR WHILE READING
 
-		if t["error"] == "error" {
-			response = "Error reading module Hash"
+		//GET MOD WITH HASH
+		mc := searchModWithHash(t["Hash"])
+
+		if mc.NAME == "error" {
+			response = "Error module not found"
 		} else {
-			mc := SearchModWithHash(t["Hash"])
+			action += "To " + mc.NAME + " - "
 
-			var r com.Request
-			if mc.NAME == "error" {
-				response = "Error module not found"
-			} else {
-				action += "To " + mc.NAME + " - "
-
-				switch t["Type"] {
-				case "Command":
-					var cr com.CommandRequest
-					cr.Decode(b)
-
-					switch cr.Command {
-					case "Shutdown":
-						forward = true
-						r = &cr
-					case "Log":
-						response = mc.GetLog()
-					case "Restart":
-						cr.Command = "Shutdown"
-						r = &cr
-						rqtS, err := com.SendRequest(mc.GetServer("/cmd"), r, false)
-						mc.STATE = Stopped
-						if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
-							time.Sleep(10 * time.Second)
-							if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
-								response += "Error :" + err.Error()
-								log.Panicln(err)
-							} else {
-								response += "Success"
-							}
-						} else {
-							response += "Error :" + rqtS
-							if err != nil {
-								response += " - " + err.Error()
-							}
-						}
-					case "Performance":
-						c, r := mc.GetPerf()
-						response += "CPU/RAM : " + fmt.Sprintf("%f", c) + "/" + fmt.Sprintf("%f", r)
-					}
-
-					action += "Command [ " + cr.Command + " ]"
+			//PROCESS REQUEST
+			switch t["Type"] {
+			case "Command":
+				var cr com.CommandRequest
+				cr.Decode(b)
+				cp := GetManager().GetCommandProcessor()
+				res, e := cp.Run(cr.Command, &cr, &mc, "")
+				response += res
+				if e != nil {
+					response += e.Error()
 				}
+				action += "Command [ " + cr.Command + " ]"
 			}
-
-			if forward {
-				resp, err := com.SendRequest(mc.GetServer("/cmd"), r, false)
-				response += resp
-				if err != nil {
-					response += err.Error()
-				}
-			}
-
 		}
+		//NO HASH PROVIDED
 	} else {
 		response = "Empty Hash : Try to start module"
 	}
 	action += " - Result : " + response
 	log.Println("Request from", from, "-", action)
 	c.String(200, response, nil)
-}
-
-//TODO
-func commandForHub(t map[string]string, b []byte) string {
-
-	switch t["Type"] {
-	case "Command":
-		var cr com.CommandRequest
-		cr.Decode(b)
-
-		if strings.Contains(cr.Command, "Get") {
-			todo := strings.Split(cr.Command, ":")
-			if len(todo) == 3 {
-				switch todo[1] {
-				case "List":
-					switch todo[2] {
-					case "Module":
-						rb, err := json.Marshal(GetManager().GetConfig().MODULES)
-						if err != nil {
-							return "Error JSON - 420"
-						}
-						return string(rb)
-					}
-				}
-			}
-		}
-	}
-
-	return ""
-}
-
-//SearchModWithHash -
-func SearchModWithHash(hash string) ModuleConfig {
-	mods := GetManager().config.MODULES
-	for i := range mods {
-		if mods[i].PK == hash {
-			return mods[i]
-		}
-	}
-	return ModuleConfig{NAME: "error"}
 }
