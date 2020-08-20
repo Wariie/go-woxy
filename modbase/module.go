@@ -47,7 +47,7 @@ type (
 		HubServer      com.Server
 		Server         com.Server
 		RessourcePath  string
-		CustomCommands map[string]func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error))
+		CustomCommands map[string]func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error)
 	}
 )
 
@@ -166,7 +166,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 	for k := range mod.CustomCommands {
 		append(s, k)
 	}
-	
+
 	cr.Generate(commands, mod.Name, mod.Server.Port, strconv.Itoa(os.Getpid()), mod.Secret)
 	mod.Hash = cr.ModHash
 
