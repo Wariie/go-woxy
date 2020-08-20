@@ -164,7 +164,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 	var commands []string
 	for k := range mod.CustomCommands {
-		append(commands, k)
+		commands = append(commands, k)
 	}
 
 	cr.Generate(commands, mod.Name, mod.Server.Port, strconv.Itoa(os.Getpid()), mod.Secret)
