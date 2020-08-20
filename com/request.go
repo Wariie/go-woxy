@@ -22,7 +22,7 @@ type Server struct {
 type Request interface {
 	Decode(b []byte)
 	Encode() []byte
-	Generate(list ...string)
+	Generate(list ...interface{})
 	GetPath() string
 	GetType() string
 	GetSecret() string
@@ -30,12 +30,13 @@ type Request interface {
 
 /*ConnexionRequest - server connexion request */
 type ConnexionRequest struct {
-	ModHash string
-	Name    string
-	Pid     string
-	Port    string
-	Secret  string
-	Type    string
+	CustomCommands []string
+	ModHash        string
+	Name           string
+	Pid            string
+	Port           string
+	Secret         string
+	Type           string
 }
 
 //Decode - Decode JSON to ConnexionRequest
@@ -53,12 +54,13 @@ func (cr *ConnexionRequest) Encode() []byte {
 }
 
 //Generate - Generate ConnexionRequest with params
-func (cr *ConnexionRequest) Generate(list ...string) {
-	cr.Name = list[0]
+func (cr *ConnexionRequest) Generate(list ...interface{}) {
+	cr.CustomCommands = list[0].([]string)
 	cr.ModHash = rand.String(15)
-	cr.Port = list[1]
-	cr.Pid = list[2]
-	cr.Secret = list[3]
+	cr.Name = list[1].(string)
+	cr.Port = list[2].(string)
+	cr.Pid = list[3].(string)
+	cr.Secret = list[4].(string)
 	cr.Type = "Connexion"
 
 }
@@ -102,11 +104,11 @@ func (cr *ConnexionReponseRequest) Encode() []byte {
 }
 
 //Generate - Generate ConnexionReponseRequest with params
-func (cr *ConnexionReponseRequest) Generate(list ...string) {
-	cr.Hash = list[0]
-	cr.Name = list[1]
-	cr.Port = list[2]
-	cr.State = list[3]
+func (cr *ConnexionReponseRequest) Generate(list ...interface{}) {
+	cr.Hash = list[0].(string)
+	cr.Name = list[1].(string)
+	cr.Port = list[2].(string)
+	cr.State = list[3].(string)
 	cr.Type = "ConnexionResponse"
 }
 
@@ -153,12 +155,12 @@ func (cr *CommandRequest) Encode() []byte {
 //- Name 	  string
 //- Hash 	  string
 //- Command string
-func (cr *CommandRequest) Generate(list ...string) {
-	cr.Command = list[0]
-	cr.Hash = list[1]
-	cr.Name = list[2]
+func (cr *CommandRequest) Generate(list ...interface{}) {
+	cr.Command = list[0].(string)
+	cr.Hash = list[1].(string)
+	cr.Name = list[2].(string)
 	cr.Type = "Command"
-	cr.Secret = list[3]
+	cr.Secret = list[3].(string)
 }
 
 /*GetPath - CommandRequest path string*/
