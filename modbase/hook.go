@@ -41,7 +41,10 @@ func cmd(c *gin.Context) {
 		}
 
 	}
-	c.String(200, response+err.Error())
+	if err != nil {
+		reponse += err.Error()
+	}
+	c.String(200, response)
 }
 
 func shutdown(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
