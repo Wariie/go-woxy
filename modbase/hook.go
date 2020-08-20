@@ -14,6 +14,7 @@ func cmd(c *gin.Context) {
 	mod := GetModManager().GetMod()
 
 	var response string
+	var err error
 
 	if t["Hash"] != mod.Hash {
 		response = "Error reading module Hash"
@@ -25,13 +26,27 @@ func cmd(c *gin.Context) {
 			log.Println("Request Content - ", sr)
 			switch sr.Command {
 			case "Shutdown":
-				response = "SHUTTING DOWN " + mod.Name
-				go GetModManager().Shutdown(c)
+				response, err = shutdown(&sr, c, mod)
 			case "Ping":
-				response = mod.Name + " ALIVE" 
+				response, err = ping(&sr, c, mod)
+			default:
+				for k := range mod.CustomCommands {
+					if k == sr.Command {
+						mod.CustomCommands[k](&sr, c, mod)
+					}
+				}
 			}
 		}
 
 	}
-	c.String(200, response)
+	c.String(200, response+err.Error())
+}
+
+func shutdown(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
+	go GetModManager().Shutdown(c)
+	return "SHUTTING DOWN " + mod.Name, nil
+}
+
+func ping(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
+	return mod.Name + " ALIVE", nil
 }

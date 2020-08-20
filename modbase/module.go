@@ -34,24 +34,31 @@ type (
 		Stop()
 		SetServer()
 		SetHubServer()
+		SetCommand(string, func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error))
 	}
 
 	/*ModuleImpl - Impl of Module*/
 	ModuleImpl struct {
-		Name          string
-		InstanceName  string
-		Router        *gin.Engine
-		Hash          string
-		Secret        string
-		HubServer     com.Server
-		Server        com.Server
-		RessourcePath string
+		Name           string
+		InstanceName   string
+		Router         *gin.Engine
+		Hash           string
+		Secret         string
+		HubServer      com.Server
+		Server         com.Server
+		RessourcePath  string
+		CustomCommands map[string]func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error))
 	}
 )
 
 //Stop - stop module
 func (mod *ModuleImpl) Stop(c *gin.Context) {
 	GetModManager().Shutdown(c)
+}
+
+//SetCommand - set command
+func (mod *ModuleImpl) SetCommand(string name, run func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error)) {
+	mod.CustomCommands[name] = run
 }
 
 //SetServer -
@@ -154,7 +161,13 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 	//CREATE CONNEXION REQUEST
 	cr := com.ConnexionRequest{}
-	cr.Generate(mod.Name, mod.Server.Port, strconv.Itoa(os.Getpid()), mod.Secret)
+
+	var commands []string
+	for k := range mod.CustomCommands {
+		append(s, k)
+	}
+	
+	cr.Generate(commands, mod.Name, mod.Server.Port, strconv.Itoa(os.Getpid()), mod.Secret)
 	mod.Hash = cr.ModHash
 
 	//SEND REQUEST
