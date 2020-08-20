@@ -166,7 +166,7 @@ func (mc *ModuleConfig) Download() {
 		mc.EXE.BIN = "./mods/" + mc.NAME + "/"
 		mc.STATE = Downloaded
 	} else {
-		log.Fatalln("Error - Trying to download/update module while running\nStop it before")
+		log.Println("Error - Trying to download/update module while running\nStop it before")
 	}
 }
 

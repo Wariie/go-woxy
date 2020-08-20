@@ -109,9 +109,9 @@ func restartModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (stri
 	rqtS, err := com.SendRequest(mc.GetServer("/cmd"), cr, false)
 	if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
 		time.Sleep(10 * time.Second)
-		if err := mc.Setup(GetManager().GetRouter(), false); err == nil {
+		if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
 			response += "Error :" + err.Error()
-			log.Panicln(err)
+			log.Println(err)
 		} else {
 			response += "Success"
 			mc.STATE = Stopped
