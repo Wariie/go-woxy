@@ -93,11 +93,11 @@ func (mod *ModuleImpl) Init() {
 	}
 
 	if mod.Server == (com.Server{}) {
-		mod.Server = com.Server{IP: "0.0.0.0", Port: "4224"}
+		mod.Server = com.Server{IP: "0.0.0.0", Port: "4224", Protocol: "http"}
 	}
 
 	if mod.HubServer == (com.Server{}) {
-		mod.HubServer = com.Server{IP: "0.0.0.0", Port: "2000"}
+		mod.HubServer = com.Server{IP: "0.0.0.0", Port: "2000", Protocol: "http"}
 	}
 }
 
