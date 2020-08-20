@@ -133,7 +133,7 @@ Deploy a web-app easily and deploy it through go-woxy
 
     func index(ctx *gin.Context) {
         ctx.HTML(http.StatusAccepted, "index.html", gin.H{
-            "title": "Guilhem MATEO", //IGNORE THIS
+            "title": "Guilhem MATEO",
         })
         log.Println("GET / mod.v0", ctx.Request.RemoteAddr)
     }
