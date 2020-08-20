@@ -42,7 +42,7 @@ func cmd(c *gin.Context) {
 
 	}
 	if err != nil {
-		reponse += err.Error()
+		response += err.Error()
 	}
 	c.String(200, response)
 }
