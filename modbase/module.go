@@ -63,7 +63,7 @@ func (mod *ModuleImpl) SetServer(ip string, path string, port string, proto stri
 }
 
 //SetHubServer -
-func (mod *ModuleImpl) SetHubServer((ip string, path string, port string, proto string) {
+func (mod *ModuleImpl) SetHubServer(ip string, path string, port string, proto string) {
 	if proto == "" {
 		proto = "http"
 	}
