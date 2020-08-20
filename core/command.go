@@ -43,6 +43,11 @@ func (mc *ModuleCommand) GetResult() string {
 	return mc.result
 }
 
+//GetName -
+func (mc *ModuleCommand) GetName() string {
+	return mc.name
+}
+
 func (mc *ModuleCommand) registerExecutor(fn func(com.Request, *ModuleConfig, ...string) (string, error)) {
 	mc.executor = fn
 }

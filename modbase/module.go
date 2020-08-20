@@ -55,14 +55,19 @@ func (mod *ModuleImpl) Stop(c *gin.Context) {
 }
 
 //SetServer -
-func (mod *ModuleImpl) SetServer(ip string, port string) {
-	mod.Server = com.Server{IP: ip, Port: port}
+func (mod *ModuleImpl) SetServer(ip string, path string, port string, proto string) {
+	if proto == "" {
+		proto = "http"
+	}
+	mod.Server = com.Server{IP: ip, Port: port, Path: path, Protocol: proto}
 }
 
 //SetHubServer -
-func (mod *ModuleImpl) SetHubServer(ip string, port string) {
-	mod.HubServer = com.Server{IP: ip, Port: port}
-}
+func (mod *ModuleImpl) SetHubServer((ip string, path string, port string, proto string) {
+	if proto == "" {
+		proto = "http"
+	}
+	mod.HubServer = com.Server{IP: ip, Port: port, Path: path, Protocol: proto}
 
 //Run - start module function
 func (mod *ModuleImpl) Run() {
