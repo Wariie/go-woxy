@@ -86,11 +86,11 @@ func (mod *ModuleImpl) Init() {
 		mod.RessourcePath = "ressources/"
 	}
 
-	if mod.Server == nil {
+	if mod.Server == com.Server{} {
 		mod.Server = com.Server{IP: "0.0.0.0", Port: "4224"}
 	}
 
-	if mod.HubServer == nil {
+	if mod.HubServer == com.Server{} {
 		mod.HubServer = com.Server{IP: "0.0.0.0", Port: "2000"}
 	}
 }
