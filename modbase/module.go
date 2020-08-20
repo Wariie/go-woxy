@@ -68,6 +68,7 @@ func (mod *ModuleImpl) SetHubServer(ip string, path string, port string, proto s
 		proto = "http"
 	}
 	mod.HubServer = com.Server{IP: ip, Port: port, Path: path, Protocol: proto}
+}
 
 //Run - start module function
 func (mod *ModuleImpl) Run() {
