@@ -57,7 +57,7 @@ func (mod *ModuleImpl) Stop(c *gin.Context) {
 }
 
 //SetCommand - set command
-func (mod *ModuleImpl) SetCommand(string name, run func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error)) {
+func (mod *ModuleImpl) SetCommand(name string, run func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error)) {
 	mod.CustomCommands[name] = run
 }
 
@@ -164,7 +164,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 	var commands []string
 	for k := range mod.CustomCommands {
-		append(s, k)
+		append(commands, k)
 	}
 
 	cr.Generate(commands, mod.Name, mod.Server.Port, strconv.Itoa(os.Getpid()), mod.Secret)
