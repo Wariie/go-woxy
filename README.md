@@ -112,32 +112,30 @@ Deploy a web-app easily and deploy it through go-woxy
     package main
 
     import (
-      "log"
-      "net/http"
+        "log"
+        "net/http"
 
-      "github.com/gin-gonic/gin"
+        "github.com/gin-gonic/gin"
 
-      modbase "github.com/Wariie/go-woxy/modbase"
+        modbase "github.com/Wariie/go-woxy/modbase"
     )
 
     func main() {
-      var m modbase.ModuleImpl
-      
-      m.Name = "mod.v0"
-      m.InstanceName = "mod test v0"
-      modbase.HubAddress = "localhost"
-      modbase.ModulePort = "2985"
+        var m modbase.ModuleImpl
 
-      m.Init()
-      m.Register("GET", "/", index, "WEB")
-      m.Run()
+        m.Name = "mod.v0"
+        m.InstanceName = "mod test v0"
+        m.SetServer("", "", "2985", "")
+        m.Init()
+        m.Register("GET", "/", index, "WEB")
+        m.Run()
     }
 
     func index(ctx *gin.Context) {
-      ctx.HTML(http.StatusAccepted, "index.html", gin.H{
-        "title": "Guilhem MATEO", //IGNORE THIS
-      })
-      log.Println("GET / mod.v0", ctx.Request.RemoteAddr)
+        ctx.HTML(http.StatusAccepted, "index.html", gin.H{
+            "title": "Guilhem MATEO", //IGNORE THIS
+        })
+        log.Println("GET / mod.v0", ctx.Request.RemoteAddr)
     }
 
 Much more **(mod-manager) [here](https://github.com/Wariie/mod-manager)**
