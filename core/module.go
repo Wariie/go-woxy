@@ -23,15 +23,16 @@ import (
 
 /*ModuleConfig - Module configuration */
 type ModuleConfig struct {
-	AUTH    ModuleAuthConfig
-	BINDING ServerConfig
-	EXE     ModuleExecConfig
-	NAME    string
-	pid     int
-	PK      string
-	STATE   ModuleState
-	TYPES   string
-	VERSION int
+	AUTH           ModuleAuthConfig
+	BINDING        ServerConfig
+	customCommands []string
+	EXE            ModuleExecConfig
+	NAME           string
+	pid            int
+	PK             string
+	STATE          ModuleState
+	TYPES          string
+	VERSION        int
 }
 
 //GetServer - Get Module Server configuration
@@ -84,7 +85,7 @@ func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool) error {
 //Start - Start module with config args and auto args
 func (mc *ModuleConfig) Start() {
 	mc.STATE = Loading
-	
+
 	//logFileName := mc.NAME + ".txt"
 
 	var platformParam []string

@@ -58,6 +58,9 @@ func (mod *ModuleImpl) Stop(c *gin.Context) {
 
 //SetCommand - set command
 func (mod *ModuleImpl) SetCommand(name string, run func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error)) {
+	if mod.CustomCommands == nil {
+		mod.CustomCommands = map[string]func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error){}
+	}
 	mod.CustomCommands[name] = run
 }
 

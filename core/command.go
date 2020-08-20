@@ -65,6 +65,10 @@ type CommandProcessorImpl struct {
 
 //Register - Register new ModuleCommand in CommandProcessorImpl
 func (cp *CommandProcessorImpl) Register(name string, run func(com.Request, *ModuleConfig, ...string) (string, error)) {
+	cp.register(name, run)
+}
+
+func (cp *CommandProcessorImpl) register(name string, run func(com.Request, *ModuleConfig, ...string) (string, error)) {
 	c := ModuleCommand{name: name}
 	c.registerExecutor(run)
 	cp.commands = append(cp.commands, &c)
@@ -78,6 +82,15 @@ func (cp *CommandProcessorImpl) Run(name string, r com.Request, m *ModuleConfig,
 			return c.Run(r, m, args...)
 		}
 	}
+
+	if m.NAME != "hub" {
+		for k := range m.customCommands {
+			if m.customCommands[k] == name {
+				return defaultForwardCommand(r, m, args...)
+			}
+		}
+	}
+
 	return "Error : Command not found", nil
 }
 
@@ -90,6 +103,10 @@ func (cp *CommandProcessorImpl) Init() {
 	cp.Register("Restart", restartModuleCommand)
 	cp.Register("Shutdown", defaultForwardCommand)
 	cp.Register("Start", startModuleCommand)
+}
+
+func commandsModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+	return defaultForwardCommand(r, mc, args...)
 }
 
 func defaultForwardCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
