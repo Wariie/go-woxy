@@ -32,6 +32,8 @@ type (
 		Register(string, func(*gin.Context), string)
 		Run()
 		Stop()
+		SetServer()
+		SetHubServer()
 	}
 
 	/*ModuleImpl - Impl of Module*/
@@ -50,6 +52,16 @@ type (
 //Stop - stop module
 func (mod *ModuleImpl) Stop(c *gin.Context) {
 	GetModManager().Shutdown(c)
+}
+
+//SetServer -
+func (mod *ModuleImpl) SetServer(ip string, port string) {
+	mod.Server = com.Server{IP: ip, Port: port}
+}
+
+//SetHubServer -
+func (mod *ModuleImpl) SetHubServer(ip string, port string) {
+	mod.HubServer = com.Server{IP: ip, Port: port}
 }
 
 //Run - start module function
@@ -72,6 +84,14 @@ func (mod *ModuleImpl) Init() {
 
 	if mod.RessourcePath == "" {
 		mod.RessourcePath = "ressources/"
+	}
+
+	if mod.Server == nil {
+		mod.Server = com.Server{IP: "0.0.0.0", Port: "4224"}
+	}
+
+	if mod.HubServer == nil {
+		mod.HubServer = com.Server{IP: "0.0.0.0", Port: "2000"}
 	}
 }
 
