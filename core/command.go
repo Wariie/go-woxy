@@ -101,7 +101,7 @@ func (cp *CommandProcessorImpl) Init() {
 	cp.Register("Performance", performanceModuleCommand)
 	cp.Register("Ping", defaultForwardCommand)
 	cp.Register("Restart", restartModuleCommand)
-	cp.Register("Shutdown", defaultForwardCommand)
+	cp.Register("Shutdown", shutdownModuleCommand)
 	cp.Register("Start", startModuleCommand)
 }
 
@@ -123,6 +123,18 @@ func listModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string,
 
 func logModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	return mc.GetLog(), nil
+}
+
+func shutdownModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+	response, err := defaultForwardCommand(r, mc, args...)
+	if strings.Contains(response, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
+		response = "Success"
+		mc.STATE = Stopped
+		GetManager().SaveModuleChanges(mc)
+	} else {
+		response = ""
+	}
+	return response, err
 }
 
 func performanceModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
@@ -157,10 +169,11 @@ func restartModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (stri
 func startModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	response := ""
 	mods := GetManager().GetConfig().MODULES
-	var mo *ModuleConfig
+	var mo ModuleConfig
+	c := (r).(*com.CommandRequest).Content
 	for m := range mods {
-		if mods[m].NAME == (r).(*com.CommandRequest).Content {
-			*mo = mods[m]
+		if m == c {
+			mo = mods[m]
 		}
 	}
 
@@ -169,8 +182,8 @@ func startModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string
 		err = mo.Setup(GetManager().GetRouter(), false)
 		if err == nil {
 			response += "Success"
-			mc.STATE = Stopped
-			GetManager().SaveModuleChanges(mo)
+			mc.STATE = Online
+			GetManager().SaveModuleChanges(&mo)
 		}
 	} else {
 		err = errors.New("Module already Online")
