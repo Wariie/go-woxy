@@ -100,6 +100,7 @@ func connect(context *gin.Context) {
 			}
 			modC.pid = pid
 			modC.PK = cr.ModHash
+			modC.customCommands = cr.CustomCommands
 			modC.STATE = "ONLINE"
 			log.Println("HASH :", modC.PK, "- MOD :", modC.NAME)
 

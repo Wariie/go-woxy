@@ -16,6 +16,8 @@ func cmd(c *gin.Context) {
 	var response string
 	var err error
 
+	//TODO ADD BOOLEAN IF WE TRUST ALL REQUESTS OR IF WE CHECK SERVER CREDENTIALS
+
 	if t["Hash"] != mod.Hash {
 		response = "Error reading module Hash"
 	} else {
