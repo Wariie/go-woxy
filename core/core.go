@@ -30,8 +30,6 @@ func launchServer() {
 
 	server := getServerConfig(GetManager().config.SERVER, GetManager().router)
 
-	//GetManager().server = server
-
 	log.Fatalln("Error ListenAndServer : ", server.ListenAndServe())
 }
 
@@ -143,8 +141,6 @@ func command(c *gin.Context) {
 	if t["error"] == "error" {
 		response = "Error reading module Hash"
 	} else if t["Hash"] != "" {
-		//CHECK THERE IS NO ERROR WHILE READING
-
 		//GET MOD WITH HASH
 		mc := searchModWithHash(t["Hash"])
 

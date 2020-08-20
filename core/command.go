@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -46,11 +47,6 @@ func (mc *ModuleCommand) registerExecutor(fn func(com.Request, *ModuleConfig, ..
 	mc.executor = fn
 }
 
-//GetName -
-func (mc *ModuleCommand) GetName() string {
-	return mc.name
-}
-
 //CommandProcessor -
 type CommandProcessor interface {
 	Register(name string, run func(com.Request, *ModuleConfig, ...string) (string, error)) bool
@@ -82,15 +78,25 @@ func (cp *CommandProcessorImpl) Run(name string, r com.Request, m *ModuleConfig,
 
 //Init - CommandProcessorImpl
 func (cp *CommandProcessorImpl) Init() {
-	cp.Register("Shutdown", shutdownModuleCommand)
-	cp.Register("Restart", restartModuleCommand)
+	cp.Register("List", listModuleCommand)
 	cp.Register("Log", logModuleCommand)
 	cp.Register("Performance", performanceModuleCommand)
-	cp.Register("List", listModuleCommand)
+	cp.Register("Ping", defaultForwardCommand)
+	cp.Register("Restart", restartModuleCommand)
+	cp.Register("Shutdown", defaultForwardCommand)
+	cp.Register("Start", startModuleCommand)
 }
 
-func shutdownModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+func defaultForwardCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	return com.SendRequest(mc.GetServer("/cmd"), r, false)
+}
+
+func listModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+	rb, err := json.Marshal(GetManager().GetConfig().MODULES)
+	if err != nil {
+		return "Error :", err
+	}
+	return string(rb), nil
 }
 
 func logModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
@@ -126,10 +132,26 @@ func restartModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (stri
 	return response, err
 }
 
-func listModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
-	rb, err := json.Marshal(GetManager().GetConfig().MODULES)
-	if err != nil {
-		return "Error :", err
+func startModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+	response := ""
+	mods := GetManager().GetConfig().MODULES
+	var mo *ModuleConfig
+	for m := range mods {
+		if mods[m].NAME == (r).(*com.CommandRequest).Content {
+			*mo = mods[m]
+		}
 	}
-	return string(rb), nil
+
+	var err error
+	if mo.STATE != Online {
+		err = mo.Setup(GetManager().GetRouter(), false)
+		if err == nil {
+			response += "Success"
+			mc.STATE = Stopped
+			GetManager().SaveModuleChanges(mo)
+		}
+	} else {
+		err = errors.New("Module already Online")
+	}
+	return response, err
 }

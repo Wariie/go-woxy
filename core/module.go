@@ -23,15 +23,15 @@ import (
 
 /*ModuleConfig - Module configuration */
 type ModuleConfig struct {
-	NAME    string
-	VERSION int
-	TYPES   string
-	EXE     ModuleExecConfig
-	BINDING ServerConfig
-	STATE   ModuleState
-	PK      string
 	AUTH    ModuleAuthConfig
+	BINDING ServerConfig
+	EXE     ModuleExecConfig
+	NAME    string
 	pid     int
+	PK      string
+	STATE   ModuleState
+	TYPES   string
+	VERSION int
 }
 
 //GetServer - Get Module Server configuration
@@ -42,28 +42,12 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 	return com.Server{IP: mc.BINDING.ADDRESS, Path: path, Port: mc.BINDING.PORT, Protocol: mc.BINDING.PROTOCOL}
 }
 
-//Stop - Stop Module
-func (mc *ModuleConfig) Stop() int {
-	if mc.STATE != Online {
-		return -1
-	}
-	var cr com.CommandRequest
-	cr.Generate("Shutdown", mc.PK, mc.NAME, secretHash)
-	r, err := com.SendRequest(mc.GetServer(""), &cr, false)
-	log.Println("SHUTDOWN RESULT : ", r, err)
-	//TODO BEST GESTURE
-	if true {
-		mc.STATE = Stopped
-	}
-	return 0
-}
-
 //GetLog - GetLog from Module
 func (mc *ModuleConfig) GetLog() string {
 
 	file, err := os.Open("./mods/" + mc.NAME + "/log.log")
 	if err != nil {
-		log.Panicf("failed reading file: %s", err)
+		log.Printf("failed reading file: %s", err)
 	}
 	b, err := ioutil.ReadAll(file)
 	return string(b)
@@ -72,14 +56,10 @@ func (mc *ModuleConfig) GetLog() string {
 //GetPerf - GetPerf from Module
 func (mc *ModuleConfig) GetPerf() (float64, float32) {
 	p, err := process.NewProcess(int32(mc.pid))
-	//sysinfo, err := pidusage.GetStat(mc.pid)
-	log.Println(p, err)
 	ram, err := p.MemoryPercent()
-	log.Println(ram, err)
 	cpu, err := p.Percent(0)
-	log.Println(cpu, err)
 	name, err := p.Name()
-	log.Println(name, err)
+	log.Println("PERF :", name, err)
 
 	return cpu, ram
 }
@@ -104,7 +84,9 @@ func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool) error {
 //Start - Start module with config args and auto args
 func (mc *ModuleConfig) Start() {
 	mc.STATE = Loading
+	
 	//logFileName := mc.NAME + ".txt"
+
 	var platformParam []string
 	if runtime.GOOS == "windows" {
 		platformParam = []string{"cmd", "/c ", "go", "run", mc.EXE.MAIN, "1>", "log.log", "2>&1"}
@@ -298,24 +280,24 @@ func singleJoiningSlash(a, b string) string {
 
 /*Config - Global configuration */
 type Config struct {
-	NAME    string
 	MODULES map[string]ModuleConfig
-	VERSION int
+	NAME    string
 	SERVER  ServerConfig
+	VERSION int
 }
 
 /*ModuleExecConfig - Module exec file informations */
 type ModuleExecConfig struct {
-	SRC  string
-	MAIN string
 	BIN  string
+	MAIN string
+	SRC  string
 }
 
 /*ServerConfig - Server configuration*/
 type ServerConfig struct {
 	ADDRESS  string
-	PORT     string
 	PATH     []Route
+	PORT     string
 	PROTOCOL string
 	ROOT     string
 }

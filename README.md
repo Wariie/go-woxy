@@ -1,95 +1,151 @@
 
 # go-woxy
 
-Golang reverso proxy / application server
+Golang reverse proxy / application server
 
-## How to use it
+## Installation
 
-### Installation
-
-#### Clone the source code
+Clone the source code
 
     git clone https://github.com/Wariie/go-woxy.git
     cd ./go-woxy
   
-#### Edit **./cfg.yml** with your config *(or try with the default one)*
+Edit **cfg.yml** with your config *(or try with the default one)*
 
-#### Build go-woxy
+Build go-woxy
 
     go build
 
-#### Launch go-woxy
+Launch go-woxy
 
-    ./go-woxy ./cfg.yml
+    go-woxy cfg.yml
 
-### Dockerfile
+Dockerfile
 
     git clone http://github.com/Wariie/go-woxy.git
     cd ./go-woxy
     docker build -t go-woxy .
     docker run -d go-woxy
 
-### Configuration
+## Configuration
 
-#### Example  
+### Example
 
-        ---
+    ---
     name: easy-go-test
     server:
-      address: 0.0.0.0  
-    modules: 
-      mod.v0: 
+      address: 0.0.0.0
+    modules:
+      mod-manager:
         version: 1.0
         types: 'web'
         exe:
-          src: 'https://github.com/Wariie/mod.v0'
-          main: "testMod.go"
+          src: 'https://github.com/Wariie/mod-manager.git'
+          main: 'main.go'
         binding:
-          path: 
+          path:
+            - from: '/mod-manager'
+              to: '/'
+          port: 2001
+        auth:
+          enabled: false
+          type: 'http'
+      mod.v0:
+        version: 1.0
+        types: 'web'
+        exe:
+          src: 'https://github.com/Wariie/mod.v0.git'
+          main: 'testMod.go'
+        binding:
+          path:
             - from: '/'
-          port: 2985  
+          port: 2985
       hook:
         version: 1.0
         types: 'bind'
         binding:
           path:
-            - from: '/saucisse' 
+            - from: '/saucisse'
           root: "./ressources/saucisse.html"
   
-##### **(M) is module option only**
-  
-#### General configuration
+### General configuration
 
+* **modules** - (Required) list of module config (See [Module Configuration](#module-configuration) below for details)
 * **name** - (Required) server config name
 * **server** - (Required) server config (See [Server Configuration](#server-configuration) below for details)
-* **modules** - (Required) list of module config (See [Module Configuration](#module-configuration) below for details)
 * **version** - server config version
 
-#### Server Configuration
+### Server Configuration
 
 * **address** - server address (example : 127.0.0.1, guilhem-mateo.fr)
-* **port** - server port (example : 2000, 8080)
 * **path** - paths to bind (from: 'path', to: 'customPath') (See example before [Example](#example))
-* **root** - (M) bind to **root** if no **exe**
+* **port** - server port (example : 2000, 8080)
 * **protocol** - transfer protocol (supported : http, https)
+* **root** - (M) bind to **root** if no **exe**
 
-#### Module Configuration
+### Module Configuration
 
-* **name** - (Required) module name
-* **version** - module version
-* **types** - (Required) module types (supported : web, bind)
-* **exe** - module executable informations (See [Module Executable Configuration](#module-executable-configuration))
+* **auth** - auth config (See [Module Authentication Configuration](#module-authentication-configuration) below for details)
 * **binding** - (Required) server config (See [Server Configuration](#server-configuration) below for details)
+* **exe** - module executable informations (See [Module Executable Configuration](#module-executable-configuration))
+* **name** - (Required) module name
+* **types** - (Required) module types (supported : web, bind)
+* **version** - module version
 
-#### Module Executable Configuration
+### Module Executable Configuration
 
-* **src** - git path of module repository
-* **main** - module main filename
 * **bin** - source module path
+* **main** - module main filename
+* **src** - git path of module repository
 
-### What's a go-woxy module
+### Module Authentication Configuration
+
+* **enabled** - boolean for authentication activation
+* **type** - authentication type
+
+# go-woxy Module
+
+Deploy a web-app easily and deploy it through go-woxy
+
+## Simple example
+
+    package main
+
+    import (
+      "log"
+      "net/http"
+
+      "github.com/gin-gonic/gin"
+
+      modbase "github.com/Wariie/go-woxy/modbase"
+    )
+
+    func main() {
+      var m modbase.ModuleImpl
+      
+      m.Name = "mod.v0"
+      m.InstanceName = "mod test v0"
+      modbase.HubAddress = "localhost"
+      modbase.ModulePort = "2985"
+
+      m.Init()
+      m.Register("GET", "/", index, "WEB")
+      m.Run()
+    }
+
+    func index(ctx *gin.Context) {
+      ctx.HTML(http.StatusAccepted, "index.html", gin.H{
+        "title": "Guilhem MATEO", //IGNORE THIS
+      })
+      log.Println("GET / mod.v0", ctx.Request.RemoteAddr)
+    }
+
+Much more **(mod-manager) [here](https://github.com/Wariie/mod-manager)**
 
 Want to build your own ?
-See an example right **[there](https://github.com/Wariie/mod.v0)**
-  
+
 Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the module base code
+
+# go-woxy API
+
+//TODO

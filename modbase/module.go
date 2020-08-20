@@ -18,21 +18,6 @@ import (
 	com "github.com/Wariie/go-woxy/com"
 )
 
-//HubAddress - Ip Address of thes hub
-var HubAddress = "127.0.0.1"
-
-//HubPort - Communication Port of the hub
-var HubPort = "2000"
-
-//ModuleAddress -
-var ModuleAddress = "127.0.0.1"
-
-//ModulePort -
-var ModulePort = "2501"
-
-//ResPath - Ressources main path (css, js, img, ......)
-var ResPath = ""
-
 type (
 	/*HardwareUsage - Module hardware usage */
 	HardwareUsage struct {
@@ -43,28 +28,22 @@ type (
 
 	/*Module - Module*/
 	Module interface {
-		GetInfo() ModuleInfo
-		GetInstanceName() string
-		GetName() string
 		Init()
 		Register(string, func(*gin.Context), string)
 		Run()
 		Stop()
 	}
 
-	/*ModuleInfo - Module informations*/
-	ModuleInfo struct {
-		srv com.Server
-		fmp string
-	}
-
 	/*ModuleImpl - Impl of Module*/
 	ModuleImpl struct {
-		Name         string
-		InstanceName string
-		Router       *gin.Engine
-		Hash         string
-		Secret       string
+		Name          string
+		InstanceName  string
+		Router        *gin.Engine
+		Hash          string
+		Secret        string
+		HubServer     com.Server
+		Server        com.Server
+		RessourcePath string
 	}
 )
 
@@ -74,15 +53,10 @@ func (mod *ModuleImpl) Stop(c *gin.Context) {
 }
 
 //Run - start module function
-//default ip 	-> 0.0.0.0
-//default port	-> 2500
 func (mod *ModuleImpl) Run() {
-	log.Println("RUN - ", mod.GetName())
-	//TODO ADD CONFIG FOR IP AND PORT
+	log.Println("RUN - ", mod.Name)
 	if mod.connectToHub() {
-		mod.serve(ModuleAddress, ModulePort)
-	} else {
-		mod.serve(ModuleAddress, ModulePort)
+		mod.serve()
 	}
 }
 
@@ -96,8 +70,8 @@ func (mod *ModuleImpl) Init() {
 
 	mod.readSecret()
 
-	if ResPath == "" {
-		ResPath = "ressources/"
+	if mod.RessourcePath == "" {
+		mod.RessourcePath = "ressources/"
 	}
 }
 
@@ -123,28 +97,19 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 			path += "/"
 		}
 		r.HTMLRender = gintemplate.Default()
-		r.Use(static.ServeRoot(path+ResPath, "./"+ResPath))
+		r.Use(static.ServeRoot(path+mod.RessourcePath, "./"+mod.RessourcePath))
 	}
 	GetModManager().SetRouter(r)
 }
 
-//GetName - get module name
-func (mod *ModuleImpl) GetName() string {
-	return mod.Name
-}
-
-//GetInstanceName - get module name
-func (mod *ModuleImpl) GetInstanceName() string {
-	return mod.InstanceName
-}
-
 /*serve -  */
-func (mod *ModuleImpl) serve(ip string, port string) {
+func (mod *ModuleImpl) serve() {
 	r := GetModManager().GetRouter()
+	s := GetModManager().GetMod().Server
 	r.POST("/cmd", cmd)
 
 	Server := &http.Server{
-		Addr:    ip + ":" + port,
+		Addr:    s.IP + ":" + s.Port,
 		Handler: r,
 	}
 
@@ -152,7 +117,7 @@ func (mod *ModuleImpl) serve(ip string, port string) {
 	GetModManager().SetRouter(r)
 	GetModManager().SetMod(mod)
 
-	if err := GetModManager().GetServer().ListenAndServe(); err != http.ErrServerClosed {
+	if err := Server.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 
@@ -163,11 +128,11 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 	//CREATE CONNEXION REQUEST
 	cr := com.ConnexionRequest{}
-	cr.Generate(mod.GetName(), ModulePort, strconv.Itoa(os.Getpid()), mod.Secret)
+	cr.Generate(mod.Name, mod.Server.Port, strconv.Itoa(os.Getpid()), mod.Secret)
 	mod.Hash = cr.ModHash
 
 	//SEND REQUEST
-	body, err := com.SendRequest(com.Server{IP: HubAddress, Port: HubPort, Path: "", Protocol: "http"}, &cr, false)
+	body, err := com.SendRequest(com.Server{IP: mod.HubServer.IP, Port: mod.HubServer.Port, Path: "", Protocol: "http"}, &cr, false)
 
 	var crr com.ConnexionReponseRequest
 	crr.Decode(bytes.NewBufferString(body).Bytes())
@@ -181,7 +146,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 		log.Println("		ERROR - ", err)
 	}
 
-	ModulePort = crr.Port
+	mod.Server.Port = crr.Port
 	return s && err == nil
 }
 
