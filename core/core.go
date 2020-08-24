@@ -160,8 +160,8 @@ func command(c *gin.Context) {
 				cp := GetManager().GetCommandProcessor()
 				var c interface{}
 				c = &cr
-				p := 
-				res, e := cp.Run(cr.Command, &(c).(com.Request), &mc, "")
+				p := (c).(com.Request)
+				res, e := cp.Run(cr.Command, &p, &mc, "")
 				response += res
 				if e != nil {
 					response += e.Error()
