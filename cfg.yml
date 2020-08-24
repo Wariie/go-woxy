@@ -9,14 +9,14 @@
       exe:
         src: 'https://github.com/Wariie/mod-manager.git'
         main: 'main.go'
-        supervised: true
+        supervised: false
       binding:
         path:
           - from: '/mod-manager'
             to: '/'
         port: 2001
       auth:
-        enabled: false
+        enabled: true
         type: 'http'
     mod.v0: 
       version: 1.0
@@ -24,7 +24,7 @@
       exe:
         src: 'https://github.com/Wariie/mod.v0.git'
         main: "testMod.go"
-        supervised: true
+        supervised: false
       binding:
         path: 
           - from: '/'
