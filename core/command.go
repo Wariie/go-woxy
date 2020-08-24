@@ -13,10 +13,10 @@ import (
 
 //Command -
 type Command interface {
-	Run(r com.Request, m *ModuleConfig, args ...string) (string, error)
+	Run(r *com.Request, m *ModuleConfig, args ...string) (string, error)
 	Error() error
 	GetResult() string
-	registerExecutor(run func(r com.Request, m *ModuleConfig, args ...string) (string, error))
+	registerExecutor(run func(r *com.Request, m *ModuleConfig, args ...string) (string, error))
 	GetName() string
 }
 
@@ -24,12 +24,12 @@ type Command interface {
 type ModuleCommand struct {
 	name     string
 	result   string
-	executor func(com.Request, *ModuleConfig, ...string) (string, error)
+	executor func(*com.Request, *ModuleConfig, ...string) (string, error)
 	err      error
 }
 
 //Run -
-func (mc *ModuleCommand) Run(r com.Request, m *ModuleConfig, args ...string) (string, error) {
+func (mc *ModuleCommand) Run(r *com.Request, m *ModuleConfig, args ...string) (string, error) {
 	return mc.executor(r, m, args...)
 }
 
@@ -48,13 +48,13 @@ func (mc *ModuleCommand) GetName() string {
 	return mc.name
 }
 
-func (mc *ModuleCommand) registerExecutor(fn func(com.Request, *ModuleConfig, ...string) (string, error)) {
+func (mc *ModuleCommand) registerExecutor(fn func(*com.Request, *ModuleConfig, ...string) (string, error)) {
 	mc.executor = fn
 }
 
 //CommandProcessor -
 type CommandProcessor interface {
-	Register(name string, run func(com.Request, *ModuleConfig, ...string) (string, error)) bool
+	Register(name string, run func(*com.Request, *ModuleConfig, ...string) (string, error)) bool
 	Run(name string, r com.Request, m ModuleConfig, args ...string) Command
 }
 
@@ -64,18 +64,18 @@ type CommandProcessorImpl struct {
 }
 
 //Register - Register new ModuleCommand in CommandProcessorImpl
-func (cp *CommandProcessorImpl) Register(name string, run func(com.Request, *ModuleConfig, ...string) (string, error)) {
+func (cp *CommandProcessorImpl) Register(name string, run func(*com.Request, *ModuleConfig, ...string) (string, error)) {
 	cp.register(name, run)
 }
 
-func (cp *CommandProcessorImpl) register(name string, run func(com.Request, *ModuleConfig, ...string) (string, error)) {
+func (cp *CommandProcessorImpl) register(name string, run func(*com.Request, *ModuleConfig, ...string) (string, error)) {
 	c := ModuleCommand{name: name}
 	c.registerExecutor(run)
 	cp.commands = append(cp.commands, &c)
 }
 
 //Run - Run Command in CommandProcessorImpl
-func (cp *CommandProcessorImpl) Run(name string, r com.Request, m *ModuleConfig, args ...string) (string, error) {
+func (cp *CommandProcessorImpl) Run(name string, r *com.Request, m *ModuleConfig, args ...string) (string, error) {
 	for k := range cp.commands {
 		if cp.commands[k].GetName() == name {
 			c := cp.commands[k]
@@ -105,15 +105,15 @@ func (cp *CommandProcessorImpl) Init() {
 	cp.Register("Start", startModuleCommand)
 }
 
-func commandsModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+func commandsModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	return defaultForwardCommand(r, mc, args...)
 }
 
-func defaultForwardCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
-	return com.SendRequest(mc.GetServer("/cmd"), r, false)
+func defaultForwardCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
+	return com.SendRequest(mc.GetServer("/cmd"), *r, false)
 }
 
-func listModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+func listModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	rb, err := json.Marshal(GetManager().GetConfig().MODULES)
 	if err != nil {
 		return "Error :", err
@@ -121,41 +121,39 @@ func listModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string,
 	return string(rb), nil
 }
 
-func logModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+func logModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	return mc.GetLog(), nil
 }
 
-func shutdownModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+func shutdownModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	response, err := defaultForwardCommand(r, mc, args...)
 	if strings.Contains(response, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
 		response = "Success"
 		mc.STATE = Stopped
-		GetManager().SaveModuleChanges(mc)
 	} else {
 		response = ""
 	}
 	return response, err
 }
 
-func performanceModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+func performanceModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	c, ra := mc.GetPerf()
 	return "CPU/RAM : " + fmt.Sprintf("%f", c) + "/" + fmt.Sprintf("%f", ra), nil
 }
 
-func restartModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	response := ""
-	cr := (r).(*com.CommandRequest)
+	cr := (*r).(*com.CommandRequest)
 	cr.Command = "Shutdown"
 	rqtS, err := com.SendRequest(mc.GetServer("/cmd"), cr, false)
 	if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
-		time.Sleep(10 * time.Second)
+		time.Sleep(2 * time.Second)
 		if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
 			response += "Error :" + err.Error()
 			log.Println(err)
 		} else {
 			response += "Success"
 			mc.STATE = Stopped
-			GetManager().SaveModuleChanges(mc)
 		}
 	} else {
 		response += "Error :" + rqtS
@@ -166,11 +164,11 @@ func restartModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (stri
 	return response, err
 }
 
-func startModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string, error) {
+func startModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	response := ""
 	mods := GetManager().GetConfig().MODULES
 	var mo ModuleConfig
-	c := (r).(*com.CommandRequest).Content
+	c := (*r).(*com.CommandRequest).Content
 	for m := range mods {
 		if m == c {
 			mo = mods[m]
@@ -182,8 +180,8 @@ func startModuleCommand(r com.Request, mc *ModuleConfig, args ...string) (string
 		err = mo.Setup(GetManager().GetRouter(), false)
 		if err == nil {
 			response += "Success"
-			mc.STATE = Online
-			GetManager().SaveModuleChanges(&mo)
+		} else {
+			response += err.Error()
 		}
 	} else {
 		err = errors.New("Module already Online")

@@ -9,6 +9,7 @@
       exe:
         src: 'https://github.com/Wariie/mod-manager.git'
         main: 'main.go'
+        supervised: true
       binding:
         path:
           - from: '/mod-manager'
@@ -23,6 +24,7 @@
       exe:
         src: 'https://github.com/Wariie/mod.v0.git'
         main: "testMod.go"
+        supervised: true
       binding:
         path: 
           - from: '/'
@@ -33,8 +35,4 @@
       binding:
         path:
           - from: '/saucisse' 
-        root: "./ressources/saucisse.html" 
-#    mod.v0: 
-#      version: 1.0
-#      bin: 'C:\Users\Wariie\go\src\guilhem-mateo.fr\mod.v0\'
-#      server:
+        root: "./ressources/saucisse.html"

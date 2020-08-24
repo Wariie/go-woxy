@@ -35,12 +35,33 @@ type ModuleConfig struct {
 	VERSION        int
 }
 
-//GetServer - Get Module Server configuration
-func (mc *ModuleConfig) GetServer(path string) com.Server {
-	if path == "" {
-		path = mc.BINDING.PATH[0].FROM
+//Download - Download module from repository ( git clone )
+func (mc *ModuleConfig) Download() {
+
+	if mc.STATE != Online {
+		var listArgs []string
+		var action string
+
+		wd := "./mods/"
+		if _, err := os.Stat(wd + mc.NAME + "/"); os.IsNotExist(err) {
+			listArgs = []string{"clone", mc.EXE.SRC}
+			action = "Downloaded"
+		} else {
+			listArgs = []string{"pull"}
+			action = "Update"
+			wd += mc.NAME + "/"
+		}
+
+		cmd := exec.Command("git", listArgs...)
+		cmd.Dir = wd
+		out, err := cmd.CombinedOutput()
+		fmt.Println(action, " mod : ", mc, " - ", string(out), " ", err)
+
+		mc.EXE.BIN = "./mods/" + mc.NAME + "/"
+		mc.STATE = Downloaded
+	} else {
+		log.Println("Error - Trying to download/update module while running\nStop it before")
 	}
-	return com.Server{IP: mc.BINDING.ADDRESS, Path: path, Port: mc.BINDING.PORT, Protocol: mc.BINDING.PROTOCOL}
 }
 
 //GetLog - GetLog from Module
@@ -63,6 +84,58 @@ func (mc *ModuleConfig) GetPerf() (float64, float32) {
 	log.Println("PERF :", name, err)
 
 	return cpu, ram
+}
+
+//GetServer - Get Module Server configuration
+func (mc *ModuleConfig) GetServer(path string) com.Server {
+	if path == "" {
+		path = mc.BINDING.PATH[0].FROM
+	}
+	return com.Server{IP: mc.BINDING.ADDRESS, Path: path, Port: mc.BINDING.PORT, Protocol: mc.BINDING.PROTOCOL}
+}
+
+//HookAll - Create all binding between module config address and gin server
+func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
+	paths := mc.BINDING.PATH
+
+	if strings.Contains(mc.TYPES, "web") {
+		sP := ""
+		if len(paths[0].FROM) > 1 {
+			sP = paths[0].FROM
+		}
+		r := Route{FROM: sP + "/ressources/*filepath", TO: "/ressources/*filepath"}
+		mc.Hook(router, r, "GET")
+	}
+
+	if len(paths) > 0 && len(paths[0].FROM) > 0 {
+		for i := range paths {
+			err := mc.Hook(router, paths[i], "GET")
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+//Hook - Create a binding between module and gin server
+func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
+	if typeR == "" {
+		typeR = "GET"
+	}
+	if len(r.FROM) > 0 {
+		if mc.AUTH.ENABLED {
+			htpasswd := auth.HtpasswdFileProvider(".htpasswd")
+			authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
+			authorized := router.Group("/", BasicAuth(authenticator))
+			authorized.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+		} else {
+			router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+		}
+		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
+	}
+	return nil
 }
 
 //Setup - Setup module from config
@@ -123,80 +196,6 @@ func (mc *ModuleConfig) copySecret() {
 	}
 }
 
-//Download - Download module from repository ( git clone )
-func (mc *ModuleConfig) Download() {
-
-	if mc.STATE != Online {
-
-		var listArgs []string
-		var action string
-
-		wd := "./mods/"
-		if _, err := os.Stat(wd + mc.NAME + "/"); os.IsNotExist(err) {
-			listArgs = []string{"clone", mc.EXE.SRC}
-			action = "Downloaded"
-		} else {
-			listArgs = []string{"pull"}
-			action = "Update"
-			wd += mc.NAME + "/"
-		}
-
-		cmd := exec.Command("git", listArgs...)
-		cmd.Dir = wd
-		out, err := cmd.CombinedOutput()
-		fmt.Println(action, " mod : ", mc, " - ", string(out), " ", err)
-
-		mc.EXE.BIN = "./mods/" + mc.NAME + "/"
-		mc.STATE = Downloaded
-	} else {
-		log.Println("Error - Trying to download/update module while running\nStop it before")
-	}
-}
-
-//HookAll - Create all binding between module config address and gin server
-func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
-	paths := mc.BINDING.PATH
-
-	if strings.Contains(mc.TYPES, "web") {
-		sP := ""
-		if len(paths[0].FROM) > 1 {
-			sP = paths[0].FROM
-		}
-		r := Route{FROM: sP + "/ressources/*filepath", TO: "/ressources/*filepath"}
-		mc.Hook(router, r, "GET")
-	}
-
-	if len(paths) > 0 && len(paths[0].FROM) > 0 {
-		for i := range paths {
-			err := mc.Hook(router, paths[i], "GET")
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-//Hook - Create a binding between module and gin server
-func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
-	if typeR == "" {
-		typeR = "GET"
-	}
-	if len(r.FROM) > 0 {
-		if mc.AUTH.ENABLED {
-			htpasswd := auth.HtpasswdFileProvider(".htpasswd")
-			authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
-			authorized := router.Group("/", BasicAuth(authenticator))
-			authorized.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
-		} else {
-			router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
-		}
-		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
-	}
-	return nil
-}
-
 // BasicAuth - Authentification gin middleware
 func BasicAuth(a *auth.BasicAuth) gin.HandlerFunc {
 	realmHeader := "Basic realm=" + strconv.Quote(a.Realm)
@@ -210,6 +209,26 @@ func BasicAuth(a *auth.BasicAuth) gin.HandlerFunc {
 		}
 		c.Set("user", user)
 	}
+}
+
+// NewSingleHostReverseProxy -
+func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
+	targetQuery := target.RawQuery
+	director := func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		if targetQuery == "" || req.URL.RawQuery == "" {
+			req.URL.RawQuery = targetQuery + req.URL.RawQuery
+		} else {
+			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+		}
+		if _, ok := req.Header["User-Agent"]; !ok {
+			// explicitly disable User-Agent so it's not set to default value
+			req.Header.Set("User-Agent", "")
+		}
+	}
+	return &httputil.ReverseProxy{Director: director}
+
 }
 
 //ReverseProxy - reverse proxy for mod
@@ -246,26 +265,6 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 	}
 }
 
-// NewSingleHostReverseProxy -
-func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
-	targetQuery := target.RawQuery
-	director := func(req *http.Request) {
-		req.URL.Scheme = target.Scheme
-		req.URL.Host = target.Host
-		if targetQuery == "" || req.URL.RawQuery == "" {
-			req.URL.RawQuery = targetQuery + req.URL.RawQuery
-		} else {
-			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
-		}
-		if _, ok := req.Header["User-Agent"]; !ok {
-			// explicitly disable User-Agent so it's not set to default value
-			req.Header.Set("User-Agent", "")
-		}
-	}
-	return &httputil.ReverseProxy{Director: director}
-
-}
-
 func singleJoiningSlash(a, b string) string {
 	aslash := strings.HasSuffix(a, "/")
 	bslash := strings.HasPrefix(b, "/")
@@ -289,9 +288,10 @@ type Config struct {
 
 /*ModuleExecConfig - Module exec file informations */
 type ModuleExecConfig struct {
-	BIN  string
-	MAIN string
-	SRC  string
+	BIN        string
+	MAIN       string
+	SRC        string
+	SUPERVISED bool
 }
 
 /*ServerConfig - Server configuration*/

@@ -42,6 +42,7 @@ Dockerfile
         exe:
           src: 'https://github.com/Wariie/mod-manager.git'
           main: 'main.go'
+          supervised: true
         binding:
           path:
             - from: '/mod-manager'
@@ -56,6 +57,7 @@ Dockerfile
         exe:
           src: 'https://github.com/Wariie/mod.v0.git'
           main: 'testMod.go'
+          supervised: true
         binding:
           path:
             - from: '/'
@@ -97,6 +99,7 @@ Dockerfile
 * **bin** - source module path
 * **main** - module main filename
 * **src** - git path of module repository
+* **supervised** - boolean if module need to be supervised
 
 ### Module Authentication Configuration
 

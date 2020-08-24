@@ -7,9 +7,10 @@ import (
 )
 
 type manager struct {
-	config Config
+	config *Config
 	router *gin.Engine
 	cp     *CommandProcessorImpl
+	s      *Supervisor
 }
 
 var singleton *manager
@@ -23,11 +24,11 @@ func GetManager() *manager {
 	return singleton
 }
 
-func (sm *manager) GetConfig() Config {
+func (sm *manager) GetConfig() *Config {
 	return sm.config
 }
 
-func (sm *manager) SetState(c Config) {
+func (sm *manager) SetState(c *Config) {
 	sm.config = c
 }
 
@@ -45,6 +46,14 @@ func (sm *manager) GetCommandProcessor() *CommandProcessorImpl {
 
 func (sm *manager) SetCommandProcessor(cp *CommandProcessorImpl) {
 	sm.cp = cp
+}
+
+func (sm *manager) SetSupervisor(s *Supervisor) {
+	sm.s = s
+}
+
+func (sm *manager) GetSupervisor() *Supervisor {
+	return sm.s
 }
 
 func (sm *manager) SaveModuleChanges(mc *ModuleConfig) {

@@ -60,9 +60,11 @@ func LaunchCore(configPath string) {
 	// STEP 2 READ CONFIG FILE
 	config := readConfig(configPath)
 
-	//SAVE CONFIG
-	man := GetManager()
-	man.config = config
+	// SAVE CONFIG
+	GetManager().config = &config
+
+	// START MODULE SUPERVISOR
+	initSupervisor()
 
 	// STEP 4 LOAD MODULES
 	go loadModules()
@@ -156,7 +158,10 @@ func command(c *gin.Context) {
 				var cr com.CommandRequest
 				cr.Decode(b)
 				cp := GetManager().GetCommandProcessor()
-				res, e := cp.Run(cr.Command, &cr, &mc, "")
+				var c interface{}
+				c = &cr
+				p := 
+				res, e := cp.Run(cr.Command, &(c).(com.Request), &mc, "")
 				response += res
 				if e != nil {
 					response += e.Error()
@@ -170,5 +175,5 @@ func command(c *gin.Context) {
 	}
 	action += " - Result : " + response
 	log.Println("Request from", from, "-", action)
-	c.String(200, response, nil)
+	c.String(200, "%s", response)
 }

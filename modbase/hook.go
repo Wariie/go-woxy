@@ -1,14 +1,11 @@
 package modbase
 
 import (
-	"log"
-
 	com "github.com/Wariie/go-woxy/com"
 	"github.com/gin-gonic/gin"
 )
 
 func cmd(c *gin.Context) {
-	log.Println("Command request")
 	t, b := com.GetCustomRequestType(c.Request)
 
 	mod := GetModManager().GetMod()
@@ -25,7 +22,6 @@ func cmd(c *gin.Context) {
 		case "Command":
 			var sr com.CommandRequest
 			sr.Decode(b)
-			log.Println("Request Content - ", sr)
 			switch sr.Command {
 			case "Shutdown":
 				response, err = shutdown(&sr, c, mod)

@@ -109,6 +109,18 @@ func loadModules() {
 	GetManager().config = config
 }
 
+func initSupervisor() {
+	ms := []string{}
+	for k := range GetManager().GetConfig().MODULES {
+		if GetManager().GetConfig().MODULES[k].EXE.SUPERVISED {
+			ms = append(ms, k)
+		}
+	}
+	s := Supervisor{listModule: ms}
+	GetManager().SetSupervisor(&s)
+	go s.Supervise()
+}
+
 func getServerConfig(sc ServerConfig, router *gin.Engine) http.Server {
 	path := ""
 	if len(sc.PATH) > 0 {
