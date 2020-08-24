@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	gintemplate "github.com/foolin/gin-template"
+	"github.com/foolin/goview/supports/ginview"
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 
@@ -132,7 +132,7 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 		if len(path) > 1 {
 			path += "/"
 		}
-		r.HTMLRender = gintemplate.Default()
+		r.HTMLRender = ginview.Default()
 		r.Use(static.ServeRoot(path+mod.RessourcePath, "./"+mod.RessourcePath))
 	}
 	GetModManager().SetRouter(r)
