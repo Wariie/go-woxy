@@ -83,6 +83,7 @@ func (cp *CommandProcessorImpl) Run(name string, r *com.Request, m *ModuleConfig
 		}
 	}
 
+	//PROCESS MODULE CUSTOM COMMANDS
 	if m.NAME != "hub" {
 		for k := range m.customCommands {
 			if m.customCommands[k] == name {

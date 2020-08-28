@@ -90,8 +90,7 @@ func connect(context *gin.Context) {
 	} else {
 
 		modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
-		s := secretHash
-		rs := strings.TrimSuffix(cr.Secret, "\n\t") == strings.TrimSuffix(s, "\n\t")
+		rs := strings.TrimSuffix(cr.Secret, "\n\t") == strings.TrimSuffix(secretHash, "\n\t")
 		//CHECK SECRET FOR AUTH
 		if rs && cr.ModHash != "" {
 
@@ -127,7 +126,7 @@ func connect(context *gin.Context) {
 		context.Writer.Write(crr.Encode())
 	}
 
-	GetManager().config.MODULES[cr.Name] = modC
+	GetManager().SaveModuleChanges(&modC)
 }
 
 // Command - Access point to manage go-woxy modules
@@ -136,14 +135,17 @@ func command(c *gin.Context) {
 	t, b := com.GetCustomRequestType(c.Request)
 
 	from := c.Request.RemoteAddr
+
 	//TODO HANDLE ACCESS WITH CREDENTIALS
 	response := ""
 	action := ""
 
+	rs := strings.TrimSuffix(t["Secret"], "\n\t ") == strings.TrimSuffix(secretHash, "\n\t ")
+
 	// IF ERROR READING DATA
 	if t["error"] == "error" {
-		response = "Error reading module Hash"
-	} else if t["Hash"] != "" {
+		response = "Error reading Request"
+	} else if t["Hash"] != "" && rs {
 		//GET MOD WITH HASH
 		mc := searchModWithHash(t["Hash"])
 
@@ -169,10 +171,16 @@ func command(c *gin.Context) {
 				action += "Command [ " + cr.Command + " ]"
 			}
 		}
-		//NO HASH PROVIDED
 	} else {
-		response = "Empty Hash : Try to start module"
+		if t["Hash"] == "" {
+			response = "Empty Hash : Try to start module"
+		} else if !rs {
+			response = "Secret not matching with server"
+		} else {
+			response = "Unknown error"
+		}
 	}
+
 	action += " - Result : " + response
 	log.Println("Request from", from, "-", action)
 	c.String(200, "%s", response)
