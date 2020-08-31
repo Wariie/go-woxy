@@ -9,7 +9,7 @@
       exe:
         src: 'https://github.com/Wariie/mod-manager.git'
         main: 'main.go'
-        supervised: false
+        supervised: true
       binding:
         path:
           - from: '/mod-manager'
@@ -24,7 +24,7 @@
       exe:
         src: 'https://github.com/Wariie/mod.v0.git'
         main: "testMod.go"
-        supervised: false
+        supervised: true
       binding:
         path: 
           - from: '/'

@@ -110,13 +110,8 @@ func loadModules() {
 }
 
 func initSupervisor() {
-	ms := []string{}
-	for k := range GetManager().GetConfig().MODULES {
-		if GetManager().GetConfig().MODULES[k].EXE.SUPERVISED {
-			ms = append(ms, k)
-		}
-	}
-	s := Supervisor{listModule: ms}
+	s := Supervisor{}
+
 	GetManager().SetSupervisor(&s)
 	go s.Supervise()
 }

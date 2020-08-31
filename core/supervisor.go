@@ -16,16 +16,30 @@ type Supervisor struct {
 	listModule []string
 }
 
+//Remove -
+func (s *Supervisor) Remove(m string) {
+	for i := range s.listModule {
+		if m == s.listModule[i] {
+			s.listModule[i] = s.listModule[len(s.listModule)-1] // Copy last element to index i.
+			s.listModule[len(s.listModule)-1] = ""              // Erase last element (write zero value).
+			s.listModule = s.listModule[:len(s.listModule)-1]   // Truncate slice.
+
+			break
+		}
+	}
+}
+
+//Add -
+func (s *Supervisor) Add(m string) {
+	s.listModule = append(s.listModule, m)
+}
+
 //Supervise -
 func (s *Supervisor) Supervise() {
-	mods := GetManager().GetConfig().MODULES
-
-	//NOTHING TO SUPERVISE
-	if len(s.listModule) <= 0 {
-		return
-	}
 
 	for {
+		mods := GetManager().GetConfig().MODULES
+
 		for k := range s.listModule {
 			m := mods[s.listModule[k]]
 			if checkModuleRunning(m) {
@@ -34,6 +48,7 @@ func (s *Supervisor) Supervise() {
 				}
 			} else {
 				m.STATE = Unknown
+				s.Remove(m.NAME)
 			}
 			GetManager().SaveModuleChanges(&m)
 		}
@@ -42,13 +57,20 @@ func (s *Supervisor) Supervise() {
 }
 
 func checkModuleRunning(mc ModuleConfig) bool {
-	if mc.pid != 0 {
-		if (mc.EXE != ModuleExecConfig{}) {
-			return checkPidRunning(&mc)
+	try := 0
+	b := false
+
+	for b == false || try < 5 {
+		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) {
+			b = checkPidRunning(&mc)
 		}
-		return checkModulePing(&mc)
+
+		if !b {
+			b = checkModulePing(&mc)
+		}
+		try++
 	}
-	return false
+	return b
 }
 
 func checkModulePing(mc *ModuleConfig) bool {

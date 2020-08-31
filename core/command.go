@@ -131,6 +131,7 @@ func shutdownModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (st
 	if strings.Contains(response, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
 		response = "Success"
 		mc.STATE = Stopped
+		GetManager().GetSupervisor().Remove(mc.NAME)
 	} else {
 		response = ""
 	}

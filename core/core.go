@@ -111,6 +111,10 @@ func connect(context *gin.Context) {
 				modC.BINDING.PORT = cr.Port
 			}
 
+			if modC.EXE.SUPERVISED {
+				GetManager().GetSupervisor().Add(modC.NAME)
+			}
+
 		} else {
 			modC.STATE = "FAILED"
 			log.Println("")
