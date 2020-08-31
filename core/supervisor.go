@@ -1,12 +1,11 @@
 package core
 
 import (
-	"log"
-	"os/exec"
-	"runtime"
-	"strconv"
+	"errors"
 	"strings"
 	"time"
+
+	ps "github.com/mitchellh/go-ps"
 
 	com "github.com/Wariie/go-woxy/com"
 )
@@ -62,7 +61,7 @@ func checkModuleRunning(mc ModuleConfig) bool {
 
 	for b == false || try < 5 {
 		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) {
-			b = checkPidRunning(&mc)
+			b = checkPidRunning2(&mc)
 		}
 
 		if !b {
@@ -85,35 +84,25 @@ func checkModulePing(mc *ModuleConfig) bool {
 	return false
 }
 
-func checkPidRunning(mc *ModuleConfig) bool {
-	var platformParam []string
-	var c string
-	if runtime.GOOS == "windows" {
-		c = "tasklist"
-		platformParam = []string{"/fi", "pid eq " + strconv.Itoa(mc.pid)}
-	} else {
-		c = "ps -p " + strconv.Itoa(mc.pid)
-		//platformParam = []string{"-c", }
-	}
+func findProcess(pid int) (int, string, error) {
+	pname := ""
+	err := errors.New("not found")
+	ps, _ := ps.Processes()
 
-	cmd := exec.Command(c, platformParam...)
-	output, err := cmd.CombinedOutput()
-
-	if err != nil {
-		log.Print("Error", err.Error())
-	}
-
-	b := false
-
-	r := strings.Split(strings.TrimSpace(string(output)), "\n")
-	if runtime.GOOS == "windows" {
-		if len(r) == 3 && strings.Contains(r[2], strconv.Itoa(mc.pid)) {
-			b = true
-		}
-	} else {
-		if len(r) == 2 && strings.Contains(r[1], strconv.Itoa(mc.pid)) {
-			b = true
+	for i := range ps {
+		if ps[i].Pid() == pid {
+			pname = ps[i].Executable()
+			err = nil
+			break
 		}
 	}
-	return b
+	return pid, pname, err
+}
+
+func checkPidRunning2(mc *ModuleConfig) bool {
+	p, n, e := findProcess(mc.pid)
+	if p != 0 && n != "" && e == nil {
+		return true
+	}
+	return false
 }
