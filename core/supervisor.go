@@ -92,7 +92,7 @@ func checkPidRunning(mc *ModuleConfig) bool {
 		c = "tasklist"
 		platformParam = []string{"/fi", "pid eq " + strconv.Itoa(mc.pid)}
 	} else {
-		c = "/bin/sh"
+		c = "/bin/bash"
 		platformParam = []string{"-c", "ps -p " + strconv.Itoa(mc.pid)}
 	}
 
