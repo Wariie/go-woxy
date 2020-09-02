@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Wariie/go-woxy/com"
 	"github.com/gin-gonic/gin"
@@ -93,28 +94,7 @@ func connect(context *gin.Context) {
 		rs := strings.TrimSuffix(cr.Secret, "\n\t") == strings.TrimSuffix(secretHash, "\n\t")
 		//CHECK SECRET FOR AUTH
 		if rs && cr.ModHash != "" {
-
-			//UPDATE MOD ATTRIBUTES
-			pid, err := strconv.Atoi(cr.Pid)
-			if err != nil {
-				log.Println("Error reading PID :", err)
-			}
-			modC.pid = pid
-			modC.PK = cr.ModHash
-			modC.customCommands = cr.CustomCommands
-			modC.STATE = "ONLINE"
-			log.Println("HASH :", modC.PK, "- MOD :", modC.NAME)
-
-			if modC.BINDING.PORT != "" {
-				cr.Port = modC.BINDING.PORT
-			} else {
-				modC.BINDING.PORT = cr.Port
-			}
-
-			if modC.EXE.SUPERVISED {
-				GetManager().GetSupervisor().Add(modC.NAME)
-			}
-
+			go checkModuleOnline(&modC, cr)
 		} else {
 			modC.STATE = "FAILED"
 			log.Println("")
@@ -131,6 +111,66 @@ func connect(context *gin.Context) {
 	}
 
 	GetManager().SaveModuleChanges(&modC)
+}
+
+func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
+	tm := m
+
+	//UPDATE MOD ATTRIBUTES
+	pid, err := strconv.Atoi(cr.Pid)
+	if err != nil {
+		log.Println("Error reading PID :", err)
+	}
+
+	m.pid = pid
+	m.PK = cr.ModHash
+	m.customCommands = cr.CustomCommands
+	m.STATE = "ONLINE"
+	log.Println("HASH :", m.PK, "- MOD :", m.NAME)
+
+	if m.BINDING.PORT != "" {
+		cr.Port = m.BINDING.PORT
+	} else {
+		m.BINDING.PORT = cr.Port
+	}
+
+	if m.EXE.SUPERVISED {
+		GetManager().GetSupervisor().Add(m.NAME)
+	}
+
+	//PREPARE PING REQUEST
+	cp := GetManager().GetCommandProcessor()
+	var crr com.CommandRequest
+	crr.Generate("Ping", m.PK, m.NAME, secretHash)
+	var c interface{}
+	c = &crr
+	p := ((c).(com.Request))
+
+	//RETRY 15 TIME TO CHECK MODULE COME ONLINE
+
+	try := 0
+	r := false
+	for {
+		res, e := cp.Run("Ping", &p, m, "")
+		log.Print(res, e)
+
+		if res != "" && err == nil {
+			r = true
+			break
+		} else if try > 15 {
+			break
+		}
+		try++
+		time.Sleep(time.Second * 1)
+	}
+
+	if !r {
+		tm.STATE = "FAILED"
+		m = tm
+	}
+	GetManager().SaveModuleChanges(m)
+
+	return r
 }
 
 // Command - Access point to manage go-woxy modules
@@ -175,6 +215,8 @@ func command(c *gin.Context) {
 				action += "Command [ " + cr.Command + " ]"
 			}
 		}
+
+		GetManager().SaveModuleChanges(&mc)
 	} else {
 		if t["Hash"] == "" {
 			response = "Empty Hash : Try to start module"

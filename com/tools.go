@@ -15,12 +15,13 @@ func SendRequest(s Server, r Request, loging bool) (string, error) {
 		fmt.Println("LAUNCH REQUEST - ", r, " TO ", s)
 	}
 
+	var rPath = r.GetPath()
 	var customPath string = defaultPath
-	if r.GetPath() != "" {
-		if s.Path == "/" || (s.Path == r.GetPath()) {
-			customPath = r.GetPath()
+	if rPath != "" {
+		if s.Path == "/" || (s.Path == rPath) {
+			customPath = rPath
 		} else {
-			customPath = s.Path + r.GetPath()
+			customPath = s.Path + rPath
 		}
 	}
 

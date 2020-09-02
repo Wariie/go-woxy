@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	ps "github.com/mitchellh/go-ps"
@@ -13,16 +14,18 @@ import (
 //Supervisor -
 type Supervisor struct {
 	listModule []string
+	mux        sync.Mutex
 }
 
 //Remove -
 func (s *Supervisor) Remove(m string) {
 	for i := range s.listModule {
 		if m == s.listModule[i] {
+			s.mux.Lock()
 			s.listModule[i] = s.listModule[len(s.listModule)-1] // Copy last element to index i.
 			s.listModule[len(s.listModule)-1] = ""              // Erase last element (write zero value).
 			s.listModule = s.listModule[:len(s.listModule)-1]   // Truncate slice.
-
+			s.mux.Unlock()
 			break
 		}
 	}
@@ -30,7 +33,9 @@ func (s *Supervisor) Remove(m string) {
 
 //Add -
 func (s *Supervisor) Add(m string) {
+	s.mux.Lock()
 	s.listModule = append(s.listModule, m)
+	s.mux.Unlock()
 }
 
 //Supervise -
@@ -38,8 +43,9 @@ func (s *Supervisor) Supervise() {
 
 	for {
 		mods := GetManager().GetConfig().MODULES
-
+		s.mux.Lock()
 		for k := range s.listModule {
+
 			m := mods[s.listModule[k]]
 			if checkModuleRunning(m) {
 				if m.STATE != Online && m.STATE != Loading && m.STATE != Downloaded {
@@ -51,7 +57,8 @@ func (s *Supervisor) Supervise() {
 			}
 			GetManager().SaveModuleChanges(&m)
 		}
-		time.Sleep(time.Millisecond * 200)
+		s.mux.Unlock()
+		time.Sleep(time.Millisecond * 10)
 	}
 }
 
@@ -59,7 +66,7 @@ func checkModuleRunning(mc ModuleConfig) bool {
 	try := 0
 	b := false
 
-	for b == false || try < 5 {
+	for b == false && try < 5 {
 		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) {
 			b = checkPidRunning2(&mc)
 		}

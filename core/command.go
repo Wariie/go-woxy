@@ -149,7 +149,14 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 	cr.Command = "Shutdown"
 	rqtS, err := com.SendRequest(mc.GetServer("/cmd"), cr, false)
 	if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
-		time.Sleep(2 * time.Second)
+
+		if mc.pid != 0 {
+			for checkModuleRunning(*mc) {
+				time.Sleep(time.Second)
+			}
+		}
+		mc.STATE = Stopped
+
 		if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
 			response += "Error :" + err.Error()
 			log.Println(err)
@@ -167,6 +174,7 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 }
 
 func startModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
+
 	response := ""
 	mods := GetManager().GetConfig().MODULES
 	var mo ModuleConfig
@@ -174,6 +182,7 @@ func startModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (strin
 	for m := range mods {
 		if m == c {
 			mo = mods[m]
+			break
 		}
 	}
 
