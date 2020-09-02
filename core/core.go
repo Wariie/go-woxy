@@ -214,9 +214,8 @@ func command(c *gin.Context) {
 				}
 				action += "Command [ " + cr.Command + " ]"
 			}
+			GetManager().SaveModuleChanges(&mc)
 		}
-
-		GetManager().SaveModuleChanges(&mc)
 	} else {
 		if t["Hash"] == "" {
 			response = "Empty Hash : Try to start module"
