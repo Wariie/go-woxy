@@ -325,4 +325,5 @@ const (
 	Stopped    ModuleState = "STOPPED"
 	Downloaded ModuleState = "DOWNLOADED"
 	Error      ModuleState = "ERROR"
+	Failed     ModuleState = "FAILED"
 )

@@ -96,8 +96,7 @@ func connect(context *gin.Context) {
 		if rs && cr.ModHash != "" {
 			go checkModuleOnline(&modC, cr)
 		} else {
-			modC.STATE = "FAILED"
-			log.Println("")
+			modC.STATE = Failed
 		}
 
 		//SEND RESPONSE
@@ -165,7 +164,7 @@ func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
 	}
 
 	if !r {
-		tm.STATE = "FAILED"
+		tm.STATE = Failed
 		m = tm
 	}
 	GetManager().SaveModuleChanges(m)
