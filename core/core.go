@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -11,6 +12,9 @@ import (
 
 	"github.com/Wariie/go-woxy/com"
 	"github.com/gin-gonic/gin"
+	"github.com/shiena/ansicolor"
+	logrus "github.com/sirupsen/logrus"
+	ginlogrus "github.com/toorop/gin-logrus"
 )
 
 var configFile string
@@ -35,8 +39,15 @@ func launchServer() {
 }
 
 func initCore() {
+
+	l := logrus.New()
 	//INIT ROUTER
-	router := gin.Default()
+	l.SetFormatter(&logrus.TextFormatter{ForceColors: true})
+	l.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+
+	router := gin.New()
+	router.Use(ginlogrus.Logger(l), gin.Recovery())
+
 	router.LoadHTMLGlob("ressources/*/*")
 	router.NoRoute(func(c *gin.Context) {
 		c.HTML(404, "404.html", nil)
