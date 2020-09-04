@@ -13,10 +13,10 @@ import (
 
 	"github.com/foolin/goview/supports/ginview"
 	"github.com/gin-contrib/static"
+	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/shiena/ansicolor"
-	"github.com/sirupsen/logrus"
-	ginlogrus "github.com/toorop/gin-logrus"
+	"github.com/rs/zerolog"
+	zLog "github.com/rs/zerolog/log"
 
 	com "github.com/Wariie/go-woxy/com"
 )
@@ -94,13 +94,17 @@ func (mod *ModuleImpl) Run() {
 //Init - init module
 func (mod *ModuleImpl) Init() {
 
-	l := logrus.New()
-	//INIT ROUTER
-	l.SetFormatter(&logrus.TextFormatter{ForceColors: true})
-	l.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	zLog.Logger = zLog.Output(
+		zerolog.ConsoleWriter{
+			Out:     os.Stdout,
+			NoColor: false,
+		},
+	)
 
 	r := gin.New()
-	r.Use(ginlogrus.Logger(l), gin.Recovery())
+	r.Use(logger.SetLogger(), gin.Recovery())
 
 	GetModManager().SetRouter(r)
 	GetModManager().SetMod(mod)

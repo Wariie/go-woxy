@@ -6,15 +6,16 @@ import (
 	"log"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Wariie/go-woxy/com"
+	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/shiena/ansicolor"
-	logrus "github.com/sirupsen/logrus"
-	ginlogrus "github.com/toorop/gin-logrus"
+	"github.com/rs/zerolog"
+	zLog "github.com/rs/zerolog/log"
 )
 
 var configFile string
@@ -22,6 +23,8 @@ var configFile string
 var motdFileName string = "motd.txt"
 
 var secretHash string = "SECRET"
+
+var rxURL = regexp.MustCompile(`^/regexp\d*`)
 
 //CORE SOCKET IS THE WHERE ALL THE MODULES EXCHANGE WILL BE TREATED
 //ALL THE APP IS CONSTIUED BY MODULES
@@ -40,14 +43,17 @@ func launchServer() {
 
 func initCore() {
 
-	l := logrus.New()
-	//INIT ROUTER
-	l.SetFormatter(&logrus.TextFormatter{ForceColors: true})
-	l.SetOutput(ansicolor.NewAnsiColorWriter(os.Stdout))
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	zLog.Logger = zLog.Output(
+		zerolog.ConsoleWriter{
+			Out:     os.Stdout,
+			NoColor: false,
+		},
+	)
 
 	router := gin.New()
-	router.Use(ginlogrus.Logger(l), gin.Recovery())
-
+	router.Use(logger.SetLogger(), gin.Recovery())
 	router.LoadHTMLGlob("ressources/*/*")
 	router.NoRoute(func(c *gin.Context) {
 		c.HTML(404, "404.html", nil)
