@@ -178,7 +178,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 	cr := com.ConnexionRequest{}
 
 	var commands []string
-	for k := range mod.COMMANDS {
+	for k := range mod.CustomCommands {
 		commands = append(commands, k)
 	}
 
