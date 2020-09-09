@@ -140,7 +140,7 @@ func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
 
 	m.pid = pid
 	m.PK = cr.ModHash
-	m.customCommands = cr.CustomCommands
+	m.COMMANDS = cr.CustomCommands
 	m.STATE = "ONLINE"
 	log.Println("HASH :", m.PK, "- MOD :", m.NAME)
 

@@ -23,16 +23,16 @@ import (
 
 /*ModuleConfig - Module configuration */
 type ModuleConfig struct {
-	AUTH           ModuleAuthConfig
-	BINDING        ServerConfig
-	customCommands []string
-	EXE            ModuleExecConfig
-	NAME           string
-	pid            int
-	PK             string
-	STATE          ModuleState
-	TYPES          string
-	VERSION        int
+	AUTH     ModuleAuthConfig
+	BINDING  ServerConfig
+	COMMANDS []string
+	EXE      ModuleExecConfig
+	NAME     string
+	pid      int
+	PK       string
+	STATE    ModuleState
+	TYPES    string
+	VERSION  int
 }
 
 //Download - Download module from repository ( git clone )
