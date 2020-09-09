@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"github.com/foolin/goview/supports/ginview"
-	"github.com/gin-contrib/static"
 	"github.com/gin-contrib/logger"
+	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	zLog "github.com/rs/zerolog/log"
@@ -165,12 +165,10 @@ func (mod *ModuleImpl) serve() {
 
 	GetModManager().SetServer(Server)
 	GetModManager().SetRouter(r)
-	GetModManager().SetMod(mod)
 
 	if err := Server.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
-
 }
 
 func (mod *ModuleImpl) connectToHub() bool {
@@ -180,7 +178,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 	cr := com.ConnexionRequest{}
 
 	var commands []string
-	for k := range mod.CustomCommands {
+	for k := range mod.COMMANDS {
 		commands = append(commands, k)
 	}
 
@@ -203,6 +201,9 @@ func (mod *ModuleImpl) connectToHub() bool {
 	}
 
 	mod.Server.Port = crr.Port
+
+	GetModManager().SetMod(mod)
+
 	return s && err == nil
 }
 
