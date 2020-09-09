@@ -37,7 +37,7 @@ type (
 		Stop()
 		SetServer()
 		SetHubServer()
-		SetCommand(string, func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error))
+		SetCommand(string, func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error))
 	}
 
 	/*ModuleImpl - Impl of Module*/
@@ -50,7 +50,7 @@ type (
 		HubServer      com.Server
 		Server         com.Server
 		RessourcePath  string
-		CustomCommands map[string]func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error)
+		CustomCommands map[string]func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error)
 	}
 )
 
@@ -60,9 +60,9 @@ func (mod *ModuleImpl) Stop(c *gin.Context) {
 }
 
 //SetCommand - set command
-func (mod *ModuleImpl) SetCommand(name string, run func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error)) {
+func (mod *ModuleImpl) SetCommand(name string, run func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error)) {
 	if mod.CustomCommands == nil {
-		mod.CustomCommands = map[string]func(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error){}
+		mod.CustomCommands = map[string]func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error){}
 	}
 	mod.CustomCommands[name] = run
 }

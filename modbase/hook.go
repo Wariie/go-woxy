@@ -22,15 +22,21 @@ func cmd(c *gin.Context) {
 		case "Command":
 			var sr com.CommandRequest
 			sr.Decode(b)
+
+			var ir interface{}
+			ir = &sr
+			p := (ir).(com.Request)
+
 			switch sr.Command {
 			case "Shutdown":
-				response, err = shutdown(&sr, c, mod)
+				response, err = shutdown(&p, c, mod)
 			case "Ping":
-				response, err = ping(&sr, c, mod)
+				response, err = ping(&p, c, mod)
 			default:
 				for k := range mod.CustomCommands {
 					if k == sr.Command {
-						response, err = mod.CustomCommands[k](&sr, c, mod)
+
+						response, err = mod.CustomCommands[k](&p, c, mod)
 						break
 					}
 				}
@@ -44,11 +50,11 @@ func cmd(c *gin.Context) {
 	c.String(200, response)
 }
 
-func shutdown(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
+func shutdown(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
 	go GetModManager().Shutdown(c)
 	return "SHUTTING DOWN " + mod.Name, nil
 }
 
-func ping(r com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
+func ping(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
 	return mod.Name + " ALIVE", nil
 }
