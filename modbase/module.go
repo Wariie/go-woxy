@@ -172,7 +172,7 @@ func (mod *ModuleImpl) serve() {
 }
 
 func (mod *ModuleImpl) connectToHub() bool {
-	log.Println("	HUB CONNECT")
+	log.Println("HUB CONNECT")
 
 	//CREATE CONNEXION REQUEST
 	cr := com.ConnexionRequest{}
@@ -194,10 +194,10 @@ func (mod *ModuleImpl) connectToHub() bool {
 	s, err := strconv.ParseBool(crr.State)
 
 	if s && err == nil {
-		log.Println("		SUCCESS")
+		log.Println("	SUCCESS")
 		//SET HASH
 	} else {
-		log.Println("		ERROR - ", err)
+		log.Println("	ERROR - ", err)
 	}
 
 	mod.Server.Port = crr.Port
@@ -253,7 +253,7 @@ func (sm *modManager) GetSecret() string {
 }
 
 func (sm *modManager) Shutdown(c context.Context) {
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := sm.server.Shutdown(ctx); err != nil {

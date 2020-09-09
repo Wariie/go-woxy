@@ -30,7 +30,8 @@ func cmd(c *gin.Context) {
 			default:
 				for k := range mod.CustomCommands {
 					if k == sr.Command {
-						mod.CustomCommands[k](&sr, c, mod)
+						response, err = mod.CustomCommands[k](&sr, c, mod)
+						break
 					}
 				}
 			}
