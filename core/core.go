@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -18,17 +17,6 @@ import (
 	zLog "github.com/rs/zerolog/log"
 )
 
-var configFile string
-
-var motdFileName string = "motd.txt"
-
-var secretHash string = "SECRET"
-
-var rxURL = regexp.MustCompile(`^/regexp\d*`)
-
-//CORE SOCKET IS THE WHERE ALL THE MODULES EXCHANGE WILL BE TREATED
-//ALL THE APP IS CONSTIUED BY MODULES
-//THE CORE IS THIS HERE TO HANDLE AND LOG THESE DIFFERENTS MODULES
 func launchServer() {
 	fmt.Print("Start Go-Woxy Server")
 
@@ -52,6 +40,9 @@ func initCore() {
 		},
 	)
 
+	//PRODUCTION MODE
+	gin.SetMode(gin.ReleaseMode)
+
 	router := gin.New()
 	router.Use(logger.SetLogger(), gin.Recovery())
 	router.LoadHTMLGlob("ressources/*/*")
@@ -68,24 +59,25 @@ func initCore() {
 //LaunchCore - start core server
 func LaunchCore(configPath string) {
 
-	motd()
-
-	generateSecret()
-
 	// STEP 1 Init
 	initCore()
 
-	// STEP 2 READ CONFIG FILE
-	config := readConfig(configPath)
+	var c Config
+
+	c.loadConfig(configPath)
+
+	c.motd()
+
+	c.generateSecret()
 
 	// SAVE CONFIG
-	GetManager().config = &config
+	GetManager().config = &c
 
 	// START MODULE SUPERVISOR
 	initSupervisor()
 
 	// STEP 4 LOAD MODULES
-	go loadModules()
+	go c.loadModules()
 
 	// STEP 5 START SERVER WHERE MODULES WILL REGISTER
 	launchServer()
@@ -108,8 +100,9 @@ func connect(context *gin.Context) {
 	} else {
 
 		modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
-		rs := strings.TrimSuffix(cr.Secret, "\n\t") == strings.TrimSuffix(secretHash, "\n\t")
+
 		//CHECK SECRET FOR AUTH
+		rs := strings.TrimSuffix(cr.Secret, "\n\t") == strings.TrimSuffix(GetManager().GetConfig().SECRET, "\n\t")
 		if rs && cr.ModHash != "" {
 			go checkModuleOnline(&modC, cr)
 		} else {
@@ -132,7 +125,6 @@ func connect(context *gin.Context) {
 func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
 	tm := m
 
-	//UPDATE MOD ATTRIBUTES
 	pid, err := strconv.Atoi(cr.Pid)
 	if err != nil {
 		log.Println("Error reading PID :", err)
@@ -141,7 +133,7 @@ func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
 	m.pid = pid
 	m.PK = cr.ModHash
 	m.COMMANDS = cr.CustomCommands
-	m.STATE = "ONLINE"
+	m.STATE = Online
 	log.Println("HASH :", m.PK, "- MOD :", m.NAME)
 
 	if m.BINDING.PORT != "" {
@@ -157,7 +149,7 @@ func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
 	//PREPARE PING REQUEST
 	cp := GetManager().GetCommandProcessor()
 	var crr com.CommandRequest
-	crr.Generate("Ping", m.PK, m.NAME, secretHash)
+	crr.Generate("Ping", m.PK, m.NAME, GetManager().GetConfig().SECRET)
 	var c interface{}
 	c = &crr
 	p := ((c).(com.Request))
@@ -189,7 +181,7 @@ func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
 	return r
 }
 
-// Command - Access point to manage go-woxy modules
+// Command - Access point to handle module commands
 func command(c *gin.Context) {
 	log.Print("Go-Woxy Module Command request : ")
 	t, b := com.GetCustomRequestType(c.Request)
@@ -200,7 +192,7 @@ func command(c *gin.Context) {
 	response := ""
 	action := ""
 
-	rs := strings.TrimSuffix(t["Secret"], "\n\t ") == strings.TrimSuffix(secretHash, "\n\t ")
+	rs := strings.TrimSuffix(t["Secret"], "\n\t ") == strings.TrimSuffix(GetManager().GetConfig().SECRET, "\n\t ")
 
 	// IF ERROR READING DATA
 	if t["error"] == "error" {

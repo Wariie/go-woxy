@@ -11,7 +11,7 @@ import (
 	com "github.com/Wariie/go-woxy/com"
 )
 
-//Command -
+//Command - Command inteface
 type Command interface {
 	Run(r *com.Request, m *ModuleConfig, args ...string) (string, error)
 	Error() error
@@ -20,7 +20,7 @@ type Command interface {
 	GetName() string
 }
 
-//ModuleCommand -
+//ModuleCommand - Command implementation
 type ModuleCommand struct {
 	name     string
 	result   string
@@ -28,22 +28,22 @@ type ModuleCommand struct {
 	err      error
 }
 
-//Run -
+//Run - Command
 func (mc *ModuleCommand) Run(r *com.Request, m *ModuleConfig, args ...string) (string, error) {
 	return mc.executor(r, m, args...)
 }
 
-//Error -
+//Error - Get command execution error
 func (mc *ModuleCommand) Error() error {
 	return mc.err
 }
 
-//GetResult -
+//GetResult - Get command result
 func (mc *ModuleCommand) GetResult() string {
 	return mc.result
 }
 
-//GetName -
+//GetName - Get command name
 func (mc *ModuleCommand) GetName() string {
 	return mc.name
 }
@@ -52,7 +52,7 @@ func (mc *ModuleCommand) registerExecutor(fn func(*com.Request, *ModuleConfig, .
 	mc.executor = fn
 }
 
-//CommandProcessor -
+//CommandProcessor - CommandProcessor
 type CommandProcessor interface {
 	Register(name string, run func(*com.Request, *ModuleConfig, ...string) (string, error)) bool
 	Run(name string, r com.Request, m ModuleConfig, args ...string) Command
@@ -74,7 +74,7 @@ func (cp *CommandProcessorImpl) register(name string, run func(*com.Request, *Mo
 	cp.commands = append(cp.commands, &c)
 }
 
-//Run - Run Command in CommandProcessorImpl
+//Run - Run command in CommandProcessorImpl
 func (cp *CommandProcessorImpl) Run(name string, r *com.Request, m *ModuleConfig, args ...string) (string, error) {
 	for k := range cp.commands {
 		if cp.commands[k].GetName() == name {
@@ -95,7 +95,7 @@ func (cp *CommandProcessorImpl) Run(name string, r *com.Request, m *ModuleConfig
 	return "Error : Command not found", nil
 }
 
-//Init - CommandProcessorImpl
+//Init - Init CommandProcessorImpl with default commands
 func (cp *CommandProcessorImpl) Init() {
 	cp.Register("List", listModuleCommand)
 	cp.Register("Log", logModuleCommand)
@@ -105,6 +105,8 @@ func (cp *CommandProcessorImpl) Init() {
 	cp.Register("Shutdown", shutdownModuleCommand)
 	cp.Register("Start", startModuleCommand)
 }
+
+/* ---------------------------DEFAULT COMMANDS----------------------------*/
 
 func commandsModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	return defaultForwardCommand(r, mc, args...)

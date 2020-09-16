@@ -2,6 +2,10 @@ package core
 
 import (
 	"bufio"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,39 +18,37 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func readConfig(configPath string) Config {
+func (c *Config) loadConfig(configPath string) {
+
+	if configPath == "" {
+		//EMPTY CONFIG FILE PATH
+		//TRY DEFAULT cfg.yml
+		configPath = "cfg.yml"
+	}
 
 	fmt.Println("Read config file at " + configPath)
 
-	if configPath != "" {
-		configFile = configPath
-	}
-
 	//READ CONFIG FILE
-	data, errR := ioutil.ReadFile(configFile)
+	data, errR := ioutil.ReadFile(configPath)
 	if errR != nil {
-		log.Fatalf("error: %v", errR)
+		log.Fatalf("Error config file : %v", errR)
 	}
-
-	t := Config{}
 
 	//PARSE CONFIG FILE
-	err := yaml.Unmarshal(data, &t)
-	if err != nil || t.NAME == "" {
+	err := yaml.Unmarshal(data, &c)
+	if err != nil || c.NAME == "" {
 		log.Fatalf("error: %v", err)
 	}
 
-	t.SERVER = checkServerConfig(t.SERVER)
+	c.checkServer()
 
-	t.MODULES = checkModulesConfig(t.MODULES)
-
-	return t
+	c.checkModules()
 }
 
-func checkModulesConfig(mc map[string]ModuleConfig) map[string]ModuleConfig {
+func (c *Config) checkModules() {
 
-	for k := range mc {
-		m := mc[k]
+	for k := range c.MODULES {
+		m := c.MODULES[k]
 		m.NAME = k
 		m.STATE = Unknown
 
@@ -61,27 +63,24 @@ func checkModulesConfig(mc map[string]ModuleConfig) map[string]ModuleConfig {
 		if m.BINDING.ADDRESS == "" {
 			m.BINDING.ADDRESS = "127.0.0.1"
 		}
-		mc[k] = m
+		c.MODULES[k] = m
 	}
-	return mc
 }
 
-func checkServerConfig(sc ServerConfig) ServerConfig {
+func (c *Config) checkServer() {
 
 	//CHECK IP IF NOT PRESENT -> DEFAULT LOCALHOST
-	if sc.ADDRESS == "" {
-		sc.ADDRESS = "0.0.0.0"
+	if c.SERVER.ADDRESS == "" {
+		c.SERVER.ADDRESS = "0.0.0.0"
 	}
 
 	//CHECK PORT IF NOT PRESENT -> DEFAULT 2000
-	if sc.PORT == "" {
-		sc.PORT = "2000"
+	if c.SERVER.PORT == "" {
+		c.SERVER.PORT = "2000"
 	}
-
-	return sc
 }
 
-func loadModules() {
+func (c *Config) loadModules() {
 	//INIT MODULE DIRECTORY
 	wd, err := os.Getwd()
 
@@ -91,27 +90,25 @@ func loadModules() {
 		os.Exit(1)
 	}
 
-	config := GetManager().config
 	Router := GetManager().router
-	for k := range config.MODULES {
-		mod := config.MODULES[k]
+	for k := range c.MODULES {
+		mod := c.MODULES[k]
 		err := mod.Setup(Router, true)
 		if err != nil {
 			log.Fatalln("Error setup module ", mod.NAME, " - ", err)
 		}
-		config.MODULES[k] = mod
+		c.MODULES[k] = mod
 	}
 
 	//ADD HUB MODULE FOR COMMAND GESTURE
-	config.MODULES["hub"] = ModuleConfig{NAME: "hub", PK: "hub"}
+	c.MODULES["hub"] = ModuleConfig{NAME: "hub", PK: "hub"}
 
 	GetManager().router = Router
-	GetManager().config = config
+	GetManager().config = c
 }
 
 func initSupervisor() {
 	s := Supervisor{}
-
 	GetManager().SetSupervisor(&s)
 	go s.Supervise()
 }
@@ -128,23 +125,63 @@ func getServerConfig(sc ServerConfig, router *gin.Engine) http.Server {
 	}
 }
 
-func generateSecret() {
-	s := tools.String(64)
-	sb := []byte(s)
-	err := ioutil.WriteFile(".secret", sb, 0644)
-	if err != nil {
-		log.Println("Error trying create secret file :", err)
+func (c *Config) generateSecret() {
+	if c.SECRET == "" {
+		s := tools.String(64)
+		err := ioutil.WriteFile(".secret", []byte(s), 0644)
+		if err != nil {
+			log.Println("Error trying create secret file :", err)
+		}
+		c.SECRET = s
 	}
-	/*b := sha256.Sum256(s)
-	secretHash = string(b[:])*/
-	secretHash = s
 }
 
-func motd() {
-	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
-	file, err := os.Open(motdFileName)
+func generatePrivateKey() {
+
+	//GENERATE PRIVATE KEY
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		log.Fatalln("No motd file ", motdFileName, " : ", err)
+		panic(err)
+	}
+
+	//SAVE PRIVATE KEY AS PEM FILE
+	pemPrivateKeyFile, err := os.Create("private.key")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	var pemkey = &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
+
+	err = pem.Encode(pemPrivateKeyFile, pemkey)
+
+	//SAVE PUBLIC KEY AS PEM FILE
+	pemPublicKeyFile, err := os.Create("public.pem")
+
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// http://golang.org/pkg/encoding/pem/#Block
+	var pemPublicKey = &pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)}
+
+	err = pem.Encode(pemPublicKeyFile, pemPublicKey)
+}
+
+func (c *Config) motd() {
+	if c.MOTD == "" {
+		c.MOTD = "motd.txt"
+	}
+
+	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
+	file, err := os.Open(c.MOTD)
+	if err != nil {
+		log.Fatalln("Error - Cannot found ", c.MOTD, " : ", err)
 		return
 	}
 	defer file.Close()

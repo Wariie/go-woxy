@@ -21,11 +21,9 @@ type Supervisor struct {
 func (s *Supervisor) Remove(m string) {
 	for i := range s.listModule {
 		if m == s.listModule[i] {
-			s.mux.Lock()
 			s.listModule[i] = s.listModule[len(s.listModule)-1] // Copy last element to index i.
 			s.listModule[len(s.listModule)-1] = ""              // Erase last element (write zero value).
 			s.listModule = s.listModule[:len(s.listModule)-1]   // Truncate slice.
-			s.mux.Unlock()
 			break
 		}
 	}
@@ -40,18 +38,20 @@ func (s *Supervisor) Add(m string) {
 
 //Supervise -
 func (s *Supervisor) Supervise() {
-
+	//ENDLESS LOOP
 	for {
-		mods := GetManager().GetConfig().MODULES
+		//FOR EACH REGISTERED MODULE
 		s.mux.Lock()
-		for k := range s.listModule {
 
-			m := mods[s.listModule[k]]
+		for k := range s.listModule {
+			//CHECK MODULE RUNNING
+			m := GetManager().GetConfig().MODULES[s.listModule[k]]
 			if checkModuleRunning(m) {
 				if m.STATE != Online && m.STATE != Loading && m.STATE != Downloaded {
 					m.STATE = Online
 				}
-			} else {
+				//ELSE SET STATE TO UNKNOWN
+			} else if m.STATE != Loading && m.STATE != Downloaded {
 				m.STATE = Unknown
 				s.Remove(m.NAME)
 			}
@@ -68,7 +68,7 @@ func checkModuleRunning(mc ModuleConfig) bool {
 
 	for b == false && try < 5 {
 		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) {
-			b = checkPidRunning2(&mc)
+			b = checkPidRunning(&mc)
 		}
 
 		if !b {
@@ -81,7 +81,7 @@ func checkModuleRunning(mc ModuleConfig) bool {
 
 func checkModulePing(mc *ModuleConfig) bool {
 	var cr com.CommandRequest
-	cr.Generate("Ping", mc.PK, mc.NAME, secretHash)
+	cr.Generate("Ping", mc.PK, mc.NAME, GetManager().GetConfig().SECRET)
 	resp, err := com.SendRequest(mc.GetServer("/cmd"), &cr, false)
 	if err != nil {
 		return false
@@ -106,7 +106,7 @@ func findProcess(pid int) (int, string, error) {
 	return pid, pname, err
 }
 
-func checkPidRunning2(mc *ModuleConfig) bool {
+func checkPidRunning(mc *ModuleConfig) bool {
 	p, n, e := findProcess(mc.pid)
 	if p != 0 && n != "" && e == nil {
 		return true

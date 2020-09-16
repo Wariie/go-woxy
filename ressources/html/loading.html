@@ -1,335 +1,134 @@
-<!doctype html>
-<head>
-    <title>Loading Page - guilhem-mateo.fr</title>
-    <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
-    <style>
-        p {
-            line-height: 1.33em;
-            color: #7E7E7E;
-        }
-        h1 {
-            color: #EEEEEE;
-        }
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{.title}}</title>
+        <style>
+            * {
+            -webkit-box-sizing: border-box;
+                    box-sizing: border-box;
+            }
 
-        #loader-wrapper {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-        }
-        
-        #loader {
-            display: block;
+            body {
+            padding: 0;
+            margin: 0;
+            }
+
+            #notfound {
             position: relative;
+            height: 100vh;
+            background: #030005;
+            }
+
+            #notfound .notfound {
+            position: absolute;
             left: 50%;
             top: 50%;
-            width: 150px;
-            height: 150px;
-            margin: -75px 0 0 -75px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #3498db;
-
-            -webkit-animation: spin 2s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
-            animation: spin 2s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
-
-            z-index: 1;
-        }
-
-        #loader:before {
-            content: "";
-            position: absolute;
-            top: 5px;
-            left: 5px;
-            right: 5px;
-            bottom: 5px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #e74c3c;
-
-            -webkit-animation: spin 3s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
-            animation: spin 3s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
-        }
-
-        #loader:after {
-            content: "";
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            bottom: 15px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top-color: #f9c922;
-
-            -webkit-animation: spin 1.5s linear infinite; /* Chrome, Opera 15+, Safari 5+ */
-            animation: spin 1.5s linear infinite; /* Chrome, Firefox 16+, IE 10+, Opera */
-        }
-
-        @-webkit-keyframes spin {
-            0%   { 
-                -webkit-transform: rotate(0deg);  /* Chrome, Opera 15+, Safari 3.1+ */
-                -ms-transform: rotate(0deg);  /* IE 9 */
-                transform: rotate(0deg);  /* Firefox 16+, IE 10+, Opera */
+            -webkit-transform: translate(-50%, -50%);
+                -ms-transform: translate(-50%, -50%);
+                    transform: translate(-50%, -50%);
             }
-            100% {
-                -webkit-transform: rotate(360deg);  /* Chrome, Opera 15+, Safari 3.1+ */
-                -ms-transform: rotate(360deg);  /* IE 9 */
-                transform: rotate(360deg);  /* Firefox 16+, IE 10+, Opera */
-            }
-        }
-        @keyframes spin {
-            0%   { 
-                -webkit-transform: rotate(0deg);  /* Chrome, Opera 15+, Safari 3.1+ */
-                -ms-transform: rotate(0deg);  /* IE 9 */
-                transform: rotate(0deg);  /* Firefox 16+, IE 10+, Opera */
-            }
-            100% {
-                -webkit-transform: rotate(360deg);  /* Chrome, Opera 15+, Safari 3.1+ */
-                -ms-transform: rotate(360deg);  /* IE 9 */
-                transform: rotate(360deg);  /* Firefox 16+, IE 10+, Opera */
-            }
-        }
 
-        #loader-wrapper .loader-section {
-            position: fixed;
-            top: 0;
-            width: 50%;
-            height: 100%;
-            background: #222222;
-            -webkit-transform: translateX(0);  /* Chrome, Opera 15+, Safari 3.1+ */
-            -ms-transform: translateX(0);  /* IE 9 */
-            transform: translateX(0);  /* Firefox 16+, IE 10+, Opera */
-        }
-
-        #loader-wrapper .loader-section.section-left {
-            left: 0;
-        }
-
-        #loader-wrapper .loader-section.section-right {
-            right: 0;
-        }
-
-        #content {
-            position: relative;
+            .notfound {
+            max-width: 767px;
             width: 100%;
-            height: 100%;
-            z-index: 1;
-        }
+            line-height: 1.4;
+            text-align: center;
+            }
 
-        #content p {
+            .notfound .notfound-404 {
+            position: relative;
+            height: 180px;
+            margin-bottom: 20px;
+            z-index: -1;
+            }
+
+            .notfound .notfound-404 h1 {
+            font-family: 'Montserrat', sans-serif;
+            position: absolute;
             left: 50%;
-            top: 62%;
-            margin: 0;
-            color: white;
+            top: 50%;
+            -webkit-transform: translate(-50% , -50%);
+                -ms-transform: translate(-50% , -50%);
+                    transform: translate(-50% , -50%);
+            font-size: 224px;
+            font-weight: 900;
+            margin-top: 0px;
+            margin-bottom: 0px;
+            margin-left: -12px;
+            color: #030005;
+            text-transform: uppercase;
+            text-shadow: -1px -1px 0px #8400ff, 1px 1px 0px #ff005a;
+            letter-spacing: -20px;
+            }
+
+
+            .notfound .notfound-404 h2 {
+            font-family: 'Montserrat', sans-serif;
             position: absolute;
-            font: 1.2em "Open Sans", sans-serif ;
-            margin-right: -50%;
-            transform: translate(-50%, -50%) 
-        }
-
-        html, body {
+            left: 0;
+            right: 0;
+            top: 110px;
+            font-size: 42px;
+            font-weight: 700;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 0px 2px 0px #8400ff;
+            letter-spacing: 13px;
             margin: 0;
-            height: 100%;
-        }
-
-        .ir {
-            background-color: transparent;
-            border: 0;
-            overflow: hidden;
-            /* IE 6/7 fallback */
-            *text-indent: -9999px;
-        }
-
-        .ir:before {
-            content: "";
-            display: block;
-            width: 0;
-            height: 150%;
-        }
-
-        /*
-        * Hide from both screenreaders and browsers: h5bp.com/u
-        */
-
-        .hidden {
-            display: none !important;
-            visibility: hidden;
-        }
-
-        /*
-        * Hide only visually, but have it available for screenreaders: h5bp.com/v
-        */
-
-        .visuallyhidden {
-            border: 0;
-            clip: rect(0 0 0 0);
-            height: 1px;
-            margin: -1px;
-            overflow: hidden;
-            padding: 0;
-            position: absolute;
-            width: 1px;
-        }
-
-        /*
-        * Extends the .visuallyhidden class to allow the element to be focusable
-        * when navigated to via the keyboard: h5bp.com/p
-        */
-
-        .visuallyhidden.focusable:active,
-        .visuallyhidden.focusable:focus {
-            clip: auto;
-            height: auto;
-            margin: 0;
-            overflow: visible;
-            position: static;
-            width: auto;
-        }
-
-        /*
-        * Hide visually and from screenreaders, but maintain layout
-        */
-
-        .invisible {
-            visibility: hidden;
-        }
-
-        /*
-        * Clearfix: contain floats
-        *
-        * For modern browsers
-        * 1. The space content is one way to avoid an Opera bug when the
-        *    `contenteditable` attribute is included anywhere else in the document.
-        *    Otherwise it causes space to appear at the top and bottom of elements
-        *    that receive the `clearfix` class.
-        * 2. The use of `table` rather than `block` is only necessary if using
-        *    `:before` to contain the top-margins of child elements.
-        */
-
-        .clearfix:before,
-        .clearfix:after {
-            content: " "; /* 1 */
-            display: table; /* 2 */
-        }
-
-        .clearfix:after {
-            clear: both;
-        }
-
-        /*
-        * For IE 6/7 only
-        * Include this rule to trigger hasLayout and contain floats.
-        */
-
-        .clearfix {
-            *zoom: 1;
-        }
-
-        /* ==========================================================================
-        EXAMPLE Media Queries for Responsive Design.
-        These examples override the primary ('mobile first') styles.
-        Modify as content requires.
-        ========================================================================== */
-
-        @media only screen and (min-width: 35em) {
-            /* Style adjustments for viewports that meet the condition */
-        }
-
-        @media print,
-            (-o-min-device-pixel-ratio: 5/4),
-            (-webkit-min-device-pixel-ratio: 1.25),
-            (min-resolution: 120dpi) {
-            /* Style adjustments for high resolution devices */
-        }
-
-        /* ==========================================================================
-        Print styles.
-        Inlined to avoid required HTTP connection: h5bp.com/r
-        ========================================================================== */
-
-        @media print {
-            * {
-                background: transparent !important;
-                color: #000 !important; /* Black prints faster: h5bp.com/s */
-                box-shadow: none !important;
-                text-shadow: none !important;
             }
 
-            a,
-            a:visited {
-                text-decoration: underline;
+            .notfound a {
+            font-family: 'Montserrat', sans-serif;
+            display: inline-block;
+            text-transform: uppercase;
+            color: #ff005a;
+            text-decoration: none;
+            border: 2px solid;
+            background: transparent;
+            padding: 10px 40px;
+            font-size: 14px;
+            font-weight: 700;
+            -webkit-transition: 0.2s all;
+            transition: 0.2s all;
             }
 
-            a[href]:after {
-                content: " (" attr(href) ")";
+            .notfound a:hover {
+            color: #8400ff;
             }
 
-            abbr[title]:after {
-                content: " (" attr(title) ")";
+            @media only screen and (max-width: 767px) {
+                .notfound .notfound-404 h2 {
+                    font-size: 24px;
+                }
             }
 
-            /*
-            * Don't show links for images, or javascript/internal links
-            */
-
-            .ir a:after,
-            a[href^="javascript:"]:after,
-            a[href^="#"]:after {
-                content: "";
+            @media only screen and (max-width: 480px) {
+            .notfound .notfound-404 h1 {
+                font-size: 182px;
             }
-
-            pre,
-            blockquote {
-                border: 1px solid #999;
-                page-break-inside: avoid;
             }
+        </style>
 
-            thead {
-                display: table-header-group; /* h5bp.com/t */
-            }
+		<!-- Google font -->
+		<link href="https://fonts.googleapis.com/css?family=Montserrat:700,900" rel="stylesheet">
 
-            tr,
-            img {
-                page-break-inside: avoid;
-            }
+		<!-- Custom stlylesheet -->
+		<link type="text/css" rel="stylesheet" href="css/style.css" />
+	</head>
+	<body>
 
-            img {
-                max-width: 100% !important;
-            }
+		<div id="notfound">
+			<div class="notfound">
+				<div class="notfound-404">
+					<h1>{{.code}}</h1>
+					<h2>{{.message}}</h2>
+				</div>
+				<a href="/">Homepage</a>
+			</div>
+		</div>
 
-            @page {
-                margin: 0.5cm;
-            }
-
-            p,
-            h2,
-            h3 {
-                orphans: 3;
-                widows: 3;
-            }
-
-            h2,
-            h3 {
-                page-break-after: avoid;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div id="loader-wrapper">
-        <div id="loader"></div>
-     
-        <div class="loader-section section-left"></div>
-        <div class="loader-section section-right"></div>
-    </div>
-    <div id="content">
-        <p>Loading...</p>
-    </div>
-    <script>
-        window.onload = function() {
-            setTimeout(() => { location.href = window.location.href }, 2000);
-        }
-    </script>
-</body>
+	</body><!-- This templates was made by Colorlib (https://colorlib.com) -->
+</html>

@@ -15,25 +15,11 @@ import (
 	"strconv"
 	"strings"
 
-	com "github.com/Wariie/go-woxy/com"
+	"github.com/Wariie/go-woxy/com"
 	auth "github.com/abbot/go-http-auth"
 	"github.com/gin-gonic/gin"
 	"github.com/shirou/gopsutil/process"
 )
-
-/*ModuleConfig - Module configuration */
-type ModuleConfig struct {
-	AUTH     ModuleAuthConfig
-	BINDING  ServerConfig
-	COMMANDS []string
-	EXE      ModuleExecConfig
-	NAME     string
-	pid      int
-	PK       string
-	STATE    ModuleState
-	TYPES    string
-	VERSION  int
-}
 
 //Download - Download module from repository ( git clone )
 func (mc *ModuleConfig) Download() {
@@ -69,7 +55,7 @@ func (mc *ModuleConfig) GetLog() string {
 
 	file, err := os.Open("./mods/" + mc.NAME + "/log.log")
 	if err != nil {
-		log.Printf("failed reading file: %s", err)
+		log.Fatalln("failed reading file :", err)
 	}
 	b, err := ioutil.ReadAll(file)
 	return string(b)
@@ -141,7 +127,7 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 //Setup - Setup module from config
 func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool) error {
 	fmt.Println("Setup mod : ", mc)
-	if !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+	if !mc.EXE.REMOTE && !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
 		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
 			mc.Download()
 		}
@@ -158,8 +144,6 @@ func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool) error {
 //Start - Start module with config args and auto args
 func (mc *ModuleConfig) Start() {
 	mc.STATE = Loading
-
-	//logFileName := mc.NAME + ".txt"
 
 	var platformParam []string
 	if runtime.GOOS == "windows" {
@@ -253,15 +237,28 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
 			//TODO HANDLE MORE STATES
-		} else if mod.STATE == Loading || mod.STATE == Downloaded {
-			//RETURN 503 WHILE MODULE IS LOADING
-			c.HTML(503, "loading.html", nil)
-		} else if mod.STATE == Stopped {
-			c.String(504, "Module Stopped")
-		} else if mod.STATE == Error {
-			c.String(504, "Error")
+		} else {
+			title := ""
+			code := 500
+			message := ""
+			if mod.STATE == Loading || mod.STATE == Downloaded {
+				title = "Loading"
+				code += 3
+				message = "Module is loading ..."
+			} else if mod.STATE == Stopped {
+				title = "Stopped"
+				code = 410
+				message = "Module stopped by an administrator"
+			} else if mod.STATE == Error || mod.STATE == Unknown {
+				title = "Error"
+				message = "Error"
+			}
+			c.HTML(code, "loading.html", gin.H{
+				"title":   title,
+				"code":    code,
+				"message": message,
+			})
 		}
-		//GetManager().config.MODULES[mc.NAME] = mod
 	}
 }
 
@@ -275,7 +272,6 @@ func singleJoiningSlash(a, b string) string {
 		return a + "/" + b
 	}
 	return a + b
-
 }
 
 /*Config - Global configuration */
@@ -284,6 +280,22 @@ type Config struct {
 	NAME    string
 	SERVER  ServerConfig
 	VERSION int
+	MOTD    string
+	SECRET  string
+}
+
+/*ModuleConfig - Module configuration */
+type ModuleConfig struct {
+	AUTH     ModuleAuthConfig
+	BINDING  ServerConfig
+	COMMANDS []string
+	EXE      ModuleExecConfig
+	NAME     string
+	pid      int
+	PK       string
+	STATE    ModuleState
+	TYPES    string
+	VERSION  int
 }
 
 /*ModuleExecConfig - Module exec file informations */
@@ -292,6 +304,7 @@ type ModuleExecConfig struct {
 	MAIN       string
 	SRC        string
 	SUPERVISED bool
+	REMOTE     bool
 }
 
 /*ServerConfig - Server configuration*/

@@ -18,7 +18,7 @@ import (
 	"github.com/rs/zerolog"
 	zLog "github.com/rs/zerolog/log"
 
-	com "github.com/Wariie/go-woxy/com"
+	"github.com/Wariie/go-woxy/com"
 )
 
 type (

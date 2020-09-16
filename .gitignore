@@ -26,6 +26,9 @@
 # End of https://www.toptal.com/developers/gitignore/api/go,visualstudiocode
 
 /mods
+/tmp
 
 .htpasswd
 .secret
+private.key
+public.pem
