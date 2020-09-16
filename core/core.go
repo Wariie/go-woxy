@@ -18,15 +18,13 @@ import (
 )
 
 func launchServer() {
-	fmt.Print("Start Go-Woxy Server")
+	fmt.Println("GO-WOXY Core - Starting")
 
 	//AUTHENTICATION ENDPOINT
 	GetManager().router.POST("/connect", connect)
 	GetManager().router.POST("/cmd", command)
 
-	server := getServerConfig(GetManager().config.SERVER, GetManager().router)
-
-	log.Fatalln("Error ListenAndServer : ", server.ListenAndServe())
+	log.Fatalln("GO-WOXY Core - Error ListenAndServer :", GetManager().config.configAndServe(GetManager().router))
 }
 
 func initCore() {
@@ -94,7 +92,7 @@ func connect(context *gin.Context) {
 	modC = GetManager().config.MODULES[cr.Name]
 
 	if reflect.DeepEqual(modC, ModuleConfig{}) {
-		errMsg := "Error reading ConnexionRequest"
+		errMsg := "GO-WOXY Core - Error reading ConnexionRequest"
 		log.Println(errMsg)
 		context.Writer.Write([]byte(errMsg))
 	} else {
@@ -102,9 +100,9 @@ func connect(context *gin.Context) {
 		modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
 
 		//CHECK SECRET FOR AUTH
-		rs := strings.TrimSuffix(cr.Secret, "\n\t") == strings.TrimSuffix(GetManager().GetConfig().SECRET, "\n\t")
+		rs := hashMatchSecretHash(cr.Secret)
 		if rs && cr.ModHash != "" {
-			go checkModuleOnline(&modC, cr)
+			go registerModule(&modC, &cr)
 		} else {
 			modC.STATE = Failed
 		}
@@ -113,7 +111,7 @@ func connect(context *gin.Context) {
 		var crr com.ConnexionReponseRequest
 
 		result := strconv.FormatBool(rs)
-		fmt.Println("Module ", modC.NAME, " connecting - result : ", result)
+		fmt.Println("GO-WOXY Core - Module ", modC.NAME, " connecting - result : ", result)
 
 		crr.Generate(cr.ModHash, cr.Name, cr.Port, result)
 		context.Writer.Write(crr.Encode())
@@ -122,19 +120,23 @@ func connect(context *gin.Context) {
 	GetManager().SaveModuleChanges(&modC)
 }
 
-func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
+func hashMatchSecretHash(hash string) bool {
+	r := strings.TrimSuffix(hash, "\n\t") == strings.TrimSuffix(GetManager().GetConfig().SECRET, "\n\t")
+	return r
+}
+
+func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 	tm := m
 
 	pid, err := strconv.Atoi(cr.Pid)
 	if err != nil {
-		log.Println("Error reading PID :", err)
+		log.Println("GO-WOXY Core - Error reading PID :", err)
 	}
 
 	m.pid = pid
 	m.PK = cr.ModHash
 	m.COMMANDS = cr.CustomCommands
 	m.STATE = Online
-	log.Println("HASH :", m.PK, "- MOD :", m.NAME)
 
 	if m.BINDING.PORT != "" {
 		cr.Port = m.BINDING.PORT
@@ -183,7 +185,7 @@ func checkModuleOnline(m *ModuleConfig, cr com.ConnexionRequest) bool {
 
 // Command - Access point to handle module commands
 func command(c *gin.Context) {
-	log.Print("Go-Woxy Module Command request : ")
+	log.Print("GO-WOXY Core - Command")
 	t, b := com.GetCustomRequestType(c.Request)
 
 	from := c.Request.RemoteAddr
@@ -235,6 +237,6 @@ func command(c *gin.Context) {
 	}
 
 	action += " - Result : " + response
-	log.Println("Request from", from, "-", action)
+	log.Println(" from", from, ":", action, "-", response)
 	c.String(200, "%s", response)
 }

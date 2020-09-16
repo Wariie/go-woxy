@@ -7,6 +7,7 @@
       version: 1.0
       types: 'web'
       exe:
+        remote: false
         src: 'https://github.com/Wariie/mod-manager.git'
         main: 'main.go'
         supervised: true
@@ -22,6 +23,7 @@
       version: 1.0
       types: 'web'
       exe:
+        remote: false
         src: 'https://github.com/Wariie/mod.v0.git'
         main: "testMod.go"
         supervised: true

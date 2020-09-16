@@ -119,14 +119,14 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 		} else {
 			router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
 		}
-		fmt.Println("Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
+		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
 	return nil
 }
 
 //Setup - Setup module from config
 func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool) error {
-	fmt.Println("Setup mod : ", mc)
+	fmt.Println("GO-WOXY Core - Setup mod : ", mc)
 	if !mc.EXE.REMOTE && !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
 		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
 			mc.Download()
@@ -152,31 +152,31 @@ func (mc *ModuleConfig) Start() {
 		platformParam = []string{"/bin/sh", "-c", "go run " + mc.EXE.MAIN + " > log.log 2>&1"}
 	}
 
-	fmt.Println("Starting mod : ", mc)
+	fmt.Println("GO-WOXY Core - Starting mod : ", mc)
 	cmd := exec.Command(platformParam[0], platformParam[1:]...)
 	cmd.Dir = mc.EXE.BIN
 	output, err := cmd.Output()
 	if err != nil {
-		log.Println("Error:", err)
+		log.Println("GO-WOXY Core - Error:", err)
 	}
-	log.Println("Output :", string(output), err)
+	log.Println("GO-WOXY Core - Output :", string(output), err)
 }
 
 func (mc *ModuleConfig) copySecret() {
 	source, err := os.Open(".secret")
 	if err != nil {
-		log.Println("Error reading generated secret file")
+		log.Println("GO-WOXY Core - Error reading generated secret file")
 	}
 	defer source.Close()
 
 	destination, err := os.Create(mc.EXE.BIN + "/.secret")
 	if err != nil {
-		log.Println("Error creating mod secret file")
+		log.Println("GO-WOXY Core - Error creating mod secret file")
 	}
 	defer destination.Close()
 	nBytes, err := io.Copy(destination, source)
 	if err != nil {
-		log.Println("Error Copy Secret:", err, nBytes)
+		log.Println("GO-WOXY Core - Error Copy Secret:", err, nBytes)
 	}
 }
 
@@ -314,6 +314,8 @@ type ServerConfig struct {
 	PORT     string
 	PROTOCOL string
 	ROOT     string
+	CERT     string
+	CERT_KEY string
 }
 
 /*ModuleAuthConfig - Auth configuration*/

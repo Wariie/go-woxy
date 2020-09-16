@@ -8,7 +8,7 @@ import (
 
 	ps "github.com/mitchellh/go-ps"
 
-	com "github.com/Wariie/go-woxy/com"
+	"github.com/Wariie/go-woxy/com"
 )
 
 //Supervisor -

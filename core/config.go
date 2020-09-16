@@ -2,10 +2,8 @@ package core
 
 import (
 	"bufio"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
+	"crypto/sha256"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -26,27 +24,26 @@ func (c *Config) loadConfig(configPath string) {
 		configPath = "cfg.yml"
 	}
 
-	fmt.Println("Read config file at " + configPath)
-
 	//READ CONFIG FILE
-	data, errR := ioutil.ReadFile(configPath)
-	if errR != nil {
-		log.Fatalf("Error config file : %v", errR)
+	data, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatalf("GO-WOXY Core - Error reading config file : %v", err)
 	}
 
 	//PARSE CONFIG FILE
-	err := yaml.Unmarshal(data, &c)
+	err = yaml.Unmarshal(data, &c)
 	if err != nil || c.NAME == "" {
-		log.Fatalf("error: %v", err)
+		log.Fatalf("GO-WOXY Core - Error parsing config file %v", err)
 	}
 
 	c.checkServer()
 
 	c.checkModules()
+
+	fmt.Println("GO-WOXY Core - Config file readed")
 }
 
 func (c *Config) checkModules() {
-
 	for k := range c.MODULES {
 		m := c.MODULES[k]
 		m.NAME = k
@@ -63,6 +60,7 @@ func (c *Config) checkModules() {
 		if m.BINDING.ADDRESS == "" {
 			m.BINDING.ADDRESS = "127.0.0.1"
 		}
+
 		c.MODULES[k] = m
 	}
 }
@@ -86,7 +84,7 @@ func (c *Config) loadModules() {
 
 	os.Mkdir(wd+"/mods", os.ModeDir)
 	if err != nil {
-		log.Fatalln("Error creating mods folder : ", err)
+		log.Fatalln("GO-WOXY Core - Error creating mods folder : ", err)
 		os.Exit(1)
 	}
 
@@ -95,7 +93,7 @@ func (c *Config) loadModules() {
 		mod := c.MODULES[k]
 		err := mod.Setup(Router, true)
 		if err != nil {
-			log.Fatalln("Error setup module ", mod.NAME, " - ", err)
+			log.Fatalln("GO-WOXY Core - Error setup module ", mod.NAME, " : ", err)
 		}
 		c.MODULES[k] = mod
 	}
@@ -113,64 +111,56 @@ func initSupervisor() {
 	go s.Supervise()
 }
 
-func getServerConfig(sc ServerConfig, router *gin.Engine) http.Server {
+func (c *Config) configAndServe(router *gin.Engine) error {
 	path := ""
-	if len(sc.PATH) > 0 {
-		path = sc.PATH[0].FROM
+	if len(c.SERVER.PATH) > 0 {
+		path = c.SERVER.PATH[0].FROM
 	}
-	fmt.Println("SERVER ADDRESS : \"" + sc.ADDRESS + ":" + sc.PORT + path + "\"")
-	return http.Server{
-		Addr:    sc.ADDRESS + ":" + sc.PORT + path,
-		Handler: router,
+	fmt.Println("GO-WOXY Core - Serving at " + c.SERVER.PROTOCOL + "://" + c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path)
+
+	var s http.Server
+	//CHECK FOR CERTIFICATE TO TRY TLS CONFIG
+	if c.SERVER.CERT != "" && c.SERVER.CERT_KEY != "" {
+		tls, err := c.getTLSConfig()
+		if err != nil {
+			log.Fatalln("GO-WOXY Core - Error tls config")
+		}
+		s = http.Server{
+			Addr:      c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
+			Handler:   router,
+			TLSConfig: tls,
+		}
+	} else {
+		s = http.Server{
+			Addr:    c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
+			Handler: router,
+		}
 	}
+	return s.ListenAndServe()
 }
 
 func (c *Config) generateSecret() {
 	if c.SECRET == "" {
-		s := tools.String(64)
-		err := ioutil.WriteFile(".secret", []byte(s), 0644)
+		b := []byte(tools.String(64))
+		err := ioutil.WriteFile(".secret", b, 0644)
 		if err != nil {
-			log.Println("Error trying create secret file :", err)
+			log.Fatalln("GO-WOXY Core - Error trying create secret file :", err)
 		}
-		c.SECRET = s
+		h := sha256.New()
+		h.Write(b)
+		c.SECRET = string(h.Sum(nil))
 	}
 }
 
-func generatePrivateKey() {
+func (c *Config) getTLSConfig() (*tls.Config, error) {
 
-	//GENERATE PRIVATE KEY
-	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	cer, err := tls.LoadX509KeyPair(c.SERVER.CERT, c.SERVER.CERT_KEY)
 	if err != nil {
-		panic(err)
+		log.Println(err)
+		return &tls.Config{}, err
 	}
 
-	//SAVE PRIVATE KEY AS PEM FILE
-	pemPrivateKeyFile, err := os.Create("private.key")
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	var pemkey = &pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-
-	err = pem.Encode(pemPrivateKeyFile, pemkey)
-
-	//SAVE PUBLIC KEY AS PEM FILE
-	pemPublicKeyFile, err := os.Create("public.pem")
-
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-
-	// http://golang.org/pkg/encoding/pem/#Block
-	var pemPublicKey = &pem.Block{
-		Type:  "RSA PUBLIC KEY",
-		Bytes: x509.MarshalPKCS1PublicKey(&privateKey.PublicKey)}
-
-	err = pem.Encode(pemPublicKeyFile, pemPublicKey)
+	return &tls.Config{Certificates: []tls.Certificate{cer}}, nil
 }
 
 func (c *Config) motd() {
@@ -181,8 +171,7 @@ func (c *Config) motd() {
 	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
 	file, err := os.Open(c.MOTD)
 	if err != nil {
-		log.Fatalln("Error - Cannot found ", c.MOTD, " : ", err)
-		return
+		log.Panicln("GO-WOXY Core - Error cannot found ", c.MOTD, ":", err)
 	}
 	defer file.Close()
 
