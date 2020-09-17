@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -135,7 +136,7 @@ func (mod *ModuleImpl) readSecret() {
 	mod.Secret = string(bs[:])*/
 	h := sha256.New()
 	h.Write(b)
-	mod.Secret = string(h.Sum(nil))
+	mod.Secret = base64.URLEncoding.EncodeToString(h.Sum(nil))
 }
 
 //Register - register http handler for path
