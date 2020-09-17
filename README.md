@@ -1,6 +1,7 @@
 
 # go-woxy
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/Wariie/go-woxy)](https://goreportcard.com/report/github.com/Wariie/go-woxy)
 Golang reverse proxy / application server
 
 ## Installation
