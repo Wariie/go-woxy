@@ -6,8 +6,6 @@
 
 Golang reverse proxy / application server
 
----
-
 ## Installation
 
 Clone the source code
