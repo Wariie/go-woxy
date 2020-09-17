@@ -1,8 +1,8 @@
-
 # go-woxy
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/Wariie/go-woxy)](https://goreportcard.com/report/github.com/Wariie/go-woxy)
 [![Build Status](https://travis-ci.com/Wariie/go-woxy.svg?branch=master)](https://travis-ci.com/Wariie/go-woxy)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FWariie%2Fgo-woxy.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FWariie%2Fgo-woxy?ref=badge_shield)
 
 Golang reverse proxy / application server
 
@@ -153,3 +153,7 @@ Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the 
 # go-woxy API
 
 //TODO
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FWariie%2Fgo-woxy.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FWariie%2Fgo-woxy?ref=badge_large)
