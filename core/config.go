@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -148,7 +149,7 @@ func (c *Config) generateSecret() {
 		}
 		h := sha256.New()
 		h.Write(b)
-		c.SECRET = string(h.Sum(nil))
+		c.SECRET = base64.URLEncoding.EncodeToString(h.Sum(nil))
 	}
 }
 
