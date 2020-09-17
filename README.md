@@ -2,6 +2,7 @@
 # go-woxy
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/Wariie/go-woxy)](https://goreportcard.com/report/github.com/Wariie/go-woxy)
+[![Build Status](https://travis-ci.com/Wariie/go-woxy.svg?branch=master)](https://travis-ci.com/Wariie/go-woxy)
 
 Golang reverse proxy / application server
 
