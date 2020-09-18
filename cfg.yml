@@ -1,6 +1,8 @@
 ---
   name: easy-go-test
   server:
+    cert: 'ca-cert.pem'
+    cert_key: 'ca-key.pem'
 #    address: 0.0.0.0  
   modules: 
     mod-manager:

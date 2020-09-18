@@ -190,7 +190,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 	mod.Hash = cr.ModHash
 
 	//SEND REQUEST
-	body, err := com.SendRequest(com.Server{IP: mod.HubServer.IP, Port: mod.HubServer.Port, Path: "", Protocol: "http"}, &cr, false)
+	body, err := com.SendRequest(com.Server{IP: mod.HubServer.IP, Port: mod.HubServer.Port, Path: "", Protocol: mod.HubServer.Protocol}, &cr, false)
 
 	var crr com.ConnexionReponseRequest
 	crr.Decode(bytes.NewBufferString(body).Bytes())

@@ -124,18 +124,18 @@ func (c *Config) configAndServe(router *gin.Engine) error {
 	if c.SERVER.CERT != "" && c.SERVER.CERT_KEY != "" {
 		tls, err := c.getTLSConfig()
 		if err != nil {
-			log.Fatalln("GO-WOXY Core - Error tls config")
+			log.Fatalln("GO-WOXY Core - Error tls config :", err)
 		}
 		s = http.Server{
 			Addr:      c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
 			Handler:   router,
 			TLSConfig: tls,
 		}
-	} else {
-		s = http.Server{
-			Addr:    c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
-			Handler: router,
-		}
+		return s.ListenAndServeTLS(c.SERVER.CERT, c.SERVER.CERT_KEY)
+	}
+	s = http.Server{
+		Addr:    c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
+		Handler: router,
 	}
 	return s.ListenAndServe()
 }
@@ -154,7 +154,6 @@ func (c *Config) generateSecret() {
 }
 
 func (c *Config) getTLSConfig() (*tls.Config, error) {
-
 	cer, err := tls.LoadX509KeyPair(c.SERVER.CERT, c.SERVER.CERT_KEY)
 	if err != nil {
 		log.Println(err)
