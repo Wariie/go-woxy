@@ -92,7 +92,7 @@ func connect(context *gin.Context) {
 	modC = GetManager().config.MODULES[cr.Name]
 
 	if reflect.DeepEqual(modC, ModuleConfig{}) {
-		errMsg := "GO-WOXY Core - Error reading ConnexionRequest"
+		errMsg := "Error reading ConnexionRequest"
 		log.Println(errMsg)
 		context.Writer.Write([]byte(errMsg))
 	} else {
@@ -194,7 +194,7 @@ func command(c *gin.Context) {
 	response := ""
 	action := ""
 
-	rs := strings.TrimSuffix(t["Secret"], "\n\t ") == strings.TrimSuffix(GetManager().GetConfig().SECRET, "\n\t ")
+	rs := t["Secret"] == GetManager().GetConfig().SECRET
 
 	// IF ERROR READING DATA
 	if t["error"] == "error" {
@@ -237,6 +237,6 @@ func command(c *gin.Context) {
 	}
 
 	action += " - Result : " + response
-	log.Println(" from", from, ":", action, "-", response)
+	log.Println("From", from, ':', action, '-', response)
 	c.String(200, "%s", response)
 }

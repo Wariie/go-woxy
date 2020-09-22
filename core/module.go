@@ -277,11 +277,11 @@ func singleJoiningSlash(a, b string) string {
 /*Config - Global configuration */
 type Config struct {
 	MODULES map[string]ModuleConfig
+	MOTD    string
 	NAME    string
+	SECRET  string
 	SERVER  ServerConfig
 	VERSION int
-	MOTD    string
-	SECRET  string
 }
 
 /*ModuleConfig - Module configuration */
@@ -302,9 +302,9 @@ type ModuleConfig struct {
 type ModuleExecConfig struct {
 	BIN        string
 	MAIN       string
+	REMOTE     bool
 	SRC        string
 	SUPERVISED bool
-	REMOTE     bool
 }
 
 /*ServerConfig - Server configuration*/

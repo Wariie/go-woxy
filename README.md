@@ -37,12 +37,14 @@ Dockerfile
     ---
     name: easy-go-test
     server:
-      address: 0.0.0.0
-    modules:
+      #cert: 'ca-cert.pem'
+      #cert_key: 'ca-key.pem'
+    modules: 
       mod-manager:
         version: 1.0
         types: 'web'
         exe:
+          remote: false
           src: 'https://github.com/Wariie/mod-manager.git'
           main: 'main.go'
           supervised: true
@@ -52,30 +54,37 @@ Dockerfile
               to: '/'
           port: 2001
         auth:
-          enabled: false
+          enabled: true
           type: 'http'
-      mod.v0:
+      mod.v0: 
         version: 1.0
         types: 'web'
         exe:
+          remote: false
           src: 'https://github.com/Wariie/mod.v0.git'
-          main: 'testMod.go'
+          main: "testMod.go"
           supervised: true
         binding:
-          path:
+          path: 
             - from: '/'
-          port: 2985
+          port: 2985  
       hook:
-        version: 1.0
         types: 'bind'
         binding:
           path:
-            - from: '/saucisse'
+            - from: '/saucisse' 
           root: "./ressources/saucisse.html"
+      favicon:
+        types: 'bind'
+        binding:
+          path:
+            - from: '/favicon.ico'
+          root: "./ressources/favicon.ico"
   
 ### General configuration
 
 * **modules** - (Required) list of module config (See [Module Configuration](#module-configuration) below for details)
+* **motd** - motd filepath (default : "motd.txt")
 * **name** - (Required) server config name
 * **server** - (Required) server config (See [Server Configuration](#server-configuration) below for details)
 * **version** - server config version
@@ -87,6 +96,8 @@ Dockerfile
 * **port** - server port (example : 2000, 8080)
 * **protocol** - transfer protocol (supported : http, https)
 * **root** - (M) bind to **root** if no **exe**
+* **cert** - SSL certificate path
+* **cert_key** - SSL key certificate path
 
 ### Module Configuration
 
@@ -101,6 +112,7 @@ Dockerfile
 
 * **bin** - source module path
 * **main** - module main filename
+* **remote** - boolean if it's executed on remote server (default : false)
 * **src** - git path of module repository
 * **supervised** - boolean if module need to be supervised
 

@@ -1,9 +1,8 @@
 ---
   name: easy-go-test
   server:
-    cert: 'ca-cert.pem'
-    cert_key: 'ca-key.pem'
-#    address: 0.0.0.0  
+    #cert: 'ca-cert.pem'
+    #cert_key: 'ca-key.pem'
   modules: 
     mod-manager:
       version: 1.0
@@ -34,9 +33,14 @@
           - from: '/'
         port: 2985  
     hook:
-      version: 1.0
       types: 'bind'
       binding:
         path:
           - from: '/saucisse' 
         root: "./ressources/saucisse.html"
+    favicon:
+      types: 'bind'
+      binding:
+        path:
+          - from: '/favicon.ico'
+        root: "./ressources/favicon.ico"
