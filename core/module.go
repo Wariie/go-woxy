@@ -77,7 +77,7 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 	if path == "" {
 		path = mc.BINDING.PATH[0].FROM
 	}
-	return com.Server{IP: mc.BINDING.ADDRESS, Path: path, Port: mc.BINDING.PORT, Protocol: mc.BINDING.PROTOCOL}
+	return com.Server{IP: com.IP(mc.BINDING.ADDRESS), Path: com.Path(path), Port: com.Port(mc.BINDING.PORT), Protocol: com.Protocol(mc.BINDING.PROTOCOL)}
 }
 
 //HookAll - Create all binding between module config address and gin server
