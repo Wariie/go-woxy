@@ -222,7 +222,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 		commands = append(commands, k)
 	}
 
-	cr.Generate(commands, mod.Name, mod.Server.Port, strconv.Itoa(os.Getpid()), mod.Secret)
+	cr.Generate(commands, mod.Name, string(mod.Server.Port), strconv.Itoa(os.Getpid()), mod.Secret)
 	mod.Hash = cr.ModHash
 
 	//SEND REQUEST
