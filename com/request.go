@@ -10,12 +10,24 @@ import (
 
 var defaultPath = "/connect"
 
+//IP Address
+type IP string
+
+//Port Server port
+type Port string
+
+//Path Server path
+type Path string
+
+//Protocol Server protocol
+type Protocol string
+
 /*Server - Struct */
 type Server struct {
-	IP       string
-	Port     string
-	Path     string
-	Protocol string
+	IP       IP
+	Port     Port
+	Path     Path
+	Protocol Protocol
 }
 
 /*Request - server request*/

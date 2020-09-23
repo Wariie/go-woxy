@@ -18,14 +18,14 @@ func SendRequest(s Server, r Request, loging bool) (string, error) {
 	var rPath = r.GetPath()
 	var customPath string = defaultPath
 	if rPath != "" {
-		if s.Path == "/" || (s.Path == rPath) {
+		if s.Path == "/" || (string(s.Path) == rPath) {
 			customPath = rPath
 		} else {
-			customPath = s.Path + rPath
+			customPath = string(s.Path) + rPath
 		}
 	}
 
-	var url string = s.Protocol + "://" + s.IP + ":" + s.Port + customPath
+	var url string = string(s.Protocol) + "://" + string(s.IP) + ":" + string(s.Port) + customPath
 
 	//SEND REQUEST
 	resp, err := http.Post(url, "text/json", bytes.NewBuffer(r.Encode()))
