@@ -24,12 +24,6 @@ import (
 )
 
 type (
-	/*HardwareUsage - Module hardware usage */
-	HardwareUsage struct {
-		CPU     byte
-		MEM     byte
-		NETWORK int
-	}
 
 	/*Module - Module*/
 	Module interface {
@@ -74,7 +68,27 @@ func (mod *ModuleImpl) SetServer(ip string, path string, port string, proto stri
 	if proto == "" {
 		proto = "http"
 	}
-	mod.Server = com.Server{IP: ip, Port: port, Path: path, Protocol: proto}
+	mod.Server = com.Server{IP: com.IP(ip), Port: com.Port(port), Path: com.Path(path), Protocol: com.Protocol(proto)}
+}
+
+//SetAddress - Set address for server
+func (mod *ModuleImpl) SetAddress(addr string) {
+	mod.Server.IP = com.IP(addr)
+}
+
+//SetPort - Set port for server
+func (mod *ModuleImpl) SetPort(port string) {
+	mod.Server.Port = com.Port(port)
+}
+
+//SetProtocol - Set protocol for server
+func (mod *ModuleImpl) SetProtocol(proto string) {
+	mod.Server.Protocol = com.Protocol(proto)
+}
+
+//SetPath - Set path for server
+func (mod *ModuleImpl) SetPath(path string) {
+	mod.Server.Path = com.Path(path)
 }
 
 //SetHubServer -
@@ -82,7 +96,27 @@ func (mod *ModuleImpl) SetHubServer(ip string, path string, port string, proto s
 	if proto == "" {
 		proto = "http"
 	}
-	mod.HubServer = com.Server{IP: ip, Port: port, Path: path, Protocol: proto}
+	mod.HubServer = com.Server{IP: com.IP(ip), Port: com.Port(port), Path: com.Path(path), Protocol: com.Protocol(proto)}
+}
+
+//SetHubAddress - Set address for hub server
+func (mod *ModuleImpl) SetHubAddress(addr string) {
+	mod.HubServer.IP = com.IP(addr)
+}
+
+//SetHubPort - Set port for hub server
+func (mod *ModuleImpl) SetHubPort(port string) {
+	mod.HubServer.Port = com.Port(port)
+}
+
+//SetHubProtocol - Set protocol for hub server
+func (mod *ModuleImpl) SetHubProtocol(proto string) {
+	mod.HubServer.Protocol = com.Protocol(proto)
+}
+
+//SetHubPath - Set path for hub server
+func (mod *ModuleImpl) SetHubPath(path string) {
+	mod.HubServer.Path = com.Path(path)
 }
 
 //Run - start module function
@@ -117,12 +151,16 @@ func (mod *ModuleImpl) Init() {
 		mod.RessourcePath = "ressources/"
 	}
 
+	//DEFAULT MODULE SERVER PARAMETER
 	if mod.Server == (com.Server{}) {
 		mod.Server = com.Server{IP: "0.0.0.0", Port: "4224", Protocol: "http"}
 	}
 
+	//DEFAULT HUB SERVER PARAMETERS
 	if mod.HubServer == (com.Server{}) {
 		mod.HubServer = com.Server{IP: "0.0.0.0", Port: "2000", Protocol: "http"}
+	} else if mod.HubServer.Protocol == "https" && mod.HubServer.Port == "" {
+		mod.HubServer.Port = "443"
 	}
 }
 
@@ -132,8 +170,6 @@ func (mod *ModuleImpl) readSecret() {
 		log.Println("Error reading server secret")
 		os.Exit(2)
 	}
-	/*bs := sha256.Sum256(b)
-	mod.Secret = string(bs[:])*/
 	h := sha256.New()
 	h.Write(b)
 	mod.Secret = base64.URLEncoding.EncodeToString(h.Sum(nil))
@@ -163,7 +199,7 @@ func (mod *ModuleImpl) serve() {
 	r.POST("/cmd", cmd)
 
 	Server := &http.Server{
-		Addr:    s.IP + ":" + s.Port,
+		Addr:    string(s.IP) + ":" + string(s.Port),
 		Handler: r,
 	}
 
@@ -204,7 +240,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 		log.Println("	ERROR - ", err)
 	}
 
-	mod.Server.Port = crr.Port
+	mod.Server.Port = com.Port(crr.Port)
 
 	GetModManager().SetMod(mod)
 
