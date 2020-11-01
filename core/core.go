@@ -97,7 +97,9 @@ func connect(context *gin.Context) {
 		context.Writer.Write([]byte(errMsg))
 	} else {
 
-		modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
+		if !modC.EXE.REMOTE {
+			modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
+		}
 
 		//CHECK SECRET FOR AUTH
 		rs := hashMatchSecretHash(cr.Secret)
