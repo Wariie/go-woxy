@@ -81,8 +81,8 @@ func (mod *ModuleImpl) SetAddress(addr string) {
 //SetCerts - Set certificate and key for server
 func (mod *ModuleImpl) SetCerts(keyPath string, certPath string) {
 	mod.Certs = make([]string, 0)
-	mod.Certs = append(mod.Certs, keyPath)
 	mod.Certs = append(mod.Certs, certPath)
+	mod.Certs = append(mod.Certs, keyPath)
 }
 
 //SetPort - Set port for server
@@ -163,6 +163,11 @@ func (mod *ModuleImpl) Init() {
 	//DEFAULT MODULE SERVER PARAMETER
 	if mod.Server == (com.Server{}) {
 		mod.Server = com.Server{IP: "0.0.0.0", Port: "4224", Protocol: "http"}
+	} else if len(mod.Certs) == 2 && {
+		if mod.Server.Port == "" {
+			mod.Server.Port = "443"
+		}
+		mod.Server.Protocol == "https"
 	}
 
 	//DEFAULT HUB SERVER PARAMETERS

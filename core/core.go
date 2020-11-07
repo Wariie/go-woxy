@@ -192,7 +192,6 @@ func command(c *gin.Context) {
 
 	from := c.Request.RemoteAddr
 
-	//TODO HANDLE ACCESS WITH CREDENTIALS
 	response := ""
 	action := ""
 
