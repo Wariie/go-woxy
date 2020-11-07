@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"io/ioutil"
 	"log"
@@ -46,6 +47,7 @@ type (
 		HubServer      com.Server
 		Server         com.Server
 		RessourcePath  string
+		Certs          []string
 		CustomCommands map[string]func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error)
 	}
 )
@@ -74,6 +76,13 @@ func (mod *ModuleImpl) SetServer(ip string, path string, port string, proto stri
 //SetAddress - Set address for server
 func (mod *ModuleImpl) SetAddress(addr string) {
 	mod.Server.IP = com.IP(addr)
+}
+
+//SetCerts - Set certificate and key for server
+func (mod *ModuleImpl) SetCerts(keyPath string, certPath string) {
+	mod.Certs = make([]string, 0)
+	mod.Certs = append(mod.Certs, keyPath)
+	mod.Certs = append(mod.Certs, certPath)
 }
 
 //SetPort - Set port for server
@@ -203,11 +212,31 @@ func (mod *ModuleImpl) serve() {
 		Handler: r,
 	}
 
-	GetModManager().SetServer(Server)
-	GetModManager().SetRouter(r)
+	if len(mod.Certs) == 2 { //CERTIFCATE AND KEY DETECTED
+		var cfg tls.Config
+		cer, err := tls.LoadX509KeyPair(mod.Certs[0], mod.Certs[1])
+		if err != nil {
+			log.Println(err)
+			cfg = tls.Config{}
+		} else {
+			cfg = tls.Config{Certificates: []tls.Certificate{cer}}
+		}
 
-	if err := Server.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatal(err)
+		Server.TLSConfig = &cfg
+
+		GetModManager().SetServer(Server)
+		GetModManager().SetRouter(r)
+
+		if err := Server.ListenAndServeTLS(mod.Certs[0], mod.Certs[1]); err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	} else {
+		GetModManager().SetServer(Server)
+		GetModManager().SetRouter(r)
+
+		if err := Server.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
 	}
 }
 
