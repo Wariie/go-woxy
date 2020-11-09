@@ -167,7 +167,7 @@ func (mod *ModuleImpl) Init() {
 		if mod.Server.Port == "" {
 			mod.Server.Port = "443"
 		}
-		mod.Server.Protocol == "https"
+		mod.Server.Protocol = "https"
 	}
 
 	//DEFAULT HUB SERVER PARAMETERS
