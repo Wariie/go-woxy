@@ -163,7 +163,7 @@ func (mod *ModuleImpl) Init() {
 	//DEFAULT MODULE SERVER PARAMETER
 	if mod.Server == (com.Server{}) {
 		mod.Server = com.Server{IP: "0.0.0.0", Port: "4224", Protocol: "http"}
-	} else if len(mod.Certs) == 2 && {
+	} else if len(mod.Certs) == 2 {
 		if mod.Server.Port == "" {
 			mod.Server.Port = "443"
 		}
