@@ -261,23 +261,16 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 	//SEND REQUEST
 	body, err := com.SendRequest(com.Server{IP: mod.HubServer.IP, Port: mod.HubServer.Port, Path: "", Protocol: mod.HubServer.Protocol}, &cr, false)
-
-	var crr com.ConnexionReponseRequest
+	var crr com.ConnexionRequest
 	crr.Decode(bytes.NewBufferString(body).Bytes())
-
 	s, err := strconv.ParseBool(crr.State)
 
 	if s && err == nil {
 		log.Println("	SUCCESS")
-		//SET HASH
+		GetModManager().SetMod(mod)
 	} else {
 		log.Println("	ERROR - ", err)
 	}
-
-	mod.Server.Port = com.Port(crr.Port)
-
-	GetModManager().SetMod(mod)
-
 	return s && err == nil
 }
 

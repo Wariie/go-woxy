@@ -20,7 +20,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="136db2b8-fb70-4891-8b96-97c92f890cd0" name="Default Changelist" comment="Refactor&#10;Error Handling&#10;Logging&#10;&#10;New feature :&#10;Edit Resource Module path&#10;&#10;And more ...">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/modbase/module.go" beforeDir="false" afterPath="$PROJECT_DIR$/modbase/module.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
