@@ -17,6 +17,24 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+/*Config - Global configuration */
+type Config struct {
+	MODULES     map[string]ModuleConfig
+	MOTD        string
+	NAME        string
+	SECRET      string
+	MODDIR      string
+	RESOURCEDIR string
+	SERVER      ServerConfig
+	VERSION     int
+}
+
+func LoadConfigFromPath(configPath string) Config {
+	c := Config{}
+	c.loadConfig(configPath)
+	return c
+}
+
 func (c *Config) loadConfig(configPath string) {
 
 	if configPath == "" {
@@ -41,6 +59,13 @@ func (c *Config) loadConfig(configPath string) {
 
 	c.checkModules()
 
+	if c.RESOURCEDIR == "" {
+		c.RESOURCEDIR = "resources" + string(os.PathSeparator)
+	}
+	if c.MODDIR == "" {
+		c.MODDIR = "mods" + string(os.PathSeparator)
+	}
+
 	fmt.Println("GO-WOXY Core - Config file readed")
 }
 
@@ -48,10 +73,11 @@ func (c *Config) checkModules() {
 	for k := range c.MODULES {
 		m := c.MODULES[k]
 		m.NAME = k
-		m.STATE = Unknown
 
 		if strings.Contains(m.TYPES, "bind") {
 			m.STATE = Online
+		} else {
+			m.STATE = Unknown
 		}
 
 		if m.BINDING.PROTOCOL == "" {
@@ -59,7 +85,7 @@ func (c *Config) checkModules() {
 		}
 
 		if m.BINDING.ADDRESS == "" {
-			m.BINDING.ADDRESS = "127.0.0.1"
+			m.BINDING.ADDRESS = "0.0.0.0"
 		}
 
 		c.MODULES[k] = m
@@ -83,16 +109,19 @@ func (c *Config) loadModules() {
 	//INIT MODULE DIRECTORY
 	wd, err := os.Getwd()
 
-	os.Mkdir(wd+"/mods", os.ModeDir)
+	err = os.Mkdir(wd+string(os.PathSeparator)+c.MODDIR, os.ModeDir)
 	if err != nil {
-		log.Fatalln("GO-WOXY Core - Error creating mods folder : ", err)
-		os.Exit(1)
+		if os.IsNotExist(err) {
+			log.Fatalln("GO-WOXY Core - Error creating mods folder : ", err)
+		} else if os.IsExist(err) {
+			fmt.Println("GO-WOXY Core - Error creating mods folder : ", err)
+		}
 	}
 
 	Router := GetManager().router
 	for k := range c.MODULES {
 		mod := c.MODULES[k]
-		err := mod.Setup(Router, true)
+		err := mod.Setup(Router, true, c.MODDIR)
 		if err != nil {
 			log.Fatalln("GO-WOXY Core - Error setup module ", mod.NAME, " : ", err)
 		}
@@ -120,22 +149,20 @@ func (c *Config) configAndServe(router *gin.Engine) error {
 	fmt.Println("GO-WOXY Core - Serving at " + c.SERVER.PROTOCOL + "://" + c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path)
 
 	var s http.Server
-	//CHECK FOR CERTIFICATE TO TRY TLS CONFIG
-	if c.SERVER.CERT != "" && c.SERVER.CERT_KEY != "" {
-		tls, err := c.getTLSConfig()
-		if err != nil {
-			log.Fatalln("GO-WOXY Core - Error tls config :", err)
-		}
-		s = http.Server{
-			Addr:      c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
-			Handler:   router,
-			TLSConfig: tls,
-		}
-		return s.ListenAndServeTLS(c.SERVER.CERT, c.SERVER.CERT_KEY)
-	}
+
 	s = http.Server{
 		Addr:    c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
 		Handler: router,
+	}
+
+	//CHECK FOR CERTIFICATE TO TRY TLS CONFIG
+	if c.SERVER.CERT != "" && c.SERVER.CERT_KEY != "" {
+		tlsConfig, err := c.getTLSConfig()
+		if err != nil {
+			log.Fatalln("GO-WOXY Core - Error getting tls config :", err)
+		}
+		s.TLSConfig = tlsConfig
+		return s.ListenAndServeTLS(c.SERVER.CERT, c.SERVER.CERT_KEY)
 	}
 	return s.ListenAndServe()
 }
@@ -156,10 +183,8 @@ func (c *Config) generateSecret() {
 func (c *Config) getTLSConfig() (*tls.Config, error) {
 	cer, err := tls.LoadX509KeyPair(c.SERVER.CERT, c.SERVER.CERT_KEY)
 	if err != nil {
-		log.Println(err)
 		return &tls.Config{}, err
 	}
-
 	return &tls.Config{Certificates: []tls.Certificate{cer}}, nil
 }
 

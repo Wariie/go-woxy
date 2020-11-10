@@ -11,7 +11,7 @@ import (
 	com "github.com/Wariie/go-woxy/com"
 )
 
-//Command - Command inteface
+//Command - Command interface
 type Command interface {
 	Run(r *com.Request, m *ModuleConfig, args ...string) (string, error)
 	Error() error
@@ -78,8 +78,7 @@ func (cp *CommandProcessorImpl) register(name string, run func(*com.Request, *Mo
 func (cp *CommandProcessorImpl) Run(name string, r *com.Request, m *ModuleConfig, args ...string) (string, error) {
 	for k := range cp.commands {
 		if cp.commands[k].GetName() == name {
-			c := cp.commands[k]
-			return c.Run(r, m, args...)
+			return cp.commands[k].Run(r, m, args...)
 		}
 	}
 
@@ -92,7 +91,7 @@ func (cp *CommandProcessorImpl) Run(name string, r *com.Request, m *ModuleConfig
 		}
 	}
 
-	return "Error : Command not found", nil
+	return "", errors.New("command not found")
 }
 
 //Init - Init CommandProcessorImpl with default commands
@@ -134,8 +133,6 @@ func shutdownModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (st
 		response = "Success"
 		mc.STATE = Stopped
 		GetManager().GetSupervisor().Remove(mc.NAME)
-	} else {
-		response = ""
 	}
 	return response, err
 }
@@ -151,7 +148,6 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 	cr.Command = "Shutdown"
 	rqtS, err := com.SendRequest(mc.GetServer("/cmd"), cr, false)
 	if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
-
 		if mc.pid != 0 {
 			for checkModuleRunning(*mc) {
 				time.Sleep(time.Second)
@@ -159,7 +155,7 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 		}
 		mc.STATE = Stopped
 
-		if err := mc.Setup(GetManager().GetRouter(), false); err != nil {
+		if err := mc.Setup(GetManager().GetRouter(), false, GetManager().GetConfig().MODDIR); err != nil {
 			response += "Error :" + err.Error()
 			log.Println(err)
 		} else {
@@ -176,7 +172,6 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 }
 
 func startModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
-
 	response := ""
 	mods := GetManager().GetConfig().MODULES
 	var mo ModuleConfig
@@ -190,14 +185,14 @@ func startModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (strin
 
 	var err error
 	if mo.STATE != Online {
-		err = mo.Setup(GetManager().GetRouter(), false)
+		err = mo.Setup(GetManager().GetRouter(), false, GetManager().GetConfig().MODDIR)
 		if err == nil {
 			response += "Success"
 		} else {
 			response += err.Error()
 		}
 	} else {
-		err = errors.New("Module already Online")
+		err = errors.New("module already online")
 	}
 	return response, err
 }

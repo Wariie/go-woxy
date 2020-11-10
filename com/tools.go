@@ -16,7 +16,7 @@ func SendRequest(s Server, r Request, loging bool) (string, error) {
 	}
 
 	var rPath = r.GetPath()
-	var customPath string = defaultPath
+	var customPath = defaultPath
 	if rPath != "" {
 		if s.Path == "/" || (string(s.Path) == rPath) {
 			customPath = rPath
@@ -25,14 +25,15 @@ func SendRequest(s Server, r Request, loging bool) (string, error) {
 		}
 	}
 
-	var url string = string(s.Protocol) + "://" + string(s.IP) + ":" + string(s.Port) + customPath
+	var url = string(s.Protocol) + "://" + string(s.IP) + ":" + string(s.Port) + customPath
 
 	//SEND REQUEST
 	resp, err := http.Post(url, "text/json", bytes.NewBuffer(r.Encode()))
 	if err != nil {
 		log.Println(err)
 	}
-	//defer resp.Body.Close()
+
+	defer resp.Body.Close()
 	if resp != nil && resp.Body != nil {
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(resp.Body)

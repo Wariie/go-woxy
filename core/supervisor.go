@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	ps "github.com/mitchellh/go-ps"
+	"github.com/mitchellh/go-ps"
 
 	"github.com/Wariie/go-woxy/com"
 )
@@ -65,9 +65,8 @@ func (s *Supervisor) Supervise() {
 func checkModuleRunning(mc ModuleConfig) bool {
 	try := 0
 	b := false
-
 	for b == false && try < 5 {
-		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) {
+		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) && !mc.EXE.REMOTE {
 			b = checkPidRunning(&mc)
 		}
 
@@ -83,27 +82,25 @@ func checkModulePing(mc *ModuleConfig) bool {
 	var cr com.CommandRequest
 	cr.Generate("Ping", mc.PK, mc.NAME, GetManager().GetConfig().SECRET)
 	resp, err := com.SendRequest(mc.GetServer("/cmd"), &cr, false)
-	if err != nil {
-		return false
-	} else if strings.Contains(resp, mc.NAME+" ALIVE") {
+	if err == nil && strings.Contains(resp, mc.NAME+" ALIVE") {
 		return true
 	}
 	return false
 }
 
 func findProcess(pid int) (int, string, error) {
-	pname := ""
+	pName := ""
 	err := errors.New("not found")
-	ps, _ := ps.Processes()
+	processes, _ := ps.Processes()
 
-	for i := range ps {
-		if ps[i].Pid() == pid {
-			pname = ps[i].Executable()
+	for i := range processes {
+		if processes[i].Pid() == pid {
+			pName = processes[i].Executable()
 			err = nil
 			break
 		}
 	}
-	return pid, pname, err
+	return pid, pName, err
 }
 
 func checkPidRunning(mc *ModuleConfig) bool {

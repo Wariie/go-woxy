@@ -46,7 +46,7 @@ type (
 		Secret         string
 		HubServer      com.Server
 		Server         com.Server
-		RessourcePath  string
+		ResourcePath   string
 		Certs          []string
 		CustomCommands map[string]func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error)
 	}
@@ -156,8 +156,8 @@ func (mod *ModuleImpl) Init() {
 
 	mod.readSecret()
 
-	if mod.RessourcePath == "" {
-		mod.RessourcePath = "ressources/"
+	if mod.ResourcePath == "" {
+		mod.ResourcePath = "resources/"
 	}
 
 	//DEFAULT MODULE SERVER PARAMETER
@@ -200,7 +200,7 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 			path += "/"
 		}
 		r.HTMLRender = ginview.Default()
-		r.Use(static.ServeRoot(path+mod.RessourcePath, "./"+mod.RessourcePath))
+		r.Use(static.ServeRoot(path+mod.ResourcePath, "./"+mod.ResourcePath))
 	}
 	GetModManager().SetRouter(r)
 }

@@ -3,6 +3,8 @@ package core
 import (
 	"bytes"
 	"fmt"
+	"github.com/rs/zerolog"
+	zLog "github.com/rs/zerolog/log"
 	"log"
 	"os"
 	"reflect"
@@ -13,8 +15,6 @@ import (
 	"github.com/Wariie/go-woxy/com"
 	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
-	zLog "github.com/rs/zerolog/log"
 )
 
 func launchServer() {
@@ -22,13 +22,14 @@ func launchServer() {
 
 	//AUTHENTICATION ENDPOINT
 	GetManager().router.POST("/connect", connect)
+
+	//COMMAND ENDPOINT
 	GetManager().router.POST("/cmd", command)
 
-	log.Fatalln("GO-WOXY Core - Error ListenAndServer :", GetManager().config.configAndServe(GetManager().router))
+	log.Fatalln("GO-WOXY Core - Error serving :", GetManager().config.configAndServe(GetManager().router))
 }
 
-func initCore() {
-
+func initLogs() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
 	zLog.Logger = zLog.Output(
@@ -37,13 +38,15 @@ func initCore() {
 			NoColor: false,
 		},
 	)
+}
 
+func initCore(config Config) {
 	//PRODUCTION MODE
 	gin.SetMode(gin.ReleaseMode)
 
 	router := gin.New()
 	router.Use(logger.SetLogger(), gin.Recovery())
-	router.LoadHTMLGlob("ressources/*/*")
+	router.LoadHTMLGlob("." + string(os.PathSeparator) + config.RESOURCEDIR + "*" + string(os.PathSeparator) + "*")
 	router.NoRoute(func(c *gin.Context) {
 		c.HTML(404, "404.html", nil)
 	})
@@ -56,17 +59,16 @@ func initCore() {
 
 //LaunchCore - start core server
 func LaunchCore(configPath string) {
+	//Init logs
+	initLogs()
 
-	// STEP 1 Init
-	initCore()
-
-	var c Config
-
-	c.loadConfig(configPath)
-
+	//Load Config
+	c := LoadConfigFromPath(configPath)
 	c.motd()
-
 	c.generateSecret()
+
+	//Init Go-Woxy core
+	initCore(c)
 
 	// SAVE CONFIG
 	GetManager().config = &c
@@ -91,10 +93,11 @@ func connect(context *gin.Context) {
 	var modC ModuleConfig
 	modC = GetManager().config.MODULES[cr.Name]
 
+	var resultW []byte
 	if reflect.DeepEqual(modC, ModuleConfig{}) {
 		errMsg := "Error reading ConnexionRequest"
 		log.Println(errMsg)
-		context.Writer.Write([]byte(errMsg))
+		resultW = []byte(errMsg)
 	} else {
 
 		if !modC.EXE.REMOTE {
@@ -110,13 +113,15 @@ func connect(context *gin.Context) {
 		}
 
 		//SEND RESPONSE
-		var crr com.ConnexionReponseRequest
-
 		result := strconv.FormatBool(rs)
-		fmt.Println("GO-WOXY Core - Module ", modC.NAME, " connecting - result : ", result)
+		fmt.Println("GO-WOXY Core - Module", modC.NAME, "connecting - result :", result)
 
-		crr.Generate(cr.ModHash, cr.Name, cr.Port, result)
-		context.Writer.Write(crr.Encode())
+		cr.State = result
+		resultW = cr.Encode()
+	}
+	i, err := context.Writer.Write(resultW)
+	if err != nil {
+		fmt.Println("Go-WOXY Core - Module", modC.NAME, " failed to respond :", err.Error(), " bytes : ", i)
 	}
 
 	GetManager().SaveModuleChanges(&modC)
@@ -139,15 +144,16 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 	m.PK = cr.ModHash
 	m.COMMANDS = cr.CustomCommands
 	m.STATE = Online
+	m.RESOURCEPATH = cr.ResourcePath
+
+	if m.RESOURCEPATH == "" {
+		m.RESOURCEPATH = "resources/"
+	}
 
 	if m.BINDING.PORT != "" {
 		cr.Port = m.BINDING.PORT
 	} else {
 		m.BINDING.PORT = cr.Port
-	}
-
-	if m.EXE.SUPERVISED {
-		GetManager().GetSupervisor().Add(m.NAME)
 	}
 
 	//PREPARE PING REQUEST
@@ -156,10 +162,11 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 	crr.Generate("Ping", m.PK, m.NAME, GetManager().GetConfig().SECRET)
 	var c interface{}
 	c = &crr
-	p := ((c).(com.Request))
+	p := (c).(com.Request)
+
+	time.Sleep(time.Second * 10)
 
 	//RETRY 15 TIME TO CHECK MODULE COME ONLINE
-
 	try := 0
 	r := false
 	for {
@@ -179,6 +186,13 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 	if !r {
 		tm.STATE = Failed
 		m = tm
+	} else {
+		err = m.HookAll(GetManager().GetRouter())
+		if err == nil && m.EXE.SUPERVISED {
+			GetManager().GetSupervisor().Add(m.NAME)
+		} else if err != nil {
+			log.Println("Go-WOXY Core - Error trying to hook module", m.NAME)
+		}
 	}
 	GetManager().SaveModuleChanges(m)
 

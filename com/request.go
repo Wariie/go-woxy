@@ -47,8 +47,10 @@ type ConnexionRequest struct {
 	Name           string
 	Pid            string
 	Port           string
+	ResourcePath   string
 	Secret         string
 	Type           string
+	State          string
 }
 
 //Decode - Decode JSON to ConnexionRequest
@@ -92,61 +94,15 @@ func (cr *ConnexionRequest) GetSecret() string {
 	return cr.ModHash
 }
 
-//ConnexionReponseRequest - ConnexionReponseRequest
-type ConnexionReponseRequest struct {
-	Hash  string
-	Name  string
-	Port  string
-	State string
-	Type  string
-}
-
-//Decode - Decode JSON to ConnexionReponseRequest
-func (cr *ConnexionReponseRequest) Decode(b []byte) {
-	json.NewDecoder(bytes.NewBuffer(b)).Decode(cr)
-}
-
-//Encode - Encode ConnexionReponseRequest to JSON
-func (cr *ConnexionReponseRequest) Encode() []byte {
-	b, err := json.Marshal(cr)
-	if err != nil {
-		log.Println("error:", err)
-	}
-	return b
-}
-
-//Generate - Generate ConnexionReponseRequest with params
-func (cr *ConnexionReponseRequest) Generate(list ...interface{}) {
-	cr.Hash = list[0].(string)
-	cr.Name = list[1].(string)
-	cr.Port = list[2].(string)
-	cr.State = list[3].(string)
-	cr.Type = "ConnexionResponse"
-}
-
-/*GetPath - ConnexionReponseRequest path string*/
-func (cr *ConnexionReponseRequest) GetPath() string {
-	return defaultPath
-}
-
-/*GetSecret - ConnexionReponseRequest request secret*/
-func (cr *ConnexionReponseRequest) GetSecret() string {
-	return cr.Hash
-}
-
-/*GetType - ConnexionResponseRequest request type*/
-func (cr *ConnexionReponseRequest) GetType() string {
-	return cr.Type
-}
-
 /*CommandRequest - CommandRequest*/
 type CommandRequest struct {
-	Command string
-	Content string
-	Hash    string
-	Name    string
-	Secret  string
-	Type    string
+	Command      string
+	Content      string
+	Hash         string
+	Name         string
+	ResourcePath string
+	Secret       string
+	Type         string
 }
 
 //Decode - Decode JSON to CommandRequest
@@ -189,3 +145,5 @@ func (cr *CommandRequest) GetSecret() string {
 func (cr *CommandRequest) GetType() string {
 	return cr.Type
 }
+
+//TODO UPDATE REQUEST ?

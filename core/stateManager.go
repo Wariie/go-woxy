@@ -11,6 +11,7 @@ type manager struct {
 	router *gin.Engine
 	cp     *CommandProcessorImpl
 	s      *Supervisor
+	roles  []Role
 }
 
 var singleton *manager
