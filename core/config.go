@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/Wariie/go-woxy/tools"
 	"github.com/gin-gonic/gin"
@@ -19,6 +20,7 @@ import (
 
 /*Config - Global configuration */
 type Config struct {
+	mux         sync.Mutex
 	MODULES     map[string]ModuleConfig
 	MOTD        string
 	NAME        string
@@ -27,6 +29,16 @@ type Config struct {
 	RESOURCEDIR string
 	SERVER      ServerConfig
 	VERSION     int
+}
+
+/*ConfigLock - Lock Mutex on config */
+func (c *Config) ConfigLock() {
+	c.mux.Lock()
+}
+
+/*ConfigUnlock - Unlock Mutex on config */
+func (c *Config) ConfigUnlock() {
+	c.mux.Unlock()
 }
 
 /*LoadConfigFromPath - Load config file from path */

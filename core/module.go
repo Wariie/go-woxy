@@ -124,6 +124,14 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 
 //Hook - Create a binding between module and gin server
 func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
+	routes := router.Routes()
+	for i := range routes {
+		log.Println(routes[i])
+		if routes[i].Path == r.FROM {
+			return nil
+		}
+	}
+
 	if typeR == "" {
 		typeR = "GET"
 	}

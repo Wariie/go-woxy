@@ -3,7 +3,6 @@ package core
 import (
 	"errors"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/mitchellh/go-ps"
@@ -14,7 +13,6 @@ import (
 //Supervisor -
 type Supervisor struct {
 	listModule []string
-	mux        sync.Mutex
 }
 
 //Remove -
@@ -31,9 +29,7 @@ func (s *Supervisor) Remove(m string) {
 
 //Add -
 func (s *Supervisor) Add(m string) {
-	s.mux.Lock()
 	s.listModule = append(s.listModule, m)
-	s.mux.Unlock()
 }
 
 //Supervise -
@@ -41,8 +37,6 @@ func (s *Supervisor) Supervise() {
 	//ENDLESS LOOP
 	for {
 		//FOR EACH REGISTERED MODULE
-		s.mux.Lock()
-
 		for k := range s.listModule {
 			//CHECK MODULE RUNNING
 			m := GetManager().GetConfig().MODULES[s.listModule[k]]
@@ -57,7 +51,6 @@ func (s *Supervisor) Supervise() {
 			}
 			GetManager().SaveModuleChanges(&m)
 		}
-		s.mux.Unlock()
 		time.Sleep(time.Millisecond * 10)
 	}
 }

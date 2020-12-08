@@ -33,8 +33,8 @@ func SendRequest(s Server, r Request, loging bool) (string, error) {
 		log.Println(err)
 	}
 
-	defer resp.Body.Close()
 	if resp != nil && resp.Body != nil {
+		defer resp.Body.Close()
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(resp.Body)
 		return buf.String(), err
