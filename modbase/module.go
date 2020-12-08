@@ -200,6 +200,7 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 			path += "/"
 		}
 		r.HTMLRender = ginview.Default()
+		log.Println("REGISTER RESOURCE - ", path+mod.ResourcePath)
 		r.Use(static.ServeRoot(path+mod.ResourcePath, "./"+mod.ResourcePath))
 	}
 	GetModManager().SetRouter(r)
