@@ -10,9 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog"
-	zLog "github.com/rs/zerolog/log"
-
 	"github.com/Wariie/go-woxy/com"
 	"github.com/gin-contrib/logger"
 	"github.com/gin-gonic/gin"
@@ -31,14 +28,14 @@ func launchServer() {
 }
 
 func initLogs() {
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	//zerolog.SetGlobalLevel(zerolog.InfoLevel)
 
-	zLog.Logger = zLog.Output(
-		zerolog.ConsoleWriter{
-			Out:     os.Stdout,
-			NoColor: false,
-		},
-	)
+	//zLog.Logger = zLog.Output(
+	//	zerolog.ConsoleWriter{
+	//		Out:     os.Stdout,
+	//		NoColor: false,
+	//	},
+	//)
 }
 
 func initCore(config Config) {
