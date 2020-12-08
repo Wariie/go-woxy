@@ -21,6 +21,22 @@ import (
 	"github.com/shirou/gopsutil/process"
 )
 
+func (mc *ModuleConfig) checkModuleRunning() bool {
+	try := 0
+	b := false
+	for b == false && try < 5 {
+		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) && !mc.EXE.REMOTE {
+			b = checkPidRunning(mc)
+		}
+
+		if !b {
+			b = checkModulePing(mc)
+		}
+		try++
+	}
+	return b
+}
+
 //Download - Download module from repository ( git clone )
 func (mc *ModuleConfig) Download(moduleDir string) {
 

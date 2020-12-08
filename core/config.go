@@ -29,6 +29,7 @@ type Config struct {
 	VERSION     int
 }
 
+/*LoadConfigFromPath - Load config file from path */
 func LoadConfigFromPath(configPath string) Config {
 	c := Config{}
 	c.loadConfig(configPath)

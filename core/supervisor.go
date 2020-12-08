@@ -46,7 +46,7 @@ func (s *Supervisor) Supervise() {
 		for k := range s.listModule {
 			//CHECK MODULE RUNNING
 			m := GetManager().GetConfig().MODULES[s.listModule[k]]
-			if checkModuleRunning(m) {
+			if m.checkModuleRunning() {
 				if m.STATE != Online && m.STATE != Loading && m.STATE != Downloaded {
 					m.STATE = Online
 				}
@@ -60,22 +60,6 @@ func (s *Supervisor) Supervise() {
 		s.mux.Unlock()
 		time.Sleep(time.Millisecond * 10)
 	}
-}
-
-func checkModuleRunning(mc ModuleConfig) bool {
-	try := 0
-	b := false
-	for b == false && try < 5 {
-		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) && !mc.EXE.REMOTE {
-			b = checkPidRunning(&mc)
-		}
-
-		if !b {
-			b = checkModulePing(&mc)
-		}
-		try++
-	}
-	return b
 }
 
 func checkModulePing(mc *ModuleConfig) bool {
