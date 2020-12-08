@@ -3,14 +3,15 @@ package core
 import (
 	"bytes"
 	"fmt"
-	"github.com/rs/zerolog"
-	zLog "github.com/rs/zerolog/log"
 	"log"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/rs/zerolog"
+	zLog "github.com/rs/zerolog/log"
 
 	"github.com/Wariie/go-woxy/com"
 	"github.com/gin-contrib/logger"
@@ -128,7 +129,7 @@ func connect(context *gin.Context) {
 }
 
 func hashMatchSecretHash(hash string) bool {
-	r := strings.TrimSuffix(hash, "\n\t") == strings.TrimSuffix(GetManager().GetConfig().SECRET, "\n\t")
+	r := strings.Trim(hash, "\n\t") == strings.Trim(GetManager().GetConfig().SECRET, "\n\t")
 	return r
 }
 
