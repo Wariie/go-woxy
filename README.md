@@ -140,7 +140,10 @@ Deploy a web-app easily and deploy it through go-woxy
 
       m.Name = "mod.v0"
       m.InstanceName = "mod test v0"
-      m.SetServer("", "", "2985", "")
+      //m.SetHubAddress("127.0.0.1")
+      //m.SetHubPort("2000")
+      //m.SetProtocol("https")
+      m.SetPort("2001")
       m.SetCommand("msg", msg)
       m.Init()
       m.Register("GET", "/", index, "WEB")
