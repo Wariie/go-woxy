@@ -35,57 +35,53 @@ Dockerfile
 ### Example
 
     ---
-    name: easy-go-test
-    server:
-      #cert: 'ca-cert.pem'
-      #cert_key: 'ca-key.pem'
-    modules: 
-      mod-manager:
-        version: 1.0
-        types: 'web'
-        exe:
-          remote: false
-          src: 'https://github.com/Wariie/mod-manager.git'
-          main: 'main.go'
-          supervised: true
-        binding:
-          path:
-            - from: '/mod-manager'
-              to: '/'
-          port: 2001
-        auth:
-          enabled: true
-          type: 'http'
-      mod.v0: 
-        version: 1.0
-        types: 'web'
-        exe:
-          remote: false
-          src: 'https://github.com/Wariie/mod.v0.git'
-          main: "testMod.go"
-          supervised: true
-        binding:
-          path: 
-            - from: '/'
-          port: 2985  
-      hook:
-        types: 'bind'
-        binding:
-          path:
-            - from: '/saucisse' 
-          root: "./ressources/saucisse.html"
-      favicon:
-        types: 'bind'
-        binding:
-          path:
-            - from: '/favicon.ico'
-          root: "./ressources/favicon.ico"
+      name: easy-go-test
+      server:
+        #cert: 'ca-cert.pem'
+        #cert_key: 'ca-key.pem'
+      modules: 
+        mod-manager:
+          version: 1.0
+          types: 'web'
+          exe:
+            remote: false
+            src: 'https://github.com/Wariie/mod-manager.git'
+            main: 'main.go'
+            supervised: true
+          binding:
+            path:
+              - from: '/mod-manager'
+                to: '/'
+            port: 2001
+          auth:
+            enabled: true
+            type: 'http'
+        mod.v0: 
+          version: 1.0
+          types: 'web'
+          exe:
+            remote: false
+            src: 'https://github.com/Wariie/mod.v0.git'
+            main: "testMod.go"
+            supervised: true
+          binding:
+            path: 
+              - from: '/'
+            port: 2985
+        favicon:
+          types: 'bind'
+          binding:
+            path:
+              - from: '/favicon.ico'
+            root: "./resources/favicon.ico"
   
 ### General configuration
 
+* **moddir** - module source directory
 * **modules** - (Required) list of module config (See [Module Configuration](#module-configuration) below for details)
 * **motd** - motd filepath (default : "motd.txt")
 * **name** - (Required) server config name
+* **resourcedir** - resource directory
 * **server** - (Required) server config (See [Server Configuration](#server-configuration) below for details)
 * **version** - server config version
 
@@ -121,7 +117,7 @@ Dockerfile
 * **enabled** - boolean for authentication activation
 * **type** - authentication type
 
-# go-woxy Module
+## go-woxy Module
 
 Deploy a web-app easily and deploy it through go-woxy
 
@@ -172,10 +168,10 @@ Want to build your own ?
 
 Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the module base code
 
-# go-woxy API
+## go-woxy API
 
 //TODO
 
+### License
 
-## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FWariie%2Fgo-woxy.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FWariie%2Fgo-woxy?ref=badge_large)
