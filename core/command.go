@@ -154,7 +154,6 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 			}
 		}
 		mc.STATE = Stopped
-
 		if err := mc.Setup(GetManager().GetRouter(), false, GetManager().GetConfig().MODDIR); err != nil {
 			response += "Error :" + err.Error()
 			log.Println(err)

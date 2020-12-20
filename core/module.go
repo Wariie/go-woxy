@@ -126,7 +126,6 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 	routes := router.Routes()
 	for i := range routes {
-		log.Println(routes[i])
 		if routes[i].Path == r.FROM {
 			return nil
 		}
@@ -157,6 +156,13 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 //Setup - Setup module from config
 func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool, modulePath string) error {
 	fmt.Println("GO-WOXY Core - Setup mod : ", mc)
+	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+		err := mc.HookAll(router)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
 	if !mc.EXE.REMOTE && !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
 		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
 			mc.Download(modulePath)
@@ -166,9 +172,6 @@ func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool, modulePath string) 
 		go mc.Start()
 	} // ELSE NO BUILD
 
-	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
-		return mc.HookAll(router)
-	}
 	return nil
 }
 
@@ -247,7 +250,7 @@ func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 //ReverseProxy - reverse proxy for mod
 func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		mod := GetManager().config.MODULES[modName]
+		mod := GetManager().GetConfig().MODULES[modName]
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
 			//IF ROOT IS PRESENT REDIRECT TO IT

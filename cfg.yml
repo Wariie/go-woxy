@@ -18,7 +18,7 @@
             to: '/'
         port: 2001
       auth:
-        enabled: true
+        #enabled: true
         type: 'http'
     mod.v0: 
       version: 1.0

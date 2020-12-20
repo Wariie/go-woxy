@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/Wariie/go-woxy/tools"
 	"github.com/gin-gonic/gin"
@@ -20,7 +19,6 @@ import (
 
 /*Config - Global configuration */
 type Config struct {
-	mux         sync.Mutex
 	MODULES     map[string]ModuleConfig
 	MOTD        string
 	NAME        string
@@ -29,16 +27,6 @@ type Config struct {
 	RESOURCEDIR string
 	SERVER      ServerConfig
 	VERSION     int
-}
-
-/*ConfigLock - Lock Mutex on config */
-func (c *Config) ConfigLock() {
-	c.mux.Lock()
-}
-
-/*ConfigUnlock - Unlock Mutex on config */
-func (c *Config) ConfigUnlock() {
-	c.mux.Unlock()
 }
 
 /*LoadConfigFromPath - Load config file from path */
@@ -131,7 +119,7 @@ func (c *Config) loadModules() {
 		}
 	}
 
-	Router := GetManager().router
+	Router := GetManager().GetRouter()
 	for k := range c.MODULES {
 		mod := c.MODULES[k]
 		err := mod.Setup(Router, true, c.MODDIR)
@@ -140,12 +128,11 @@ func (c *Config) loadModules() {
 		}
 		c.MODULES[k] = mod
 	}
+	GetManager().SetRouter(Router)
 
 	//ADD HUB MODULE FOR COMMAND GESTURE
 	c.MODULES["hub"] = ModuleConfig{NAME: "hub", PK: "hub"}
-
-	GetManager().router = Router
-	GetManager().config = c
+	GetManager().SetConfig(c)
 }
 
 func initSupervisor() {
@@ -221,7 +208,7 @@ func (c *Config) motd() {
 }
 
 func searchModWithHash(hash string) ModuleConfig {
-	mods := GetManager().config.MODULES
+	mods := GetManager().GetConfig().MODULES
 	for i := range mods {
 		if mods[i].PK == hash {
 			return mods[i]

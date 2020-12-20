@@ -7,6 +7,7 @@ import (
 )
 
 type manager struct {
+	mux    sync.Mutex
 	config *Config
 	router *gin.Engine
 	cp     *CommandProcessorImpl
@@ -26,37 +27,61 @@ func GetManager() *manager {
 }
 
 func (sm *manager) GetConfig() *Config {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	return sm.config
 }
 
-func (sm *manager) SetState(c *Config) {
+func (sm *manager) SetConfig(c *Config) {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	sm.config = c
 }
 
 func (sm *manager) GetRouter() *gin.Engine {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	return sm.router
 }
 
 func (sm *manager) SetRouter(r *gin.Engine) {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	sm.router = r
 }
 
 func (sm *manager) GetCommandProcessor() *CommandProcessorImpl {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	return sm.cp
 }
 
 func (sm *manager) SetCommandProcessor(cp *CommandProcessorImpl) {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	sm.cp = cp
 }
 
 func (sm *manager) SetSupervisor(s *Supervisor) {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	sm.s = s
 }
 
 func (sm *manager) GetSupervisor() *Supervisor {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	return sm.s
 }
 
+func (sm *manager) AddModuleToSupervisor(mc *ModuleConfig) {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
+	sm.s.Add(mc.NAME)
+}
+
 func (sm *manager) SaveModuleChanges(mc *ModuleConfig) {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
 	sm.config.MODULES[mc.NAME] = *mc
 }

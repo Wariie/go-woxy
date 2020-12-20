@@ -19,12 +19,12 @@ func launchServer() {
 	fmt.Println("GO-WOXY Core - Starting")
 
 	//AUTHENTICATION ENDPOINT
-	GetManager().router.POST("/connect", connect)
+	GetManager().GetRouter().POST("/connect", connect)
 
 	//COMMAND ENDPOINT
-	GetManager().router.POST("/cmd", command)
+	GetManager().GetRouter().POST("/cmd", command)
 
-	log.Fatalln("GO-WOXY Core - Error serving :", GetManager().config.configAndServe(GetManager().router))
+	log.Fatalln("GO-WOXY Core - Error serving :", GetManager().GetConfig().configAndServe(GetManager().router))
 }
 
 func initLogs() {
@@ -69,7 +69,7 @@ func LaunchCore(configPath string) {
 	initCore(c)
 
 	// SAVE CONFIG
-	GetManager().config = &c
+	GetManager().SetConfig(&c)
 
 	// START MODULE SUPERVISOR
 	initSupervisor()
@@ -89,7 +89,8 @@ func connect(context *gin.Context) {
 	cr.Decode(buf.Bytes())
 
 	var modC ModuleConfig
-	modC = GetManager().config.MODULES[cr.Name]
+
+	modC = GetManager().GetConfig().MODULES[cr.Name]
 
 	var resultW []byte
 	if reflect.DeepEqual(modC, ModuleConfig{}) {
@@ -148,9 +149,7 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 		m.RESOURCEPATH = "resources/"
 	}
 
-	if m.BINDING.PORT != "" {
-		cr.Port = m.BINDING.PORT
-	} else {
+	if m.BINDING.PORT == "" || cr.Port != "" {
 		m.BINDING.PORT = cr.Port
 	}
 
@@ -187,13 +186,12 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 	} else {
 		err = m.HookAll(GetManager().GetRouter())
 		if err == nil && m.EXE.SUPERVISED {
-			GetManager().GetSupervisor().Add(m.NAME)
+			GetManager().AddModuleToSupervisor(m)
 		} else if err != nil {
 			log.Println("Go-WOXY Core - Error trying to hook module", m.NAME)
 		}
 	}
 	GetManager().SaveModuleChanges(m)
-
 	return r
 }
 

@@ -23,7 +23,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
-	github.com/rs/zerolog v1.20.0
+	github.com/rs/zerolog v1.20.0 // indirect
 	github.com/shirou/gopsutil v3.20.10+incompatible
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/ugorji/go v1.1.13 // indirect

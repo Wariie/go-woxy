@@ -38,6 +38,10 @@ func (s *Supervisor) Supervise() {
 	for {
 		//FOR EACH REGISTERED MODULE
 		for k := range s.listModule {
+			if k >= len(s.listModule) {
+				defer s.Reload()
+				return
+			}
 			//CHECK MODULE RUNNING
 			m := GetManager().GetConfig().MODULES[s.listModule[k]]
 			if m.checkModuleRunning() {
@@ -53,6 +57,11 @@ func (s *Supervisor) Supervise() {
 		}
 		time.Sleep(time.Millisecond * 10)
 	}
+}
+
+//Reload - Reload supervisor
+func (s *Supervisor) Reload() {
+	defer s.Supervise()
 }
 
 func checkModulePing(mc *ModuleConfig) bool {
