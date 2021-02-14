@@ -76,7 +76,7 @@ func (cp *CommandProcessorImpl) register(name string, run func(*com.Request, *Mo
 
 //Run - Run command in CommandProcessorImpl
 func (cp *CommandProcessorImpl) Run(name string, r *com.Request, m *ModuleConfig, args ...string) (string, error) {
-	for k := range cp.commands {
+	for k := range cp.commands { //DEFAULT SERVER COMMANDS
 		if cp.commands[k].GetName() == name {
 			return cp.commands[k].Run(r, m, args...)
 		}
@@ -113,6 +113,13 @@ func commandsModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (st
 
 func defaultForwardCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	return com.SendRequest(mc.GetServer("/cmd"), *r, false)
+}
+
+func pingCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
+	if mc.NAME != "hub" {
+		return com.SendRequest(mc.GetServer("/cmd"), *r, false)
+	}
+	return "Pong", nil
 }
 
 func listModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {

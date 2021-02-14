@@ -175,7 +175,6 @@ func (mod *ModuleImpl) Init() {
 		mod.HubServer = com.Server{IP: "0.0.0.0", Port: "2000", Protocol: "http"}
 	} else if mod.HubServer.Protocol == "https" && mod.HubServer.Port == "" {
 		mod.HubServer.Port = "443"
-		mod.HubServer.Protocol = "https"
 	}
 }
 
