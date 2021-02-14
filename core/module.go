@@ -130,7 +130,7 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 	routes := router.Routes()
 	for i := range routes {
-		if routes[i].Path == r.FROM {
+		if routes[i].Path == r.FROM && routes[i].Method == typeR {
 			return nil
 		}
 	}
