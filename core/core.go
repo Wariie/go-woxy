@@ -104,6 +104,9 @@ func connect(context *gin.Context) {
 		}
 
 		//CHECK SECRET FOR AUTH
+		//TODO SET API KEY MECANISM
+		//cr.Secret --> API KEY corresponding
+
 		rs := hashMatchSecretHash(cr.Secret)
 		if rs && cr.ModHash != "" {
 			go registerModule(&modC, &cr)
@@ -129,6 +132,14 @@ func connect(context *gin.Context) {
 func hashMatchSecretHash(hash string) bool {
 	r := strings.Trim(hash, "\n\t") == strings.Trim(GetManager().GetConfig().SECRET, "\n\t")
 	return r
+}
+
+func checkModuleRequestAuth(cr com.ConnexionRequest) bool {
+	rs := hashMatchSecretHash(cr.Secret)
+	if rs && cr.ModHash != "" {
+		return true
+	}
+	return false
 }
 
 func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
