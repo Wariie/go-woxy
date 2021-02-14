@@ -117,7 +117,7 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 			if err != nil {
 				return err
 			}
-			err := mc.Hook(router, paths[i], "POST")
+			err = mc.Hook(router, paths[i], "POST")
 			if err != nil {
 				return err
 			}
