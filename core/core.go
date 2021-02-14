@@ -259,6 +259,6 @@ func command(c *gin.Context) {
 	}
 
 	action += " - Result : " + response
-	log.Println("From", from, ':', action, '-', response)
+	log.Println("From", from, ':', action)
 	c.String(200, "%s", response)
 }

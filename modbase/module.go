@@ -253,7 +253,7 @@ func checkHubRunning(hubServer com.Server, mod *ModuleImpl) {
 
 	for {
 		cr := com.CommandRequest{}
-		cr.Generate("Ping", mod.Hash, mod.Name, mod.Secret)
+		cr.Generate("Ping", mod.Hash, "hub", mod.Secret)
 
 		body, err := com.SendRequest(hubServer, &cr, false)
 
