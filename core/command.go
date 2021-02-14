@@ -99,7 +99,7 @@ func (cp *CommandProcessorImpl) Init() {
 	cp.Register("List", listModuleCommand)
 	cp.Register("Log", logModuleCommand)
 	cp.Register("Performance", performanceModuleCommand)
-	cp.Register("Ping", defaultForwardCommand)
+	cp.Register("Ping", pingCommand)
 	cp.Register("Restart", restartModuleCommand)
 	cp.Register("Shutdown", shutdownModuleCommand)
 	cp.Register("Start", startModuleCommand)

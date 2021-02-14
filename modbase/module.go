@@ -254,9 +254,7 @@ func checkHubRunning(hubServer com.Server, mod *ModuleImpl) {
 	for {
 		cr := com.CommandRequest{}
 		cr.Generate("Ping", "hub", "hub", mod.Secret)
-		log.Println(hubServer)
 		body, err := com.SendRequest(hubServer, &cr, false)
-		log.Println(body)
 		if !strings.Contains(body, "Pong") || err != nil {
 			if retry > 15 {
 				log.Fatalf("Hub not responding after " + strconv.Itoa(retry) + " retries")
