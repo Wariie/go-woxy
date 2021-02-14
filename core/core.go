@@ -40,7 +40,7 @@ func initLogs() {
 
 func initCore(config Config) {
 	//PRODUCTION MODE
-	gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.DebugMode)
 
 	router := gin.New()
 	router.Use(logger.SetLogger(), gin.Recovery())
