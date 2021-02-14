@@ -109,15 +109,15 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 		if err != nil {
 			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
 		}
-		err = mc.Hook(router, r, "POST")
-		if err != nil {
-			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
-		}
 	}
 
 	if len(paths) > 0 && len(paths[0].FROM) > 0 {
 		for i := range paths {
 			err := mc.Hook(router, paths[i], "GET")
+			if err != nil {
+				return err
+			}
+			err := mc.Hook(router, paths[i], "POST")
 			if err != nil {
 				return err
 			}
