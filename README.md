@@ -175,6 +175,31 @@ Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the 
 
 //TODO
 
-### License
+## License
 
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FWariie%2Fgo-woxy.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FWariie%2Fgo-woxy?ref=badge_large)
+
+## TODO LIST
+
+* Merge core - core - tools into core
+* Role / API Key
+* Plugin intregration
+  
+      POST_REQUEST
+        - METRICS
+      BEFORE_REQUEST
+        - AUTH
+      BEFORE_INSTALL
+
+      POST_INSTALL
+
+      BEFORE_START
+
+      POST_START
+
+      BEFORE_STOP
+
+      POST_STOP
+      ...
+
+* Metrics

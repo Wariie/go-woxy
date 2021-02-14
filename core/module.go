@@ -109,6 +109,10 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 		if err != nil {
 			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
 		}
+		err = mc.Hook(router, r, "POST")
+		if err != nil {
+			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
+		}
 	}
 
 	if len(paths) > 0 && len(paths[0].FROM) > 0 {
@@ -143,10 +147,10 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
 				authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
 				authorized := router.Group("/", BasicAuth(authenticator))
-				authorized.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+				authorized.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 			}
 		} else {
-			router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		}
 		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
