@@ -161,6 +161,7 @@ func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool, modulePath string) 
 		if err != nil {
 			log.Println(err)
 		}
+		mc.STATE = Online
 	}
 
 	if !mc.EXE.REMOTE && !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
