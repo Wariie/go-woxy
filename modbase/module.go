@@ -266,6 +266,8 @@ func checkHubRunning(hubServer *com.Server) {
 		} else {
 			retry = 0
 		}
+
+		time.Sleep(time.Second)
 	}
 }
 
