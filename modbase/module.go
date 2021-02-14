@@ -248,7 +248,7 @@ func (mod *ModuleImpl) serve() {
 	}
 }
 
-func checkHubRunning(hubServer *com.Server) {
+func checkHubRunning(hubServer com.Server, mod *ModuleImpl) {
 	retry := 0
 
 	for {
@@ -257,9 +257,9 @@ func checkHubRunning(hubServer *com.Server) {
 
 		body, err := com.SendRequest(hubServer, &cr, false)
 
-		if !strings.Contains(body, "Pong") {
+		if !strings.Contains(body, "Pong") || err != nil {
 			if retry > 15 {
-				log.Fataln("Hub not responding after " + retry + " retries")
+				log.Fatalf("Hub not responding after " + strconv.Itoa(retry) + " retries")
 			}
 			log.Println("Cannot access hub : not responding ")
 			retry++
