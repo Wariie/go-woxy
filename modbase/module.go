@@ -218,7 +218,7 @@ func (mod *ModuleImpl) serve() {
 		Handler: r,
 	}
 
-	go checkHubRunning(GetModManager().)
+	go checkHubRunning(&GetModManager().GetMod().HubServer)
 
 	if len(mod.Certs) == 2 { //CERTIFCATE AND KEY DETECTED
 		var cfg tls.Config
