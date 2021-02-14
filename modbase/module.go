@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -217,6 +218,8 @@ func (mod *ModuleImpl) serve() {
 		Handler: r,
 	}
 
+	go checkHubRunning(GetModManager().)
+
 	if len(mod.Certs) == 2 { //CERTIFCATE AND KEY DETECTED
 		var cfg tls.Config
 		cer, err := tls.LoadX509KeyPair(mod.Certs[0], mod.Certs[1])
@@ -241,6 +244,27 @@ func (mod *ModuleImpl) serve() {
 
 		if err := Server.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatal(err)
+		}
+	}
+}
+
+func checkHubRunning(hubServer *com.Server) {
+	retry := 0
+
+	for {
+		cr := com.CommandRequest{}
+		cr.Generate("Ping", mod.Hash, mod.Name, mod.Secret)
+
+		body, err := com.SendRequest(hubServer, &cr, false)
+
+		if !strings.Contains(body, "Pong") {
+			if retry > 15 {
+				log.Fataln("Hub not responding after " + retry + " retries")
+			}
+			log.Println("Cannot access hub : not responding ")
+			retry++
+		} else {
+			retry = 0
 		}
 	}
 }

@@ -120,9 +120,10 @@ func (cr *CommandRequest) Encode() []byte {
 }
 
 //Generate - Generate CommandRequest with params
-//- Name 	  string
+//- Command   string
 //- Hash 	  string
-//- Command string
+//- Name 	  string
+//- Secret    string
 func (cr *CommandRequest) Generate(list ...interface{}) {
 	cr.Command = list[0].(string)
 	cr.Hash = list[1].(string)
