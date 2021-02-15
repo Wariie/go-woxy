@@ -296,7 +296,6 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 
 				proxy := NewReverseProxy(urlProxy)
 				proxy.ServeHTTP(c.Writer, c.Request)
-				proxy.S
 			}
 		} else {
 			title := ""
