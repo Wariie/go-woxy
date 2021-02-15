@@ -140,18 +140,17 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 			if os.IsNotExist(err) {
 				log.Panicln("GO-WOXY Core - Hook " + mc.NAME + " : .htpasswd file not found")
 			} else {
-				if typeR == "Any" {
-					typeR = "GET"
-				}
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
 				authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
 				authorized := router.Group("/", BasicAuth(authenticator))
-				authorized.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
+				authorized.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+				authorized.Handle("POST", r.FROM, ReverseProxy(mc.NAME, r))
+				//authorized.Handle("typeR", r.FROM, ReverseProxy(mc.NAME, r))
 			}
 		} else if typeR != "Any" {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		} else {
-			router.Any(r.FROM+"/*paths", ReverseProxy(mc.NAME, r))
+			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
 		}
 		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
