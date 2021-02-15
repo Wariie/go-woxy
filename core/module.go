@@ -99,17 +99,17 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 //HookAll - Create all binding between module config address and gin server
 func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	paths := mc.BINDING.PATH
-	/*if strings.Contains(mc.TYPES, "resource") {
+	if strings.Contains(mc.TYPES, "resource") {
 		sP := ""
 		if len(paths[0].FROM) > 1 {
 			sP = paths[0].FROM
 		}
 		r := Route{FROM: sP + "/" + mc.RESOURCEPATH + "*filepath", TO: "/" + mc.RESOURCEPATH + "*filepath"}
-		err := mc.Hook(router, r, "GET")
+		err := mc.Hook(router, r, "Any")
 		if err != nil {
 			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
 		}
-	}*/
+	}
 
 	if len(paths) > 0 && len(paths[0].FROM) > 0 {
 		for i := range paths {
@@ -143,16 +143,17 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
 				authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
 				authorized := router.Group("/", BasicAuth(authenticator))
-				authorized.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
-				authorized.Handle("POST", r.FROM, ReverseProxy(mc.NAME, r))
+				//authorized.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
+				authorized.Any(r.FROM, ReverseProxy(mc.NAME, r))
 				//authorized.Handle("typeR", r.FROM, ReverseProxy(mc.NAME, r))
 			}
 		} else if typeR != "Any" {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		} else {
+			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
 			r.FROM += "/*paths"
 			r.TO += "/*paths"
-			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
+			router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
 			//router.Use(static.Serve("/", http.FileServer(http.Dir("/tmp")))
 		}
 		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
