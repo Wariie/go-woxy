@@ -253,6 +253,31 @@ func NewSingleHostReverseProxy(target *url.URL) *httputil.ReverseProxy {
 	return &httputil.ReverseProxy{Director: director}
 }
 
+func NewReverseProxy(target *url.URL) *httputil.ReverseProxy {
+	targetQuery := target.RawQuery
+	director := func(req *http.Request) {
+		req.URL.Scheme = target.Scheme
+		req.URL.Host = target.Host
+		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
+
+		// If Host is empty, the Request.Write method uses
+		// the value of URL.Host.
+		// force use URL.Host
+		req.Host = req.URL.Host
+		if targetQuery == "" || req.URL.RawQuery == "" {
+			req.URL.RawQuery = targetQuery + req.URL.RawQuery
+		} else {
+			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
+		}
+
+		if _, ok := req.Header["User-Agent"]; !ok {
+			req.Header.Set("User-Agent", "")
+		}
+	}
+
+	return &ReverseProxy{Director: director}
+}
+
 //ReverseProxy - reverse proxy for mod
 func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -269,6 +294,8 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 				if err != nil {
 					log.Println(err)
 				}
+				//TODO ADD CUSTOM HEADERS HERE
+
 				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
