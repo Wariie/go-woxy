@@ -113,6 +113,7 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 
 	if len(paths) > 0 && len(paths[0].FROM) > 0 {
 		for i := range paths {
+			paths[i].FROM += "/*paths"
 			err := mc.Hook(router, paths[i], "Any")
 			if err != nil {
 				return err
