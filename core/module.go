@@ -99,7 +99,7 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 //HookAll - Create all binding between module config address and gin server
 func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	paths := mc.BINDING.PATH
-	if strings.Contains(mc.TYPES, "resource") {
+	/*if strings.Contains(mc.TYPES, "resource") {
 		sP := ""
 		if len(paths[0].FROM) > 1 {
 			sP = paths[0].FROM
@@ -109,7 +109,7 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 		if err != nil {
 			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
 		}
-	}
+	}*/
 
 	if len(paths) > 0 && len(paths[0].FROM) > 0 {
 		for i := range paths {
