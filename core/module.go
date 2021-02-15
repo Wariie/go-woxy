@@ -113,11 +113,7 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 
 	if len(paths) > 0 && len(paths[0].FROM) > 0 {
 		for i := range paths {
-			err := mc.Hook(router, paths[i], "GET")
-			if err != nil {
-				return err
-			}
-			err = mc.Hook(router, paths[i], "POST")
+			err := mc.Hook(router, paths[i], "Any")
 			if err != nil {
 				return err
 			}
@@ -149,8 +145,10 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 				authorized := router.Group("/", BasicAuth(authenticator))
 				authorized.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 			}
-		} else {
+		} else if typeR != "Any" {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
+		} else {
+			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
 		}
 		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
