@@ -150,7 +150,10 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 		} else if typeR != "Any" {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		} else {
+			r.FROM += "/*paths"
+			r.TO += "/*paths"
 			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
+			//router.Use(static.Serve("/", http.FileServer(http.Dir("/tmp")))
 		}
 		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
@@ -293,6 +296,7 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 
 				proxy := NewReverseProxy(urlProxy)
 				proxy.ServeHTTP(c.Writer, c.Request)
+				proxy.S
 			}
 		} else {
 			title := ""

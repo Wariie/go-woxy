@@ -17,7 +17,6 @@ import (
 
 	"github.com/foolin/goview/supports/ginview"
 	"github.com/gin-contrib/logger"
-	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	zLog "github.com/rs/zerolog/log"
@@ -201,7 +200,7 @@ func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerF
 			path += "/"
 		}
 		r.HTMLRender = ginview.Default()
-		r.Use(static.ServeRoot(path+mod.ResourcePath, "./"+mod.ResourcePath))
+		r.Static(path+mod.ResourcePath, "/"+mod.ResourcePath)
 	}
 	GetModManager().SetRouter(r)
 }
