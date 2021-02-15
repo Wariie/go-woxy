@@ -269,7 +269,7 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 				if err != nil {
 					log.Println(err)
 				}
-				proxy := NewSingleHostReverseProxy(urlProxy)
+				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
 		} else {
