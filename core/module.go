@@ -131,7 +131,7 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 		}
 	}
 
-	if typeR == "" || typeR == "Any" {
+	if typeR == "" {
 		typeR = "GET"
 	}
 	if len(r.FROM) > 0 {
