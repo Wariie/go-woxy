@@ -113,7 +113,6 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 
 	if len(paths) > 0 && len(paths[0].FROM) > 0 {
 		for i := range paths {
-			paths[i].FROM += "/*paths"
 			err := mc.Hook(router, paths[i], "Any")
 			if err != nil {
 				return err
@@ -152,7 +151,7 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 		} else if typeR != "Any" {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		} else {
-			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
+			router.Any(r.FROM+"/*paths", ReverseProxy(mc.NAME, r))
 		}
 		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
