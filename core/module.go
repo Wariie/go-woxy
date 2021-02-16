@@ -255,7 +255,7 @@ func singleJoiningSlash(a, b string) string {
 //ReverseProxy - reverse proxy for mod
 func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		mod := GetManager().GetConfig().MODULES[modName]
+		mod := GetManager().GetModule(modName)
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
 			//IF ROOT IS PRESENT REDIRECT TO IT

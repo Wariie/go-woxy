@@ -80,6 +80,12 @@ func (sm *manager) AddModuleToSupervisor(mc *ModuleConfig) {
 	sm.s.Add(mc.NAME)
 }
 
+func (sm *manager) GetModule(name string) ModuleConfig {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
+	return sm.config.MODULES[name]
+}
+
 func (sm *manager) SaveModuleChanges(mc *ModuleConfig) {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
