@@ -143,9 +143,11 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
 				authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
 				authorized := router.Group("/", BasicAuth(authenticator))
-				//authorized.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
-				authorized.Any(r.FROM, ReverseProxy(mc.NAME, r))
-				//authorized.Handle("typeR", r.FROM, ReverseProxy(mc.NAME, r))
+				if typeR != "Any" {
+					authorized.Handle("typeR", r.FROM, ReverseProxy(mc.NAME, r))
+				} else {
+					authorized.Any(r.FROM, ReverseProxy(mc.NAME, r))
+				}
 			}
 		} else if typeR != "Any" {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
