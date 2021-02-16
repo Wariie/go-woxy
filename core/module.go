@@ -289,7 +289,7 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 			} else if strings.Contains(mod.TYPES, "web") {
 				//REVERSE PROXY TO IT
 
-				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + strings.Split(r.FROM, "*")[1] + c.Param("paths"))
+				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + strings.Split(r.FROM, "*")[1] + "/" + c.Param("paths"))
 				if err != nil {
 					log.Println(err)
 				}
