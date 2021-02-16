@@ -275,7 +275,7 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 					req.URL.Scheme = urlProxy.Scheme
 					req.Host = urlProxy.Host
 					req.URL.Host = urlProxy.Host
-					req.URL.Path = urlProxy.Path //singleJoiningSlash(, req.URL.Path) + p
+					//req.URL.Path = urlProxy.Path //singleJoiningSlash(, ) + p
 					// If Host is empty, the Request.Write method uses
 					// the value of URL.Host.
 					// force use URL.Host
