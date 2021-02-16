@@ -223,7 +223,7 @@ func command(c *gin.Context) {
 		response = "Error reading Request"
 	} else if t["Hash"] != "" && rs {
 		//GET MOD WITH HASH
-		mc := searchModWithHash(t["Hash"])
+		mc := GetManager().SearchModWithHash(t["Hash"])
 
 		if mc.NAME == "error" {
 			response = "Error module not found"

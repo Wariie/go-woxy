@@ -85,3 +85,15 @@ func (sm *manager) SaveModuleChanges(mc *ModuleConfig) {
 	defer sm.mux.Unlock()
 	sm.config.MODULES[mc.NAME] = *mc
 }
+
+func (sm *manager) SearchModWithHash(hash string) ModuleConfig {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
+	mods := sm.config.MODULES
+	for i := range mods {
+		if mods[i].PK == hash {
+			return mods[i]
+		}
+	}
+	return ModuleConfig{NAME: "error"}
+}

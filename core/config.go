@@ -206,13 +206,3 @@ func (c *Config) motd() {
 	}
 	fmt.Println("------------------------------------------------------------ ")
 }
-
-func searchModWithHash(hash string) ModuleConfig {
-	mods := GetManager().GetConfig().MODULES
-	for i := range mods {
-		if mods[i].PK == hash {
-			return mods[i]
-		}
-	}
-	return ModuleConfig{NAME: "error"}
-}
