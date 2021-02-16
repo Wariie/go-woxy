@@ -124,16 +124,20 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 
 //Hook - Create a binding between module and gin server
 func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
+	typeS := typeR
+	if typeR == "" {
+		typeR = "GET"
+	} else if typeR == "Any" {
+		typeS = "GET"
+	}
+
 	routes := router.Routes()
 	for i := range routes {
-		if routes[i].Path == r.FROM && routes[i].Method == typeR {
+		if routes[i].Path == r.FROM && routes[i].Method == typeS {
 			return nil
 		}
 	}
 
-	if typeR == "" {
-		typeR = "GET"
-	}
 	if len(r.FROM) > 0 {
 		if mc.AUTH.ENABLED {
 			_, err := os.Stat(".htpasswd")
