@@ -150,6 +150,7 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 		} else if typeR != "Any" {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		} else {
+			r.FROM += "/*paths"
 			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
 			//router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
 			//router.Use(,static.Serve("/", http.FileServer(http.Dir("/tmp")))
@@ -249,31 +250,6 @@ func singleJoiningSlash(a, b string) string {
 	return a + b
 }
 
-// NewReverseProxy -
-func NewReverseProxy(target *url.URL) *httputil.ReverseProxy {
-	targetQuery := target.RawQuery
-	director := func(req *http.Request) {
-		req.URL.Scheme = target.Scheme
-		req.URL.Host = target.Host
-		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
-		// If Host is empty, the Request.Write method uses
-		// the value of URL.Host.
-		// force use URL.Host
-		req.Host = req.URL.Host
-		if targetQuery == "" || req.URL.RawQuery == "" {
-			req.URL.RawQuery = targetQuery + req.URL.RawQuery
-		} else {
-			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
-		}
-
-		if _, ok := req.Header["User-Agent"]; !ok {
-			req.Header.Set("User-Agent", "")
-		}
-	}
-
-	return &httputil.ReverseProxy{Director: director}
-}
-
 //ReverseProxy - reverse proxy for mod
 func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -286,14 +262,28 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 				//ELSE IF BINDING IS TYPE **WEB**
 			} else if strings.Contains(mod.TYPES, "web") {
 				//REVERSE PROXY TO IT
-
+				p := c.Param("paths")
 				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
 				if err != nil {
 					log.Println(err)
 				}
 				//TODO ADD CUSTOM HEADERS HERE
 
-				proxy := NewReverseProxy(urlProxy)
+				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
+				proxy.Director = func(req *http.Request) {
+					req.URL.Scheme = urlProxy.Scheme
+					req.Host = urlProxy.Host
+					req.URL.Host = urlProxy.Host
+					req.URL.Path = singleJoiningSlash(urlProxy.Path, req.URL.Path) + p
+					// If Host is empty, the Request.Write method uses
+					// the value of URL.Host.
+					// force use URL.Host
+					req.Host = req.URL.Host
+
+					if _, ok := req.Header["User-Agent"]; !ok {
+						req.Header.Set("User-Agent", "")
+					}
+				}
 				proxy.ServeHTTP(c.Writer, c.Request)
 			}
 		} else {
