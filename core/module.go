@@ -105,7 +105,7 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 			sP = paths[0].FROM
 		}
 		r := Route{FROM: sP + "/" + mc.RESOURCEPATH + "*filepath", TO: "/" + mc.RESOURCEPATH + "*filepath"}
-		err := mc.Hook(router, r, "Any")
+		err := mc.Hook(router, r, "GET")
 		if err != nil {
 			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
 		}
