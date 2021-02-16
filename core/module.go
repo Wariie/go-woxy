@@ -151,8 +151,8 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		} else {
 			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
-			r.FROM += "/*paths"
-			r.TO += "/*paths"
+			r.FROM += "/*path"
+			r.TO += "/*path"
 			router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
 			//router.Use(static.Serve("/", http.FileServer(http.Dir("/tmp")))
 		}
@@ -258,7 +258,6 @@ func NewReverseProxy(target *url.URL) *httputil.ReverseProxy {
 		req.URL.Scheme = target.Scheme
 		req.URL.Host = target.Host
 		req.URL.Path = singleJoiningSlash(target.Path, req.URL.Path)
-
 		// If Host is empty, the Request.Write method uses
 		// the value of URL.Host.
 		// force use URL.Host
@@ -289,7 +288,8 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 				//ELSE IF BINDING IS TYPE **WEB**
 			} else if strings.Contains(mod.TYPES, "web") {
 				//REVERSE PROXY TO IT
-				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
+
+				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + strings.Split(r.TO, "*")[1] + c.Param("paths"))
 				if err != nil {
 					log.Println(err)
 				}
