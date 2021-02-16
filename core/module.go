@@ -264,7 +264,6 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 				//ELSE IF BINDING IS TYPE **WEB**
 			} else if strings.Contains(mod.TYPES, "web") {
 				//REVERSE PROXY TO IT
-				p := c.Param("paths")
 				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
 				if err != nil {
 					log.Println(err)
@@ -276,7 +275,7 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 					req.URL.Scheme = urlProxy.Scheme
 					req.Host = urlProxy.Host
 					req.URL.Host = urlProxy.Host
-					req.URL.Path = singleJoiningSlash(urlProxy.Path, req.URL.Path) + p
+					req.URL.Path = urlProxy.Path //singleJoiningSlash(, req.URL.Path) + p
 					// If Host is empty, the Request.Write method uses
 					// the value of URL.Host.
 					// force use URL.Host
