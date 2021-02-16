@@ -112,16 +112,11 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	}
 
 	if strings.Contains(mc.TYPES, "test") {
-		sP := ""
-		if len(paths[0].FROM) > 1 {
-			sP = paths[0].FROM
-		}
-		r := Route{FROM: sP + "/*filepath", TO: paths[0].TO}
-		err := mc.Hook(router, r, "Any")
+		err := mc.Hook(router, paths[0], "Any")
 		if err != nil {
 			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
 		}
-	} else if len(paths) > 0 && len(paths[0].FROM) > 0 {
+	} else if len(paths) > 0 {
 		for i := range paths {
 			err := mc.Hook(router, paths[i], "Any")
 			if err != nil {
@@ -149,7 +144,12 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 	}
 
 	if len(r.FROM) > 0 {
-		if mc.AUTH.ENABLED {
+
+		if strings.Contains(mc.TYPES, "test") {
+
+			router.Any(r.FROM+"/*filepath", ReverseProxy(mc.NAME, r))
+
+		} else if mc.AUTH.ENABLED {
 			_, err := os.Stat(".htpasswd")
 			if os.IsNotExist(err) {
 				log.Panicln("GO-WOXY Core - Hook " + mc.NAME + " : .htpasswd file not found")
