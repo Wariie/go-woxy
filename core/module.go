@@ -151,8 +151,6 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		} else {
 			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
-			r.FROM += "/*path"
-			r.TO += "/*path"
 			router.Handle("GET", r.FROM, ReverseProxy(mc.NAME, r))
 			//router.Use(static.Serve("/", http.FileServer(http.Dir("/tmp")))
 		}
@@ -289,7 +287,7 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 			} else if strings.Contains(mod.TYPES, "web") {
 				//REVERSE PROXY TO IT
 
-				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + strings.Split(r.FROM, "*")[1] + "/" + c.Param("paths"))
+				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
 				if err != nil {
 					log.Println(err)
 				}
