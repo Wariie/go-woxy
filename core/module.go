@@ -144,7 +144,7 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 				authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
 				authorized := router.Group("/", BasicAuth(authenticator))
 				if typeR != "Any" {
-					authorized.Handle("typeR", r.FROM, ReverseProxy(mc.NAME, r))
+					authorized.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 				} else {
 					authorized.Any(r.FROM, ReverseProxy(mc.NAME, r))
 				}
