@@ -156,7 +156,7 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 
 	if len(r.FROM) > 0 {
 
-		if strings.Contains(mc.TYPES, "reverse") && !strings.Contains("/*filepath") {
+		if strings.Contains(mc.TYPES, "reverse") && !strings.Contains(r.FROM, "/*filepath") {
 			r.FROM += "/*filepath"
 		}
 
