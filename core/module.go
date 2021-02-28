@@ -149,16 +149,17 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 
 	routes := router.Routes()
 	for i := range routes {
-		if strings.Contains(mc.TYPES, "reverse") {
-			r.FROM += "/*filepath"
-		}
-
 		if routes[i].Path == r.FROM && routes[i].Method == typeS {
 			return nil
 		}
 	}
 
 	if len(r.FROM) > 0 {
+
+		if strings.Contains(mc.TYPES, "reverse") && !strings.Contains("/*filepath") {
+			r.FROM += "/*filepath"
+		}
+
 		if mc.AUTH.ENABLED {
 			_, err := os.Stat(".htpasswd")
 			if os.IsNotExist(err) {
