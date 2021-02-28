@@ -130,7 +130,7 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	for i := range paths {
 		err := mc.Hook(router, paths[i], "Any")
 		if err != nil {
-			log.Println("GO-WOXY Core - Error : " + err.string())
+			log.Println("GO-WOXY Core - Error : " + err.Error())
 			return err
 		}
 	}
