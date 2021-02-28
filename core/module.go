@@ -99,7 +99,8 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 //HookAll - Create all binding between module config address and gin server
 func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	paths := mc.BINDING.PATH
-	if strings.Contains(mc.TYPES, "resource") {
+
+	/*if strings.Contains(mc.TYPES, "resource") {
 		sP := ""
 		if len(paths[0].FROM) > 1 {
 			sP = paths[0].FROM
@@ -123,8 +124,18 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 				return err
 			}
 		}
+	}*/
+	var err error
+
+	for i := range paths {
+		err := mc.Hook(router, paths[i], "Any")
+		if err != nil {
+			log.Println("GO-WOXY Core - Error : " + err.string())
+			return err
+		}
 	}
-	return nil
+
+	return err
 }
 
 //Hook - Create a binding between module and gin server
@@ -138,18 +149,17 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 
 	routes := router.Routes()
 	for i := range routes {
+		if strings.Contains(mc.TYPES, "reverse") {
+			r.FROM += "/*filepath"
+		}
+
 		if routes[i].Path == r.FROM && routes[i].Method == typeS {
 			return nil
 		}
 	}
 
 	if len(r.FROM) > 0 {
-
-		if strings.Contains(mc.TYPES, "test") {
-
-			router.Any(r.FROM+"/*filepath", ReverseProxy(mc.NAME, r))
-
-		} else if mc.AUTH.ENABLED {
+		if mc.AUTH.ENABLED {
 			_, err := os.Stat(".htpasswd")
 			if os.IsNotExist(err) {
 				log.Panicln("GO-WOXY Core - Hook " + mc.NAME + " : .htpasswd file not found")
@@ -272,8 +282,8 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 			//IF ROOT IS PRESENT REDIRECT TO IT
 			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
 				c.File(mod.BINDING.ROOT)
-				//ELSE IF BINDING IS TYPE **WEB**
-			} else if strings.Contains(mod.TYPES, "web") {
+				//ELSE IF BINDING IS TYPE **REVERSE**
+			} else if strings.Contains(mod.TYPES, "reverse") {
 				//REVERSE PROXY TO IT
 				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
 				if err != nil {
@@ -286,15 +296,9 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 					req.URL.Scheme = urlProxy.Scheme
 					req.Host = urlProxy.Host
 					req.URL.Host = urlProxy.Host
-					log.Println("LAST PATH : " + req.URL.Path)
 					if r.FROM != r.TO {
 						req.URL.Path = strings.Join(strings.Split(req.URL.Path, r.FROM)[1:], r.FROM)
 					}
-					log.Println("NEW PATH : " + req.URL.Path)
-					//urlProxy.Path //singleJoiningSlash(, ) + p
-					// If Host is empty, the Request.Write method uses
-					// the value of URL.Host.
-					// force use URL.Host
 					req.Host = req.URL.Host
 
 					if _, ok := req.Header["User-Agent"]; !ok {

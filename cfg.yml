@@ -6,7 +6,7 @@
   modules: 
     mod-manager:
       version: 1.0
-      types: 'web,resource'
+      types: 'reverse'
       exe:
         remote: false
         src: 'https://github.com/Wariie/mod-manager.git'
@@ -22,7 +22,7 @@
         type: 'http'
     mod.v0: 
       version: 1.0
-      types: 'web,resource'
+      types: 'reverse'
       exe:
         remote: false
         src: 'https://github.com/Wariie/mod.v0.git'

@@ -42,7 +42,7 @@ Dockerfile
       modules: 
         mod-manager:
           version: 1.0
-          types: 'web'
+          types: 'reverse'
           exe:
             remote: false
             src: 'https://github.com/Wariie/mod-manager.git'
@@ -58,7 +58,7 @@ Dockerfile
             type: 'http'
         mod.v0: 
           version: 1.0
-          types: 'web'
+          types: 'reverse'
           exe:
             remote: false
             src: 'https://github.com/Wariie/mod.v0.git'
@@ -101,7 +101,7 @@ Dockerfile
 * **binding** - (Required) server config (See [Server Configuration](#server-configuration) below for details)
 * **exe** - module executable informations (See [Module Executable Configuration](#module-executable-configuration))
 * **name** - (Required) module name
-* **types** - (Required) module types (supported : web, bind)
+* **types** - (Required) module types (supported : reverse, bind)
 * **version** - module version
 
 ### Module Executable Configuration
