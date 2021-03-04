@@ -288,7 +288,7 @@ func ReverseProxy(modName string, r Route) func(w http.ResponseWriter, re *http.
 					//SET CODE HERE //FIX r.TO if needed
 					if r.FROM != "/" {
 						i := strings.Index(path, r.FROM)
-						path = path[:i+len(r.FROM)]
+						path = path[i+len(r.FROM):]
 					}
 
 					if r.TO != "/" && len(r.TO) > 1 && !strings.Contains(path, r.TO) {
