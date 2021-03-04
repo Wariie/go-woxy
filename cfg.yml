@@ -15,7 +15,7 @@
       binding:
         path:
           - from: '/mod-manager'
-            to: '/'
+            to: '/mod-manager'
         port: 2001
       auth:
         enabled: true
@@ -31,6 +31,7 @@
       binding:
         path: 
           - from: '/'
+            to: '/home'
         port: 2985
     favicon:
       types: 'bind'

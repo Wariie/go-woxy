@@ -14,10 +14,11 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"text/template"
 
 	"github.com/Wariie/go-woxy/com"
 	auth "github.com/abbot/go-http-auth"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -96,8 +97,8 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 	return com.Server{IP: com.IP(mc.BINDING.ADDRESS), Path: com.Path(path), Port: com.Port(mc.BINDING.PORT), Protocol: com.Protocol(mc.BINDING.PROTOCOL)}
 }
 
-//HookAll - Create all binding between module config address and gin server
-func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
+//HookAll - Create all binding between module config address and router server
+func (mc *ModuleConfig) HookAll(router *mux.Router) error {
 	paths := mc.BINDING.PATH
 
 	/*if strings.Contains(mc.TYPES, "resource") {
@@ -138,27 +139,25 @@ func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
 	return err
 }
 
-//Hook - Create a binding between module and gin server
-func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
-	typeS := typeR
-	if typeR == "" {
-		typeR = "GET"
-	} else if typeR == "Any" {
-		typeS = "GET"
-	}
+//Hook - Create a binding between module and router server
+func (mc *ModuleConfig) Hook(router *mux.Router, r Route, typeR string) error {
 
-	routes := router.Routes()
+	//TODO CHECK IF ROUTE ALREADY EXIST
+	/*routes := router.Walk(...)
 	for i := range routes {
 		if routes[i].Path == r.FROM && routes[i].Method == typeS {
 			return nil
 		}
-	}
+	}*/
 
 	if len(r.FROM) > 0 {
 
-		if strings.Contains(mc.TYPES, "reverse") && !strings.Contains(r.FROM, "/*filepath") {
-			r.FROM += "/*filepath"
-		}
+		/*if strings.Contains(mc.TYPES, "reverse") && !strings.Contains(r.FROM, "/*filepath") {
+			if r.FROM != "/" {
+				r.FROM += "/"
+			}
+			r.FROM += "*filepath"
+		}*/
 
 		if mc.AUTH.ENABLED {
 			_, err := os.Stat(".htpasswd")
@@ -166,26 +165,22 @@ func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
 				log.Panicln("GO-WOXY Core - Hook " + mc.NAME + " : .htpasswd file not found")
 			} else {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
-				authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
-				authorized := router.Group("/", BasicAuth(authenticator))
-				if typeR != "Any" {
-					authorized.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
-				} else {
-					authorized.Any(r.FROM, ReverseProxy(mc.NAME, r))
-				}
+				authenticator := auth.NewBasicAuthenticator("guilhem-mateo.fr mod-manager", htpasswd)
+				router.PathPrefix(r.FROM).HandlerFunc(BasicAuth(authenticator)).HandlerFunc(ReverseProxy(mc.NAME, r))
 			}
-		} else if typeR != "Any" {
-			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
 		} else {
-			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
+			router.PathPrefix(r.FROM).HandlerFunc(ReverseProxy(mc.NAME, r))
+			//router.PathPrefix(r.FROM).HandlerFunc(ReverseProxy(mc.NAME, r))
+			//router.HandleFunc(r.FROM, ReverseProxy(mc.NAME, r))
 		}
+
 		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
 	}
 	return nil
 }
 
 //Setup - Setup module from config
-func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool, modulePath string) error {
+func (mc *ModuleConfig) Setup(router *mux.Router, hook bool, modulePath string) error {
 	fmt.Println("GO-WOXY Core - Setup mod : ", mc)
 	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
 		err := mc.HookAll(router)
@@ -245,18 +240,18 @@ func (mc *ModuleConfig) copySecret() {
 	}
 }
 
-// BasicAuth - Authentication gin middleware
-func BasicAuth(a *auth.BasicAuth) gin.HandlerFunc {
+// BasicAuth - Authentication middleware
+func BasicAuth(a *auth.BasicAuth) http.HandlerFunc {
 	realmHeader := "Basic realm=" + strconv.Quote(a.Realm)
 
-	return func(c *gin.Context) {
-		user := a.CheckAuth(c.Request)
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := a.CheckAuth(r)
 		if user == "" {
-			c.Header("WWW-Authenticate", realmHeader)
-			c.AbortWithStatus(http.StatusUnauthorized)
+			w.Header().Add("WWW-Authenticate", realmHeader)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		c.Set("user", user)
+		w.Header().Set("user", user)
 	}
 }
 
@@ -275,38 +270,56 @@ func singleJoiningSlash(a, b string) string {
 }
 
 //ReverseProxy - reverse proxy for mod
-func ReverseProxy(modName string, r Route) gin.HandlerFunc {
-	return func(c *gin.Context) {
+func ReverseProxy(modName string, r Route) func(w http.ResponseWriter, re *http.Request) {
+	return func(w http.ResponseWriter, re *http.Request) {
 		mod := GetManager().GetModule(modName)
+		log.Println("MOD REVERSE - " + mod.NAME)
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
 			//IF ROOT IS PRESENT REDIRECT TO IT
 			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
-				c.File(mod.BINDING.ROOT)
+				http.ServeFile(w, re, mod.BINDING.ROOT)
+				//c.File(mod.BINDING.ROOT)
 				//ELSE IF BINDING IS TYPE **REVERSE**
 			} else if strings.Contains(mod.TYPES, "reverse") {
+
+				path := re.URL.Path
+				if r.FROM != r.TO {
+					//SET CODE HERE //FIX r.TO if needed
+					if r.FROM != "/" {
+						i := strings.Index(path, r.FROM)
+						path = path[:i+len(r.FROM)]
+					}
+
+					if r.TO != "/" && len(r.TO) > 1 && !strings.Contains(path, r.TO) {
+						path = r.TO + path
+					}
+				}
 				//REVERSE PROXY TO IT
-				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
+				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
 				if err != nil {
 					log.Println(err)
 				}
-				//TODO ADD CUSTOM HEADERS HERE
 
+				log.Println("REQUEST " + re.Host + re.URL.Path + " - TO - " + urlProxy.Host + urlProxy.Path)
+				log.Println("TARGET --> FROM " + r.FROM + " TO " + r.TO)
+
+				//TODO ADD CUSTOM HEADERS HERE
 				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
 				proxy.Director = func(req *http.Request) {
+
 					req.URL.Scheme = urlProxy.Scheme
 					req.Host = urlProxy.Host
 					req.URL.Host = urlProxy.Host
-					if r.FROM != r.TO {
-						req.URL.Path = strings.Join(strings.Split(req.URL.Path, r.FROM)[1:], r.FROM)
-					}
-					req.Host = req.URL.Host
+					req.URL.Path = urlProxy.Path
+
+					log.Printf("Req: %s %s\n", req.Host, req.URL.Path)
 
 					if _, ok := req.Header["User-Agent"]; !ok {
 						req.Header.Set("User-Agent", "")
 					}
 				}
-				proxy.ServeHTTP(c.Writer, c.Request)
+				proxy.ServeHTTP(w, re)
 			}
 		} else {
 			title := ""
@@ -324,13 +337,23 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 				title = "Error"
 				message = "Error"
 			}
-			c.HTML(code, "loading.html", gin.H{
-				"title":   title,
-				"code":    code,
-				"message": message,
-			})
+
+			data := ErrorPage{
+				title:   title,
+				code:    code,
+				message: message,
+			}
+
+			tmpl := template.Must(template.ParseFiles("./resources/html/404.html"))
+			tmpl.Execute(w, data)
 		}
 	}
+}
+
+type ErrorPage struct {
+	title   string
+	code    int
+	message string
 }
 
 /*ModuleConfig - Module configuration */

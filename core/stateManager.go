@@ -3,13 +3,13 @@ package core
 import (
 	"sync"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
 type manager struct {
 	mux    sync.Mutex
 	config *Config
-	router *gin.Engine
+	router *mux.Router
 	cp     *CommandProcessorImpl
 	s      *Supervisor
 	roles  []Role
@@ -38,13 +38,13 @@ func (sm *manager) SetConfig(c *Config) {
 	sm.config = c
 }
 
-func (sm *manager) GetRouter() *gin.Engine {
+func (sm *manager) GetRouter() *mux.Router {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
 	return sm.router
 }
 
-func (sm *manager) SetRouter(r *gin.Engine) {
+func (sm *manager) SetRouter(r *mux.Router) {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
 	sm.router = r

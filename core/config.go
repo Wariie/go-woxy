@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/Wariie/go-woxy/tools"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 	"gopkg.in/yaml.v2"
 )
 
@@ -141,7 +141,7 @@ func initSupervisor() {
 	go s.Supervise()
 }
 
-func (c *Config) configAndServe(router *gin.Engine) error {
+func (c *Config) configAndServe(router *mux.Router) error {
 	path := ""
 	if len(c.SERVER.PATH) > 0 {
 		path = c.SERVER.PATH[0].FROM

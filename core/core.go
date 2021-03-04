@@ -4,25 +4,26 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"os"
+	"net/http"
+	"path"
 	"reflect"
 	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/Wariie/go-woxy/com"
-	"github.com/gin-contrib/logger"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
 func launchServer() {
 	fmt.Println("GO-WOXY Core - Starting")
 
 	//AUTHENTICATION ENDPOINT
-	GetManager().GetRouter().POST("/connect", connect)
+	GetManager().GetRouter().HandleFunc("/connect", connect)
 
 	//COMMAND ENDPOINT
-	GetManager().GetRouter().POST("/cmd", command)
+	GetManager().GetRouter().HandleFunc("/cmd", command)
 
 	log.Fatalln("GO-WOXY Core - Error serving :", GetManager().GetConfig().configAndServe(GetManager().router))
 }
@@ -40,14 +41,16 @@ func initLogs() {
 
 func initCore(config Config) {
 	//PRODUCTION MODE
-	gin.SetMode(gin.DebugMode)
+	//gin.SetMode(gin.DebugMode)
 
-	router := gin.New()
-	router.Use(logger.SetLogger(), gin.Recovery())
-	router.LoadHTMLGlob("." + string(os.PathSeparator) + config.RESOURCEDIR + "*" + string(os.PathSeparator) + "*")
-	router.NoRoute(func(c *gin.Context) {
-		c.HTML(404, "404.html", nil)
-	})
+	//TODO CHANGE LOG AGENT ?
+	//router.Use(logger.SetLogger(), gin.Recovery())
+
+	//TODO HANDLE TEMPLATE SOURCE DIR
+	//router.LoadHTMLGlob("." + string(os.PathSeparator) + config.RESOURCEDIR + "*" + string(os.PathSeparator) + "*")
+
+	router := mux.NewRouter()
+	router.NotFoundHandler = http.HandlerFunc(error404)
 
 	cp := CommandProcessorImpl{}
 	cp.Init()
@@ -81,32 +84,36 @@ func LaunchCore(configPath string) {
 	launchServer()
 }
 
-func connect(context *gin.Context) {
+func connect(w http.ResponseWriter, r *http.Request) {
 
+	//READ Body and try to found ConnexionRequest
 	var cr com.ConnexionRequest
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(context.Request.Body)
+	buf.ReadFrom(r.Body)
 	cr.Decode(buf.Bytes())
 
+	//GET THE MODULE TARGET
 	var modC ModuleConfig
-
 	modC = GetManager().GetConfig().MODULES[cr.Name]
 
 	var resultW []byte
 	if reflect.DeepEqual(modC, ModuleConfig{}) {
+
+		//ERROR DURING THE BODY PARSING
 		errMsg := "Error reading ConnexionRequest"
 		log.Println(errMsg)
 		resultW = []byte(errMsg)
 	} else {
 
+		//GET THE REMOTE HOST ADDRESS IF HOST IS EMPTY
 		if !modC.EXE.REMOTE {
-			modC.BINDING.ADDRESS = strings.Split(context.Request.Host, ":")[0]
+			modC.BINDING.ADDRESS = strings.Split(r.Host, ":")[0]
 		}
 
-		//CHECK SECRET FOR AUTH
 		//TODO SET API KEY MECANISM
 		//cr.Secret --> API KEY corresponding
 
+		//CHECK SECRET FOR AUTH
 		rs := hashMatchSecretHash(cr.Secret)
 		if rs && cr.ModHash != "" {
 			go registerModule(&modC, &cr)
@@ -121,12 +128,29 @@ func connect(context *gin.Context) {
 		cr.State = result
 		resultW = cr.Encode()
 	}
-	i, err := context.Writer.Write(resultW)
+	i, err := w.Write(resultW)
 	if err != nil {
-		fmt.Println("Go-WOXY Core - Module", modC.NAME, " failed to respond :", err.Error(), " bytes : ", i)
+		fmt.Println("GO-WOXY Core - Module", modC.NAME, " failed to respond :", err.Error(), " bytes : ", i)
 	}
 
 	GetManager().SaveModuleChanges(&modC)
+}
+
+func error404(w http.ResponseWriter, r *http.Request) {
+	fp := path.Join("resources/html", "404.html")
+	tmpl, err := template.ParseFiles(fp)
+	if err != nil {
+		log.Println("GO-WOXY Core - Error 404 template Not Found")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(404)
+	if err := tmpl.Execute(w, nil); err != nil {
+		log.Println("GO-WOXY Core - Error executing 404 template")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		log.Println("GO-WOXY Core - 404 Not Found")
+	}
 }
 
 func hashMatchSecretHash(hash string) bool {
@@ -207,21 +231,23 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 }
 
 // Command - Access point to handle module commands
-func command(c *gin.Context) {
+func command(w http.ResponseWriter, r *http.Request) {
 	log.Print("GO-WOXY Core - Command")
-	t, b := com.GetCustomRequestType(c.Request)
+	t, b := com.GetCustomRequestType(r)
 
-	from := c.Request.RemoteAddr
+	from := r.RemoteAddr
 
 	response := ""
 	action := ""
 
+	//CHECK AUTH ( TODO API KEY)
 	rs := t["Secret"] == GetManager().GetConfig().SECRET
 
-	// IF ERROR READING DATA
+	// CHECK ERROR DURING READING DATA
 	if t["error"] == "error" {
 		response = "Error reading Request"
 	} else if t["Hash"] != "" && rs {
+
 		//GET MOD WITH HASH
 		mc := GetManager().SearchModWithHash(t["Hash"])
 
@@ -259,6 +285,10 @@ func command(c *gin.Context) {
 	}
 
 	action += " - Result : " + response
+
+	//LOG COMMAND RESULT
 	log.Println("From", from, ':', action)
-	c.String(200, "%s", response)
+
+	w.WriteHeader(200)
+	w.Write([]byte(response))
 }

@@ -42,7 +42,7 @@ func SendRequest(s Server, r Request, loging bool) (string, error) {
 	return "", err
 }
 
-// GetCustomRequestType - get custom request from gin Request Body
+// GetCustomRequestType - get custom request from HTTP Request Body
 func GetCustomRequestType(gRqt *http.Request) (map[string]string, []byte) {
 
 	buf := new(bytes.Buffer)
