@@ -1,18 +1,22 @@
 package core
 
 import (
+	"bufio"
+	"io"
+	"os"
 	"sync"
 
 	"github.com/gorilla/mux"
 )
 
 type manager struct {
-	mux    sync.Mutex
-	config *Config
-	router *mux.Router
-	cp     *CommandProcessorImpl
-	s      *Supervisor
-	roles  []Role
+	mux           sync.Mutex
+	config        *Config
+	router        *mux.Router
+	cp            *CommandProcessorImpl
+	s             *Supervisor
+	roles         []Role
+	accessLogFile *os.File
 }
 
 var singleton *manager
@@ -102,4 +106,12 @@ func (sm *manager) SearchModWithHash(hash string) ModuleConfig {
 		}
 	}
 	return ModuleConfig{NAME: "error"}
+}
+
+func (sm *manager) GetAccessLogFileWriter() io.Writer {
+	return bufio.NewWriter(sm.accessLogFile)
+}
+
+func (sm *manager) SetAccessLogFile(accesslogfile *os.File) {
+	sm.accessLogFile = accesslogfile
 }

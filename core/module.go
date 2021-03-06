@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -18,9 +17,21 @@ import (
 
 	"github.com/Wariie/go-woxy/com"
 	auth "github.com/abbot/go-http-auth"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/shirou/gopsutil/process"
 )
+
+//FileBind - File bind handler
+func FileBind(fileName string, r Route) http.HandlerFunc {
+	return func(w http.ResponseWriter, re *http.Request) {
+		if fileName != "" {
+			http.ServeFile(w, re, fileName)
+		} else {
+			w.Write([]byte("GO-WOXY Core - Error Bind - " + fileName + " was not found"))
+		}
+	}
+}
 
 func (mc *ModuleConfig) checkModuleRunning() bool {
 	try := 0
@@ -43,7 +54,7 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 
 	if mc.STATE != Online {
 		pathSeparator := string(os.PathSeparator)
-		fmt.Println("GO-WOXY Core - Downloading " + mc.NAME)
+		log.Println("GO-WOXY Core - Downloading " + mc.NAME)
 		var listArgs []string
 		var action string
 		path := ""
@@ -60,7 +71,7 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 		cmd := exec.Command("git", listArgs...)
 		cmd.Dir = path
 		out, err := cmd.Output()
-		fmt.Println("GO-WOXY Core -", action, "mod :", mc, "-", string(out), err)
+		log.Println("GO-WOXY Core - ", action, "mod :", mc, "-", string(out), err)
 
 		mc.EXE.BIN = moduleDir + mc.NAME + pathSeparator
 		mc.STATE = Downloaded
@@ -71,9 +82,11 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 
 //GetLog - GetLog from Module
 func (mc *ModuleConfig) GetLog() string {
+
+	//TODO ADD REMOTE COMMAND TO GET LOG
 	file, err := os.Open(GetManager().GetConfig().MODDIR + mc.NAME + "/log.log")
 	if err != nil {
-		log.Fatalln("failed reading file :", err)
+		log.Fatalln("GO-WOXY Core - Error reading log file :", err)
 	}
 	b, err := ioutil.ReadAll(file)
 	return string(b)
@@ -100,65 +113,22 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 //HookAll - Create all binding between module config address and router server
 func (mc *ModuleConfig) HookAll(router *mux.Router) error {
 	paths := mc.BINDING.PATH
-
-	/*if strings.Contains(mc.TYPES, "resource") {
-		sP := ""
-		if len(paths[0].FROM) > 1 {
-			sP = paths[0].FROM
-		}
-		r := Route{FROM: sP + "/" + mc.RESOURCEPATH + "*filepath", TO: "/" + mc.RESOURCEPATH + "*filepath"}
-		err := mc.Hook(router, r, "GET")
-		if err != nil {
-			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
-		}
-	}
-
-	if strings.Contains(mc.TYPES, "test") {
-		err := mc.Hook(router, paths[0], "Any")
-		if err != nil {
-			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
-		}
-	} else if len(paths) > 0 {
-		for i := range paths {
-			err := mc.Hook(router, paths[i], "Any")
-			if err != nil {
-				return err
-			}
-		}
-	}*/
 	var err error
 
 	for i := range paths {
-		err := mc.Hook(router, paths[i], "Any")
+		err = mc.Hook(router, paths[i], "Any")
 		if err != nil {
-			log.Println("GO-WOXY Core - Error : " + err.Error())
+			log.Println("GO-WOXY Core - Error during module path hooking : " + err.Error())
 			return err
 		}
 	}
-
 	return err
 }
 
 //Hook - Create a binding between module and router server
 func (mc *ModuleConfig) Hook(router *mux.Router, r Route, typeR string) error {
-
-	//TODO CHECK IF ROUTE ALREADY EXIST
-	/*routes := router.Walk(...)
-	for i := range routes {
-		if routes[i].Path == r.FROM && routes[i].Method == typeS {
-			return nil
-		}
-	}*/
-
 	if len(r.FROM) > 0 {
-
-		/*if strings.Contains(mc.TYPES, "reverse") && !strings.Contains(r.FROM, "/*filepath") {
-			if r.FROM != "/" {
-				r.FROM += "/"
-			}
-			r.FROM += "*filepath"
-		}*/
-
+		var handler http.Handler
 		if mc.AUTH.ENABLED {
 			_, err := os.Stat(".htpasswd")
 			if os.IsNotExist(err) {
@@ -166,126 +136,55 @@ func (mc *ModuleConfig) Hook(router *mux.Router, r Route, typeR string) error {
 			} else {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
 				authenticator := auth.NewBasicAuthenticator("guilhem-mateo.fr mod-manager", htpasswd)
-				router.PathPrefix(r.FROM).HandlerFunc(BasicAuth(authenticator)).HandlerFunc(ReverseProxy(mc.NAME, r))
+				handler = ReverseProxyAuth(authenticator, mc.NAME, r)
 			}
+		} else if strings.Contains(mc.TYPES, "bind") {
+			handler = FileBind(mc.BINDING.ROOT, r)
 		} else {
-			router.PathPrefix(r.FROM).HandlerFunc(ReverseProxy(mc.NAME, r))
-			//router.PathPrefix(r.FROM).HandlerFunc(ReverseProxy(mc.NAME, r))
-			//router.HandleFunc(r.FROM, ReverseProxy(mc.NAME, r))
+			handler = ReverseProxy(mc.NAME, r)
 		}
 
-		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
+		if handler != nil {
+			router.PathPrefix(r.FROM).Handler(handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), handler))
+			log.Println("GO-WOXY Core - Module " + mc.NAME + " - Route created : " + r.FROM + " > " + r.TO)
+		} else {
+			log.Println("GO-WOXY Core - Error hooking module " + mc.NAME + " - Route : " + r.FROM + " > " + r.TO)
+		}
 	}
-	return nil
-}
-
-//Setup - Setup module from config
-func (mc *ModuleConfig) Setup(router *mux.Router, hook bool, modulePath string) error {
-	fmt.Println("GO-WOXY Core - Setup mod : ", mc)
-	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
-		err := mc.HookAll(router)
-		if err != nil {
-			log.Println(err)
-		}
-		mc.STATE = Online
-	}
-
-	if !mc.EXE.REMOTE && !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
-		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
-			mc.Download(modulePath)
-		}
-		mc.copySecret()
-		mc.STATE = Loading
-		go mc.Start()
-	} // ELSE NO BUILD
 
 	return nil
 }
 
-//Start - Start module with config args and auto args
-func (mc *ModuleConfig) Start() {
-	fmt.Println("GO-WOXY Core - Starting mod : ", mc)
-
-	var platformParam []string
-	if runtime.GOOS == "windows" {
-		platformParam = []string{"cmd", "/c ", "go", "run", mc.EXE.MAIN, "1>", "log.log", "2>&1"}
-	} else {
-		platformParam = []string{"/bin/sh", "-c", "go run " + mc.EXE.MAIN + " > log.log 2>&1"}
-	}
-
-	cmd := exec.Command(platformParam[0], platformParam[1:]...)
-	cmd.Dir = mc.EXE.BIN
-	output, err := cmd.Output()
-	if err != nil {
-		log.Println("GO-WOXY Core - Error:", err)
-	}
-	log.Println("GO-WOXY Core - Output :", string(output), err)
-}
-
-func (mc *ModuleConfig) copySecret() {
-	source, err := os.Open(".secret")
-	if err != nil {
-		log.Println("GO-WOXY Core - Error reading generated secret file")
-	}
-	defer source.Close()
-
-	destination, err := os.Create(mc.EXE.BIN + string(os.PathSeparator) + ".secret")
-	if err != nil {
-		log.Println("GO-WOXY Core - Error creating mod secret file")
-	}
-	defer destination.Close()
-	nBytes, err := io.Copy(destination, source)
-	if err != nil {
-		log.Println("GO-WOXY Core - Error Copying Secret:", err, nBytes)
-	}
-}
-
-// BasicAuth - Authentication middleware
-func BasicAuth(a *auth.BasicAuth) http.HandlerFunc {
-	realmHeader := "Basic realm=" + strconv.Quote(a.Realm)
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		user := a.CheckAuth(r)
+// ReverseProxyAuth - Authentication middleware
+func ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) http.HandlerFunc {
+	return func(w http.ResponseWriter, re *http.Request) {
+		user := a.CheckAuth(re)
 		if user == "" {
-			w.Header().Add("WWW-Authenticate", realmHeader)
+			w.Header().Add("WWW-Authenticate", "Basic realm="+strconv.Quote(a.Realm))
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		w.Header().Set("user", user)
+		ReverseProxy(modName, r)(w, re)
 	}
-}
-
-func singleJoiningSlash(a, b string) string {
-	aslash := strings.HasSuffix(a, "/")
-	bslash := strings.HasPrefix(b, "/")
-	switch {
-	case aslash && bslash:
-
-		return a + b[1:]
-	case !aslash && !bslash:
-
-		return a + "/" + b
-	}
-	return a + b
 }
 
 //ReverseProxy - reverse proxy for mod
-func ReverseProxy(modName string, r Route) func(w http.ResponseWriter, re *http.Request) {
+func ReverseProxy(modName string, r Route) http.HandlerFunc {
 	return func(w http.ResponseWriter, re *http.Request) {
 		mod := GetManager().GetModule(modName)
-		log.Println("MOD REVERSE - " + mod.NAME)
+
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
+
 			//IF ROOT IS PRESENT REDIRECT TO IT
 			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
 				http.ServeFile(w, re, mod.BINDING.ROOT)
-				//c.File(mod.BINDING.ROOT)
 				//ELSE IF BINDING IS TYPE **REVERSE**
 			} else if strings.Contains(mod.TYPES, "reverse") {
 
 				path := re.URL.Path
 				if r.FROM != r.TO {
-					//SET CODE HERE //FIX r.TO if needed
 					if r.FROM != "/" {
 						i := strings.Index(path, r.FROM)
 						path = path[i+len(r.FROM):]
@@ -295,16 +194,16 @@ func ReverseProxy(modName string, r Route) func(w http.ResponseWriter, re *http.
 						path = r.TO + path
 					}
 				}
-				//REVERSE PROXY TO IT
+
+				//BUILD URL PROXY
 				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
 				if err != nil {
-					log.Println(err)
+					log.Println(err) //TODO ERROR HANDLING
 				}
 
-				log.Println("REQUEST " + re.Host + re.URL.Path + " - TO - " + urlProxy.Host + urlProxy.Path)
-				log.Println("TARGET --> FROM " + r.FROM + " TO " + r.TO)
-
 				//TODO ADD CUSTOM HEADERS HERE
+
+				//SETUP REVERSE PROXY DIRECTOR
 				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
 				proxy.Director = func(req *http.Request) {
 
@@ -312,8 +211,6 @@ func ReverseProxy(modName string, r Route) func(w http.ResponseWriter, re *http.
 					req.Host = urlProxy.Host
 					req.URL.Host = urlProxy.Host
 					req.URL.Path = urlProxy.Path
-
-					log.Printf("Req: %s %s\n", req.Host, req.URL.Path)
 
 					if _, ok := req.Header["User-Agent"]; !ok {
 						req.Header.Set("User-Agent", "")
@@ -350,6 +247,69 @@ func ReverseProxy(modName string, r Route) func(w http.ResponseWriter, re *http.
 	}
 }
 
+//Setup - Setup module from config
+func (mc *ModuleConfig) Setup(router *mux.Router, hook bool, modulePath string) error {
+	log.Println("GO-WOXY Core - Setup mod : ", mc)
+	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+		err := mc.HookAll(router)
+		if err != nil {
+			log.Println(err)
+		}
+		mc.STATE = Online
+	}
+
+	//IF CONTAINS EXE CONFIG && NOT REMOTE
+	if !mc.EXE.REMOTE && !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
+			mc.Download(modulePath)
+		}
+		mc.copySecret()
+		mc.STATE = Loading
+		go mc.Start()
+	}
+
+	return nil
+}
+
+//Start - Start module with config args and auto args
+func (mc *ModuleConfig) Start() {
+	log.Println("GO-WOXY Core - Starting mod : ", mc)
+
+	var platformParam []string
+	if runtime.GOOS == "windows" {
+		platformParam = []string{"cmd", "/c ", "go", "run", mc.EXE.MAIN, "1>", "log.log", "2>&1"}
+	} else {
+		platformParam = []string{"/bin/sh", "-c", "go run " + mc.EXE.MAIN + " > log.log 2>&1"}
+	}
+
+	cmd := exec.Command(platformParam[0], platformParam[1:]...)
+	cmd.Dir = mc.EXE.BIN
+	output, err := cmd.Output()
+	if err != nil {
+		log.Println("GO-WOXY Core - Error:", err)
+	}
+	log.Println("GO-WOXY Core - Output :", string(output), err)
+}
+
+func (mc *ModuleConfig) copySecret() {
+	source, err := os.Open(".secret")
+	if err != nil {
+		log.Println("GO-WOXY Core - Error reading generated secret file : ", err)
+	}
+	defer source.Close()
+
+	destination, err := os.Create(mc.EXE.BIN + string(os.PathSeparator) + ".secret")
+	if err != nil {
+		log.Println("GO-WOXY Core - Error creating mod secret file : ", err)
+	}
+	defer destination.Close()
+	nBytes, err := io.Copy(destination, source)
+	if err != nil {
+		log.Println("GO-WOXY Core - Error Copying Secret : ", err, nBytes)
+	}
+}
+
+//ErrorPage - Content description for go-woxy error page
 type ErrorPage struct {
 	title   string
 	code    int
@@ -397,7 +357,7 @@ type ModuleAuthConfig struct {
 	TYPE    string
 }
 
-// Route - Route redirection
+//Route - Route redirection
 type Route struct {
 	FROM string
 	TO   string
@@ -406,6 +366,7 @@ type Route struct {
 //ModuleState - ModuleConfig State
 type ModuleState string
 
+//ModuleState list
 const (
 	Unknown    ModuleState = "UNKNOWN"
 	Loading    ModuleState = "LOADING"

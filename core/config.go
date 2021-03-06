@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,14 +18,15 @@ import (
 
 /*Config - Global configuration */
 type Config struct {
-	MODULES     map[string]ModuleConfig
-	MOTD        string
-	NAME        string
-	SECRET      string
-	MODDIR      string
-	RESOURCEDIR string
-	SERVER      ServerConfig
-	VERSION     int
+	ACCESSLOGFILE string
+	MODULES       map[string]ModuleConfig
+	MOTD          string
+	NAME          string
+	SECRET        string
+	MODDIR        string
+	RESOURCEDIR   string
+	SERVER        ServerConfig
+	VERSION       int
 }
 
 /*LoadConfigFromPath - Load config file from path */
@@ -67,7 +67,7 @@ func (c *Config) loadConfig(configPath string) {
 		c.MODDIR = "mods" + string(os.PathSeparator)
 	}
 
-	fmt.Println("GO-WOXY Core - Config file readed")
+	log.Println("GO-WOXY Core - Config file readed")
 }
 
 func (c *Config) checkModules() {
@@ -115,7 +115,7 @@ func (c *Config) loadModules() {
 		if os.IsNotExist(err) {
 			log.Fatalln("GO-WOXY Core - Error creating mods folder : ", err)
 		} else if os.IsExist(err) {
-			fmt.Println("GO-WOXY Core - Error creating mods folder : ", err)
+			log.Println("GO-WOXY Core - Error creating mods folder : ", err)
 		}
 	}
 
@@ -146,7 +146,7 @@ func (c *Config) configAndServe(router *mux.Router) error {
 	if len(c.SERVER.PATH) > 0 {
 		path = c.SERVER.PATH[0].FROM
 	}
-	fmt.Println("GO-WOXY Core - Serving at " + c.SERVER.PROTOCOL + "://" + c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path)
+	log.Println("GO-WOXY Core - Serving at " + c.SERVER.PROTOCOL + "://" + c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path)
 
 	var s http.Server
 
@@ -159,7 +159,7 @@ func (c *Config) configAndServe(router *mux.Router) error {
 	if c.SERVER.CERT != "" && c.SERVER.CERT_KEY != "" {
 		tlsConfig, err := c.getTLSConfig()
 		if err != nil {
-			log.Fatalln("GO-WOXY Core - Error getting tls config :", err)
+			log.Fatalln("GO-WOXY Core - Error creating tls config : ", err)
 		}
 		s.TLSConfig = tlsConfig
 		return s.ListenAndServeTLS(c.SERVER.CERT, c.SERVER.CERT_KEY)
@@ -172,7 +172,7 @@ func (c *Config) generateSecret() {
 		b := []byte(tools.String(64))
 		err := ioutil.WriteFile(".secret", b, 0644)
 		if err != nil {
-			log.Fatalln("GO-WOXY Core - Error trying create secret file :", err)
+			log.Fatalln("GO-WOXY Core - Error creating secret file : ", err)
 		}
 		h := sha256.New()
 		h.Write(b)
@@ -193,16 +193,16 @@ func (c *Config) motd() {
 		c.MOTD = "motd.txt"
 	}
 
-	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
+	log.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
 	file, err := os.Open(c.MOTD)
 	if err != nil {
-		log.Panicln("GO-WOXY Core - Error cannot found ", c.MOTD, ":", err)
+		log.Panicln("GO-WOXY Core - Error cannot found ", c.MOTD, " : ", err)
 	}
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
+		log.Println(scanner.Text())
 	}
-	fmt.Println("------------------------------------------------------------ ")
+	log.Println("------------------------------------------------------------ ")
 }

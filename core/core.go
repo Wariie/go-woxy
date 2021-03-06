@@ -2,9 +2,9 @@ package core
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"path"
 	"reflect"
 	"strconv"
@@ -13,30 +13,17 @@ import (
 	"time"
 
 	"github.com/Wariie/go-woxy/com"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
 func launchServer() {
-	fmt.Println("GO-WOXY Core - Starting")
-
-	//AUTHENTICATION ENDPOINT
-	GetManager().GetRouter().HandleFunc("/connect", connect)
-
-	//COMMAND ENDPOINT
-	GetManager().GetRouter().HandleFunc("/cmd", command)
+	log.Println("GO-WOXY Core - Starting")
+	//AUTHENTICATION & COMMAND ENDPOINT
+	GetManager().GetRouter().PathPrefix("/connect").Handler(handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), connect()))
+	GetManager().GetRouter().PathPrefix("/cmd").Handler(handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), command()))
 
 	log.Fatalln("GO-WOXY Core - Error serving :", GetManager().GetConfig().configAndServe(GetManager().router))
-}
-
-func initLogs() {
-	//zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	//zLog.Logger = zLog.Output(
-	//	zerolog.ConsoleWriter{
-	//		Out:     os.Stdout,
-	//		NoColor: false,
-	//	},
-	//)
 }
 
 func initCore(config Config) {
@@ -46,11 +33,27 @@ func initCore(config Config) {
 	//TODO CHANGE LOG AGENT ?
 	//router.Use(logger.SetLogger(), gin.Recovery())
 
+	if config.ACCESSLOGFILE == "" {
+		config.ACCESSLOGFILE = "access.log"
+	}
+
 	//TODO HANDLE TEMPLATE SOURCE DIR
 	//router.LoadHTMLGlob("." + string(os.PathSeparator) + config.RESOURCEDIR + "*" + string(os.PathSeparator) + "*")
 
+	//ACCESS LOGGING
+	f, err := os.OpenFile(config.ACCESSLOGFILE, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		log.Fatalln("GO-WOXY Core - Error opening access log file " + config.ACCESSLOGFILE + " : " + err.Error())
+	} else {
+		GetManager().SetAccessLogFile(f)
+	}
+	//GetManager().SetAccessLogFile(*os.Stdout)
+
+	GetManager().GetAccessLogFileWriter().Write([]byte("Test\n"))
+
 	router := mux.NewRouter()
 	router.NotFoundHandler = http.HandlerFunc(error404)
+	//router.Use()
 
 	cp := CommandProcessorImpl{}
 	cp.Init()
@@ -60,8 +63,6 @@ func initCore(config Config) {
 
 //LaunchCore - start core server
 func LaunchCore(configPath string) {
-	//Init logs
-	initLogs()
 
 	//Load Config
 	c := LoadConfigFromPath(configPath)
@@ -84,56 +85,57 @@ func LaunchCore(configPath string) {
 	launchServer()
 }
 
-func connect(w http.ResponseWriter, r *http.Request) {
+func connect() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		//READ Body and try to found ConnexionRequest
+		var cr com.ConnexionRequest
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+		cr.Decode(buf.Bytes())
 
-	//READ Body and try to found ConnexionRequest
-	var cr com.ConnexionRequest
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(r.Body)
-	cr.Decode(buf.Bytes())
+		//GET THE MODULE TARGET
+		var modC ModuleConfig
+		modC = GetManager().GetConfig().MODULES[cr.Name]
 
-	//GET THE MODULE TARGET
-	var modC ModuleConfig
-	modC = GetManager().GetConfig().MODULES[cr.Name]
+		var resultW []byte
+		if reflect.DeepEqual(modC, ModuleConfig{}) {
 
-	var resultW []byte
-	if reflect.DeepEqual(modC, ModuleConfig{}) {
-
-		//ERROR DURING THE BODY PARSING
-		errMsg := "Error reading ConnexionRequest"
-		log.Println(errMsg)
-		resultW = []byte(errMsg)
-	} else {
-
-		//GET THE REMOTE HOST ADDRESS IF HOST IS EMPTY
-		if !modC.EXE.REMOTE {
-			modC.BINDING.ADDRESS = strings.Split(r.Host, ":")[0]
-		}
-
-		//TODO SET API KEY MECANISM
-		//cr.Secret --> API KEY corresponding
-
-		//CHECK SECRET FOR AUTH
-		rs := hashMatchSecretHash(cr.Secret)
-		if rs && cr.ModHash != "" {
-			go registerModule(&modC, &cr)
+			//ERROR DURING THE BODY PARSING
+			errMsg := "Error reading ConnexionRequest"
+			log.Println("GO-WOXY Core - " + errMsg)
+			resultW = []byte(errMsg)
 		} else {
-			modC.STATE = Failed
+
+			//GET THE REMOTE HOST ADDRESS IF HOST IS EMPTY
+			if !modC.EXE.REMOTE {
+				modC.BINDING.ADDRESS = strings.Split(r.Host, ":")[0]
+			}
+
+			//TODO SET API KEY MECANISM
+			//cr.Secret --> API KEY corresponding
+
+			//CHECK SECRET FOR AUTH
+			rs := hashMatchSecretHash(cr.Secret)
+			if rs && cr.ModHash != "" {
+				go registerModule(&modC, &cr)
+			} else {
+				modC.STATE = Failed
+			}
+
+			//SEND RESPONSE
+			result := strconv.FormatBool(rs)
+			log.Println("GO-WOXY Core - Module", modC.NAME, "connecting - result :", result)
+
+			cr.State = result
+			resultW = cr.Encode()
+		}
+		i, err := w.Write(resultW)
+		if err != nil {
+			log.Println("GO-WOXY Core - Module", modC.NAME, " failed to respond :", err.Error(), " bytes : ", i)
 		}
 
-		//SEND RESPONSE
-		result := strconv.FormatBool(rs)
-		fmt.Println("GO-WOXY Core - Module", modC.NAME, "connecting - result :", result)
-
-		cr.State = result
-		resultW = cr.Encode()
+		GetManager().SaveModuleChanges(&modC)
 	}
-	i, err := w.Write(resultW)
-	if err != nil {
-		fmt.Println("GO-WOXY Core - Module", modC.NAME, " failed to respond :", err.Error(), " bytes : ", i)
-	}
-
-	GetManager().SaveModuleChanges(&modC)
 }
 
 func error404(w http.ResponseWriter, r *http.Request) {
@@ -231,64 +233,66 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 }
 
 // Command - Access point to handle module commands
-func command(w http.ResponseWriter, r *http.Request) {
-	log.Print("GO-WOXY Core - Command")
-	t, b := com.GetCustomRequestType(r)
+func command() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Print("GO-WOXY Core - Command")
+		t, b := com.GetCustomRequestType(r)
 
-	from := r.RemoteAddr
+		from := r.RemoteAddr
 
-	response := ""
-	action := ""
+		response := ""
+		action := ""
 
-	//CHECK AUTH ( TODO API KEY)
-	rs := t["Secret"] == GetManager().GetConfig().SECRET
+		//CHECK AUTH ( TODO API KEY)
+		rs := t["Secret"] == GetManager().GetConfig().SECRET
 
-	// CHECK ERROR DURING READING DATA
-	if t["error"] == "error" {
-		response = "Error reading Request"
-	} else if t["Hash"] != "" && rs {
+		// CHECK ERROR DURING READING DATA
+		if t["error"] == "error" {
+			response = "Error reading Request"
+		} else if t["Hash"] != "" && rs {
 
-		//GET MOD WITH HASH
-		mc := GetManager().SearchModWithHash(t["Hash"])
+			//GET MOD WITH HASH
+			mc := GetManager().SearchModWithHash(t["Hash"])
 
-		if mc.NAME == "error" {
-			response = "Error module not found"
-		} else {
-			action += "To " + mc.NAME + " - "
+			if mc.NAME == "error" {
+				response = "Error module not found"
+			} else {
+				action += "To " + mc.NAME + " - "
 
-			//PROCESS REQUEST
-			switch t["Type"] {
-			case "Command":
-				var cr com.CommandRequest
-				cr.Decode(b)
-				cp := GetManager().GetCommandProcessor()
-				var c interface{}
-				c = &cr
-				p := (c).(com.Request)
-				res, e := cp.Run(cr.Command, &p, &mc, "")
-				response += res
-				if e != nil {
-					response += e.Error()
+				//PROCESS REQUEST
+				switch t["Type"] {
+				case "Command":
+					var cr com.CommandRequest
+					cr.Decode(b)
+					cp := GetManager().GetCommandProcessor()
+					var c interface{}
+					c = &cr
+					p := (c).(com.Request)
+					res, e := cp.Run(cr.Command, &p, &mc, "")
+					response += res
+					if e != nil {
+						response += e.Error()
+					}
+					action += "Command [ " + cr.Command + " ]"
 				}
-				action += "Command [ " + cr.Command + " ]"
+				GetManager().SaveModuleChanges(&mc)
 			}
-			GetManager().SaveModuleChanges(&mc)
-		}
-	} else {
-		if t["Hash"] == "" {
-			response = "Empty Hash : Try to start module"
-		} else if !rs {
-			response = "Secret not matching with server"
 		} else {
-			response = "Unknown error"
+			if t["Hash"] == "" {
+				response = "Empty Hash : Try to start module"
+			} else if !rs {
+				response = "Secret not matching with server"
+			} else {
+				response = "Unknown error"
+			}
 		}
+
+		action += " - Result : " + response
+
+		//LOG COMMAND RESULT
+		log.Println("From", from, ':', action)
+
+		w.WriteHeader(200)
+		w.Write([]byte(response))
 	}
-
-	action += " - Result : " + response
-
-	//LOG COMMAND RESULT
-	log.Println("From", from, ':', action)
-
-	w.WriteHeader(200)
-	w.Write([]byte(response))
 }
