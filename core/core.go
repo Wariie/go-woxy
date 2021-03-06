@@ -20,6 +20,9 @@ import (
 func launchServer() {
 	log.Println("GO-WOXY Core - Starting")
 	//AUTHENTICATION & COMMAND ENDPOINT
+
+	//SWITCH THIS TO INTERNAL LOGGING INSTEAD OF ACCESS LOGGING ?
+	GetManager().GetRouter().NotFoundHandler = handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), http.HandlerFunc(error404))
 	GetManager().GetRouter().PathPrefix("/connect").Handler(handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), connect()))
 	GetManager().GetRouter().PathPrefix("/cmd").Handler(handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), command()))
 
@@ -27,11 +30,6 @@ func launchServer() {
 }
 
 func initCore(config Config) {
-	//PRODUCTION MODE
-	//gin.SetMode(gin.DebugMode)
-
-	//TODO CHANGE LOG AGENT ?
-	//router.Use(logger.SetLogger(), gin.Recovery())
 
 	if config.ACCESSLOGFILE == "" {
 		config.ACCESSLOGFILE = "access.log"
@@ -47,12 +45,8 @@ func initCore(config Config) {
 	} else {
 		GetManager().SetAccessLogFile(f)
 	}
-	//GetManager().SetAccessLogFile(*os.Stdout)
-
-	GetManager().GetAccessLogFileWriter().Write([]byte("Test\n"))
 
 	router := mux.NewRouter()
-	router.NotFoundHandler = http.HandlerFunc(error404)
 	//router.Use()
 
 	cp := CommandProcessorImpl{}
@@ -239,7 +233,6 @@ func command() http.HandlerFunc {
 		t, b := com.GetCustomRequestType(r)
 
 		from := r.RemoteAddr
-
 		response := ""
 		action := ""
 

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"io"
 	"io/ioutil"
 	"log"
@@ -80,6 +81,21 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 	}
 }
 
+//ErrorHandler -
+func ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
+	title := "Error"
+	//message := "Error"
+
+	data := ErrorPage{
+		title:   title,
+		code:    400,
+		message: err.Error(),
+	}
+
+	tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
+	tmpl.Execute(w, data)
+}
+
 //GetLog - GetLog from Module
 func (mc *ModuleConfig) GetLog() string {
 
@@ -108,6 +124,14 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 		path = mc.BINDING.PATH[0].FROM
 	}
 	return com.Server{IP: com.IP(mc.BINDING.ADDRESS), Path: com.Path(path), Port: com.Port(mc.BINDING.PORT), Protocol: com.Protocol(mc.BINDING.PROTOCOL)}
+}
+
+//Handle404Status - Throw err when proxied response status is 404
+func Handle404Status(res *http.Response) error {
+	if res.StatusCode == 404 {
+		return errors.New("404 error from the host")
+	}
+	return nil
 }
 
 //HookAll - Create all binding between module config address and router server
@@ -216,6 +240,8 @@ func ReverseProxy(modName string, r Route) http.HandlerFunc {
 						req.Header.Set("User-Agent", "")
 					}
 				}
+				proxy.ErrorHandler = ErrorHandler
+				proxy.ModifyResponse = Handle404Status
 				proxy.ServeHTTP(w, re)
 			}
 		} else {
@@ -241,7 +267,7 @@ func ReverseProxy(modName string, r Route) http.HandlerFunc {
 				message: message,
 			}
 
-			tmpl := template.Must(template.ParseFiles("./resources/html/404.html"))
+			tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
 			tmpl.Execute(w, data)
 		}
 	}
