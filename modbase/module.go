@@ -199,7 +199,9 @@ func (mod *ModuleImpl) Register(method string, path string, handler http.Handler
 		}
 
 		//TODO CHECK IF DISABLE SERVER RESOURCES
-		r.PathPrefix(path + mod.ResourcePath).Handler(http.FileServer(http.Dir("./" + mod.ResourcePath)))
+		r.PathPrefix(path).Handler(http.FileServer(http.Dir("./" + mod.ResourcePath)))
+		//regexp.PathPrefix("/").Handler(http.FileServer(http.Dir("./layout/")))
+		//r.Static(path+mod.ResourcePath, "/"+mod.ResourcePath)
 	}
 	GetModManager().SetRouter(r)
 }
