@@ -141,6 +141,7 @@ func (mod *ModuleImpl) Run() {
 func (mod *ModuleImpl) Init() {
 
 	r := mux.NewRouter()
+	r.StrictSlash(true)
 	//r.Use(logger.SetLogger(), gin.Recovery())
 
 	GetModManager().SetRouter(r)
@@ -212,7 +213,6 @@ func (mod *ModuleImpl) serve() {
 
 	r := GetModManager().GetRouter()
 	s := GetModManager().GetMod().Server
-	r.StrictSlash(true)
 	r.HandleFunc("/cmd", cmd)
 	r.NotFoundHandler = r.NewRoute().HandlerFunc(http.NotFound).GetHandler()
 
@@ -259,7 +259,6 @@ func (mod *ModuleImpl) serve() {
 	server.Serve(listener)
 
 	GetModManager().SetServer(server)
-	GetModManager().SetRouter(r)
 
 	done := make(chan bool)
 	go func() {
