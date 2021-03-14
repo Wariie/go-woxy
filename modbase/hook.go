@@ -46,8 +46,8 @@ func cmd(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		response += err.Error()
 	}
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(response))
-	w.WriteHeader(200)
 }
 
 func shutdown(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error) {

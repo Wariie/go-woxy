@@ -132,7 +132,7 @@ func (mod *ModuleImpl) SetHubPath(path string) {
 //Run - start module function
 func (mod *ModuleImpl) Run() {
 	log.Println("RUN - ", mod.Name)
-	if mod.connectToHub() || mod.Mode == "Test" {
+	if mod.Mode == "Test" || mod.connectToHub() {
 		mod.serve()
 	}
 }
