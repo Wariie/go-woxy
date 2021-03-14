@@ -212,6 +212,7 @@ func (mod *ModuleImpl) serve() {
 
 	r := GetModManager().GetRouter()
 	s := GetModManager().GetMod().Server
+	r.StrictSlash(true)
 	r.HandleFunc("/cmd", cmd)
 	r.NotFoundHandler = r.NewRoute().HandlerFunc(http.NotFound).GetHandler()
 
