@@ -222,7 +222,10 @@ func (mod *ModuleImpl) serve() {
 		shutdownReq: make(chan bool),
 	}
 
-	go checkHubRunning(mod.HubServer, mod)
+	//IF TEST MODE DON'T LAUNCH HUB CHECKING
+	if mod.Mode != "Test" {
+		go checkHubRunning(mod.HubServer, mod)
+	}
 
 	var listener net.Listener
 
@@ -275,19 +278,20 @@ func checkHubRunning(hubServer com.Server, mod *ModuleImpl) {
 
 	for {
 		cr := com.CommandRequest{}
-		cr.Generate("Ping", "hub", "hub", mod.Secret)
+		cr.Generate("Ping", "hub", mod.Name, mod.Secret)
 		body, err := com.SendRequest(hubServer, &cr, false)
 		if !strings.Contains(body, "Pong") || err != nil {
 			if retry > 15 {
 				log.Fatalf("Hub not responding after " + strconv.Itoa(retry) + " retries")
 			}
+			time.Sleep(time.Second)
 			log.Println("Cannot access hub : not responding ")
 			retry++
 		} else {
 			retry = 0
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(time.Minute)
 	}
 }
 
