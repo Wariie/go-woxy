@@ -197,7 +197,6 @@ func (mod *ModuleImpl) Register(method string, path string, handler http.Handler
 		if len(path) > 1 {
 			path += "/"
 		}
-		//r.HTMLRender = ginview.Default()
 		//r.Static(path+mod.ResourcePath, "/"+mod.ResourcePath)
 	}
 	GetModManager().SetRouter(r)
@@ -209,6 +208,9 @@ func (mod *ModuleImpl) serve() {
 	r := GetModManager().GetRouter()
 	s := GetModManager().GetMod().Server
 	r.HandleFunc("/cmd", cmd)
+
+	//TODO CHECK IF DISABLE SERVER RESOURCES
+	r.PathPrefix(mod.ResourcePath).Handler(http.FileServer(http.Dir("./" + mod.ResourcePath)))
 
 	server := &HttpServer{
 		Server: http.Server{
