@@ -141,7 +141,7 @@ func (mod *ModuleImpl) Run() {
 func (mod *ModuleImpl) Init() {
 
 	r := mux.NewRouter()
-	//r.StrictSlash(true)
+	r.StrictSlash(true)
 
 	//TODO SET LOGGER
 	//r.Use(logger.SetLogger(), gin.Recovery())
