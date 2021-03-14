@@ -31,7 +31,7 @@
       binding:
         path: 
           - from: '/'
-            to: '/home'
+            to: '/'
         port: 2985
     favicon:
       types: 'bind'

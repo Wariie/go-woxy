@@ -138,6 +138,8 @@ func shutdownModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (st
 			response = "Success"
 			mc.STATE = Stopped
 			GetManager().GetSupervisor().Remove(mc.NAME)
+		} else {
+			response += " " + err.Error()
 		}
 	} else {
 		response = "GO-WOXY Core - Stopping"
@@ -177,19 +179,10 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 
 func startModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	response := ""
-	mods := GetManager().GetConfig().MODULES
-	var mo ModuleConfig
-	c := (*r).(*com.CommandRequest).Content
-	for m := range mods {
-		if m == c {
-			mo = mods[m]
-			break
-		}
-	}
 
 	var err error
-	if mo.STATE != Online {
-		err = mo.Setup(GetManager().GetRouter(), false, GetManager().GetConfig().MODDIR)
+	if mc.STATE != Online {
+		err = mc.Setup(GetManager().GetRouter(), false, GetManager().GetConfig().MODDIR)
 		if err == nil {
 			response += "Success"
 		} else {

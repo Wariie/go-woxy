@@ -87,9 +87,9 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	//message := "Error"
 
 	data := ErrorPage{
-		title:   title,
-		code:    400,
-		message: err.Error(),
+		Title:   title,
+		Code:    400,
+		Message: err.Error(),
 	}
 
 	tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
@@ -218,6 +218,8 @@ func ReverseProxy(modName string, r Route) http.HandlerFunc {
 					if r.FROM != "/" {
 						i := strings.Index(path, r.FROM)
 						path = path[i+len(r.FROM):]
+					} else {
+						log.Println(path)
 					}
 
 					if r.TO != "/" && len(r.TO) > 1 && !strings.Contains(path, r.TO) {
@@ -268,9 +270,9 @@ func ReverseProxy(modName string, r Route) http.HandlerFunc {
 			}
 
 			data := ErrorPage{
-				title:   title,
-				code:    code,
-				message: message,
+				Title:   title,
+				Code:    code,
+				Message: message,
 			}
 
 			tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
@@ -343,9 +345,9 @@ func (mc *ModuleConfig) copySecret() {
 
 //ErrorPage - Content description for go-woxy error page
 type ErrorPage struct {
-	title   string
-	code    int
-	message string
+	Title   string
+	Code    int
+	Message string
 }
 
 /*ModuleConfig - Module configuration */
