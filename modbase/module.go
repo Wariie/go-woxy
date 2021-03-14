@@ -198,7 +198,7 @@ func (mod *ModuleImpl) Register(method string, path string, handler http.Handler
 	if typeM == "WEB" {
 
 		//TODO CHECK IF DISABLE SERVER RESOURCES
-		sub.Handle(mod.ResourcePath+"/", http.StripPrefix(path+mod.ResourcePath+"/", http.FileServer(http.Dir("."+mod.ResourcePath))))
+		sub.Handle(mod.ResourcePath, http.StripPrefix(path+mod.ResourcePath, http.FileServer(http.Dir("."+mod.ResourcePath))))
 	}
 	sub.Handle("/", handler)
 }
