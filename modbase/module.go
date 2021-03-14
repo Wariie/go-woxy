@@ -191,19 +191,20 @@ type HttpServer struct {
 func (mod *ModuleImpl) Register(method string, path string, handler http.HandlerFunc, typeM string) {
 	log.Println("REGISTER - ", path)
 	r := GetModManager().GetRouter()
-	r.Handle(path, handler)
+
+	sub := r.PathPrefix(path).Subrouter()
 
 	if typeM == "WEB" {
 		if len(path) > 1 {
 			path += "/"
 		}
-
 		//TODO CHECK IF DISABLE SERVER RESOURCES
-		r.PathPrefix(path).Handler(http.StripPrefix(path, http.FileServer(http.Dir("./"+mod.ResourcePath))))
+		sub.Handle(mod.ResourcePath, http.StripPrefix(path+mod.ResourcePath, http.FileServer(http.Dir("./"+mod.ResourcePath))))
 		//regexp.PathPrefix("/").Handler(http.FileServer(http.Dir("./layout/")))
 		//r.Static(path+mod.ResourcePath, "/"+mod.ResourcePath)
 	}
-	GetModManager().SetRouter(r)
+	sub.Handle("/", handler)
+	//GetModManager().SetRouter(r)
 }
 
 /*serve -  */
