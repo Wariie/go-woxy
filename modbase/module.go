@@ -141,7 +141,9 @@ func (mod *ModuleImpl) Run() {
 func (mod *ModuleImpl) Init() {
 
 	r := mux.NewRouter()
-	r.StrictSlash(true)
+	//r.StrictSlash(true)
+
+	//TODO SET LOGGER
 	//r.Use(logger.SetLogger(), gin.Recovery())
 
 	GetModManager().SetRouter(r)
@@ -188,8 +190,9 @@ type HttpServer struct {
 	reqCount    uint32
 }
 
+//TODO ADD CUSTOM LOGGING
 //Register - register http handler for path
-func (mod *ModuleImpl) Register(method string, path string, handler http.HandlerFunc, typeM string) {
+func (mod *ModuleImpl) Register(path string, handler http.HandlerFunc, typeM string) {
 	log.Println("REGISTER - ", path)
 	r := GetModManager().GetRouter()
 	main := r.PathPrefix(path).Subrouter()
