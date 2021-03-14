@@ -2,14 +2,19 @@ package core
 
 import (
 	"bufio"
+	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/Wariie/go-woxy/tools"
 	"github.com/gorilla/mux"
@@ -110,6 +115,10 @@ func (c *Config) loadModules() {
 	//INIT MODULE DIRECTORY
 	wd, err := os.Getwd()
 
+	if err != nil {
+		log.Fatalln("GO-WOXY Core - Error opening $pwd : ", err)
+	}
+
 	err = os.Mkdir(wd+string(os.PathSeparator)+c.MODDIR, os.ModeDir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -141,19 +150,25 @@ func initSupervisor() {
 	go s.Supervise()
 }
 
-func (c *Config) configAndServe(router *mux.Router) error {
+func (c *Config) configAndServe(router *mux.Router) {
 	path := ""
 	if len(c.SERVER.PATH) > 0 {
 		path = c.SERVER.PATH[0].FROM
 	}
 	log.Println("GO-WOXY Core - Serving at " + c.SERVER.PROTOCOL + "://" + c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path)
 
-	var s http.Server
-
-	s = http.Server{
-		Addr:    c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
-		Handler: router,
+	var s = HttpServer{
+		Server: http.Server{
+			Addr:         c.SERVER.ADDRESS + ":" + c.SERVER.PORT + path,
+			Handler:      router,
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+		},
+		shutdownReq: make(chan bool),
 	}
+
+	var listener net.Listener
+	var err error
 
 	//CHECK FOR CERTIFICATE TO TRY TLS CONFIG
 	if c.SERVER.CERT != "" && c.SERVER.CERT_KEY != "" {
@@ -161,10 +176,36 @@ func (c *Config) configAndServe(router *mux.Router) error {
 		if err != nil {
 			log.Fatalln("GO-WOXY Core - Error creating tls config : ", err)
 		}
-		s.TLSConfig = tlsConfig
-		return s.ListenAndServeTLS(c.SERVER.CERT, c.SERVER.CERT_KEY)
+
+		listener, err = tls.Listen("tcp", c.SERVER.ADDRESS+":"+c.SERVER.PORT+path, tlsConfig)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+	} else {
+		listener, err = net.Listen("tcp", c.SERVER.ADDRESS+":"+c.SERVER.PORT+path)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
-	return s.ListenAndServe()
+
+	GetManager().SetServer(&s)
+
+	done := make(chan bool)
+	go func() {
+		err := s.Serve(listener)
+		if err != nil {
+			log.Printf("GO-WOXY Core - %v", err)
+		}
+		done <- true
+	}()
+
+	//wait shutdown
+	s.WaitShutdown()
+
+	<-done
+	log.Printf("GO-WOXY Core - Stopped")
 }
 
 func (c *Config) generateSecret() {
@@ -205,4 +246,35 @@ func (c *Config) motd() {
 		log.Println(scanner.Text())
 	}
 	log.Println("------------------------------------------------------------ ")
+}
+
+type HttpServer struct {
+	http.Server
+	shutdownReq chan bool
+	reqCount    uint32
+}
+
+func (s *HttpServer) WaitShutdown() {
+	irqSig := make(chan os.Signal, 1)
+	signal.Notify(irqSig, syscall.SIGINT, syscall.SIGTERM)
+
+	//Wait interrupt or shutdown request through /shutdown
+	select {
+	case sig := <-irqSig:
+		log.Printf("GO-WOXY Core - Shutdown request (signal: %v)", sig)
+	case sig := <-s.shutdownReq:
+		log.Printf("GO-WOXY Core - Shutdown request (/shutdown %v)", sig)
+	}
+
+	log.Printf("GO-WOXY Core - Stoping http server ...")
+
+	//Create shutdown context with 10 second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	//shutdown the server
+	err := s.Shutdown(ctx)
+	if err != nil {
+		log.Printf("Shutdown request error: %v", err)
+	}
 }

@@ -15,6 +15,7 @@ type manager struct {
 	router        *mux.Router
 	cp            *CommandProcessorImpl
 	s             *Supervisor
+	server        *HttpServer
 	roles         []Role
 	accessLogFile *os.File
 }
@@ -52,6 +53,18 @@ func (sm *manager) SetRouter(r *mux.Router) {
 	sm.mux.Lock()
 	defer sm.mux.Unlock()
 	sm.router = r
+}
+
+func (sm *manager) GetServer() *HttpServer {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
+	return sm.server
+}
+
+func (sm *manager) SetServer(s *HttpServer) {
+	sm.mux.Lock()
+	defer sm.mux.Unlock()
+	sm.server = s
 }
 
 func (sm *manager) GetCommandProcessor() *CommandProcessorImpl {

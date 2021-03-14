@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -107,10 +106,6 @@ func (cp *CommandProcessorImpl) Init() {
 
 /* ---------------------------DEFAULT COMMANDS----------------------------*/
 
-func commandsModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
-	return defaultForwardCommand(r, mc, args...)
-}
-
 func defaultForwardCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
 	return com.SendRequest(mc.GetServer("/cmd"), *r, false)
 }
@@ -135,11 +130,20 @@ func logModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string,
 }
 
 func shutdownModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
-	response, err := defaultForwardCommand(r, mc, args...)
-	if strings.Contains(response, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
-		response = "Success"
-		mc.STATE = Stopped
-		GetManager().GetSupervisor().Remove(mc.NAME)
+	var response string
+	var err error
+	if mc.NAME != "hub" {
+		response, err := defaultForwardCommand(r, mc, args...)
+		if strings.Contains(response, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
+			response = "Success"
+			mc.STATE = Stopped
+			GetManager().GetSupervisor().Remove(mc.NAME)
+		}
+	} else {
+		response = "GO-WOXY Core - Stopping"
+		go func() {
+			GetManager().GetServer().shutdownReq <- true
+		}()
 	}
 	return response, err
 }
@@ -161,18 +165,12 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 			}
 		}
 		mc.STATE = Stopped
-		if err := mc.Setup(GetManager().GetRouter(), false, GetManager().GetConfig().MODDIR); err != nil {
-			response += "Error :" + err.Error()
-			log.Println(err)
-		} else {
+		if err := mc.Setup(GetManager().GetRouter(), false, GetManager().GetConfig().MODDIR); err == nil {
 			response += "Success"
 			mc.STATE = Stopped
 		}
 	} else {
 		response += "Error :" + rqtS
-		if err != nil {
-			response += " - " + err.Error()
-		}
 	}
 	return response, err
 }

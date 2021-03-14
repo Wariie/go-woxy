@@ -37,7 +37,7 @@ func FileBind(fileName string, r Route) http.HandlerFunc {
 func (mc *ModuleConfig) checkModuleRunning() bool {
 	try := 0
 	b := false
-	for b == false && try < 5 {
+	for !b && try < 5 {
 		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) && !mc.EXE.REMOTE {
 			b = checkPidRunning(mc)
 		}
@@ -103,8 +103,14 @@ func (mc *ModuleConfig) GetLog() string {
 	file, err := os.Open(GetManager().GetConfig().MODDIR + mc.NAME + "/log.log")
 	if err != nil {
 		log.Fatalln("GO-WOXY Core - Error reading log file :", err)
+		return ""
 	}
+
 	b, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Println("GO-WOXY Core - Error reading module log file : " + err.Error())
+		return ""
+	}
 	return string(b)
 }
 

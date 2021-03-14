@@ -1,12 +1,13 @@
 package modbase
 
 import (
+	"net/http"
+
 	"github.com/Wariie/go-woxy/com"
-	"github.com/gin-gonic/gin"
 )
 
-func cmd(c *gin.Context) {
-	t, b := com.GetCustomRequestType(c.Request)
+func cmd(w http.ResponseWriter, r *http.Request) {
+	t, b := com.GetCustomRequestType(r)
 
 	mod := GetModManager().GetMod()
 
@@ -27,14 +28,14 @@ func cmd(c *gin.Context) {
 
 			switch sr.Command {
 			case "Shutdown":
-				response, err = shutdown(&p, c, mod)
+				response, err = shutdown(&p, w, r, mod)
 			case "Ping":
-				response, err = ping(&p, c, mod)
+				response, err = ping(&p, w, r, mod)
 			default:
 				for k := range mod.CustomCommands {
 					if k == sr.Command {
 
-						response, err = mod.CustomCommands[k](&p, c, mod)
+						response, err = mod.CustomCommands[k](&p, w, r, mod)
 						break
 					}
 				}
@@ -45,14 +46,15 @@ func cmd(c *gin.Context) {
 	if err != nil {
 		response += err.Error()
 	}
-	c.String(200, response)
+	w.Write([]byte(response))
+	w.WriteHeader(200)
 }
 
-func shutdown(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
-	go GetModManager().Shutdown(c)
+func shutdown(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error) {
+	go GetModManager().Shutdown(w)
 	return "SHUTTING DOWN " + mod.Name, nil
 }
 
-func ping(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error) {
+func ping(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error) {
 	return mod.Name + " ALIVE", nil
 }

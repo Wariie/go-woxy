@@ -26,7 +26,7 @@ func launchServer() {
 	GetManager().GetRouter().PathPrefix("/connect").Handler(handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), connect()))
 	GetManager().GetRouter().PathPrefix("/cmd").Handler(handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), command()))
 
-	log.Fatalln("GO-WOXY Core - Error serving :", GetManager().GetConfig().configAndServe(GetManager().router))
+	GetManager().GetConfig().configAndServe(GetManager().router)
 }
 
 func initCore(config Config) {
@@ -88,8 +88,7 @@ func connect() http.HandlerFunc {
 		cr.Decode(buf.Bytes())
 
 		//GET THE MODULE TARGET
-		var modC ModuleConfig
-		modC = GetManager().GetConfig().MODULES[cr.Name]
+		var modC ModuleConfig = GetManager().GetConfig().MODULES[cr.Name]
 
 		var resultW []byte
 		if reflect.DeepEqual(modC, ModuleConfig{}) {
@@ -154,14 +153,6 @@ func hashMatchSecretHash(hash string) bool {
 	return r
 }
 
-func checkModuleRequestAuth(cr com.ConnexionRequest) bool {
-	rs := hashMatchSecretHash(cr.Secret)
-	if rs && cr.ModHash != "" {
-		return true
-	}
-	return false
-}
-
 func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 	tm := m
 
@@ -188,8 +179,7 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 	cp := GetManager().GetCommandProcessor()
 	var crr com.CommandRequest
 	crr.Generate("Ping", m.PK, m.NAME, GetManager().GetConfig().SECRET)
-	var c interface{}
-	c = &crr
+	var c interface{} = &crr
 	p := (c).(com.Request)
 
 	time.Sleep(time.Second * 10)
@@ -229,7 +219,6 @@ func registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
 // Command - Access point to handle module commands
 func command() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		log.Print("GO-WOXY Core - Command")
 		t, b := com.GetCustomRequestType(r)
 
 		from := r.RemoteAddr
@@ -258,13 +247,12 @@ func command() http.HandlerFunc {
 					var cr com.CommandRequest
 					cr.Decode(b)
 					cp := GetManager().GetCommandProcessor()
-					var c interface{}
-					c = &cr
+					var c interface{} = &cr
 					p := (c).(com.Request)
 					res, e := cp.Run(cr.Command, &p, &mc, "")
 					response += res
 					if e != nil {
-						response += e.Error()
+						response = response + " " + e.Error()
 					}
 					action += "Command [ " + cr.Command + " ]"
 				}
@@ -283,7 +271,7 @@ func command() http.HandlerFunc {
 		action += " - Result : " + response
 
 		//LOG COMMAND RESULT
-		log.Println("From", from, ':', action)
+		log.Println("GO-WOXY Core - From", from, ':', action)
 
 		w.WriteHeader(200)
 		w.Write([]byte(response))
