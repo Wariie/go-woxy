@@ -205,7 +205,7 @@ func (mod *ModuleImpl) Register(path string, handler http.HandlerFunc, typeM str
 		//TODO CHECK IF DISABLE SERVER RESOURCES
 		main.PathPrefix(mod.ResourcePath).Handler(http.StripPrefix(path+mod.ResourcePath, http.FileServer(http.Dir("."+mod.ResourcePath))))
 	}
-	main.PathPrefix("").HandlerFunc(handler)
+	main.PathPrefix("/").HandlerFunc(handler)
 }
 
 /*serve -  */
