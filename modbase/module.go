@@ -273,7 +273,6 @@ func (mod *ModuleImpl) serve() {
 	server.WaitShutdown()
 
 	<-done
-	log.Printf("DONE!")
 }
 
 func checkHubRunning(hubServer com.Server, mod *ModuleImpl) {

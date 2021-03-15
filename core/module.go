@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/Wariie/go-woxy/com"
 	auth "github.com/abbot/go-http-auth"
@@ -32,22 +33,6 @@ func FileBind(fileName string, r Route) http.HandlerFunc {
 			w.Write([]byte("GO-WOXY Core - Error Bind - " + fileName + " was not found"))
 		}
 	}
-}
-
-func (mc *ModuleConfig) checkModuleRunning() bool {
-	try := 0
-	b := false
-	for !b && try < 5 {
-		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) && !mc.EXE.REMOTE {
-			b = checkPidRunning(mc)
-		}
-
-		if !b {
-			b = checkModulePing(mc)
-		}
-		try++
-	}
-	return b
 }
 
 //Download - Download module from repository ( git clone )
@@ -232,6 +217,7 @@ func ReverseProxy(modName string, r Route) http.HandlerFunc {
 				if err != nil {
 					log.Println(err) //TODO ERROR HANDLING
 				}
+				log.Println(mod.NAME + " - " + urlProxy.String())
 
 				//TODO ADD CUSTOM HEADERS HERE
 
@@ -293,7 +279,7 @@ func (mc *ModuleConfig) Setup(router *mux.Router, hook bool, modulePath string) 
 	}
 
 	//IF CONTAINS EXE CONFIG && NOT REMOTE
-	if !mc.EXE.REMOTE && !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+	if !mc.EXE.REMOTE {
 		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
 			mc.Download(modulePath)
 		}
@@ -372,6 +358,7 @@ type ModuleExecConfig struct {
 	REMOTE     bool
 	SRC        string
 	SUPERVISED bool
+	LastPing   time.Time
 }
 
 /*ServerConfig - Server configuration*/

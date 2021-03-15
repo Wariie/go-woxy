@@ -114,6 +114,9 @@ func pingCommand(r *com.Request, mc *ModuleConfig, args ...string) (string, erro
 	if mc.NAME != "hub" {
 		return com.SendRequest(mc.GetServer("/cmd"), *r, false)
 	}
+
+	mc.EXE.LastPing = time.Now()
+
 	return "Pong", nil
 }
 
@@ -161,16 +164,19 @@ func restartModuleCommand(r *com.Request, mc *ModuleConfig, args ...string) (str
 	cr.Command = "Shutdown"
 	rqtS, err := com.SendRequest(mc.GetServer("/cmd"), cr, false)
 	if strings.Contains(rqtS, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
-		if mc.pid != 0 {
-			for mc.checkModuleRunning() {
-				time.Sleep(time.Second)
-			}
+
+		cr.Command = "Ping"
+		rqtS, err = com.SendRequest(mc.GetServer("/cmd"), cr, false)
+		for strings.Contains(rqtS, "ALIVE"+mc.NAME) {
+			time.Sleep(time.Second)
 		}
+
 		mc.STATE = Stopped
 		if err := mc.Setup(GetManager().GetRouter(), false, GetManager().GetConfig().MODDIR); err == nil {
 			response += "Success"
 			mc.STATE = Stopped
 		}
+
 	} else {
 		response += "Error :" + rqtS
 	}

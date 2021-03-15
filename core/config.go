@@ -121,16 +121,18 @@ func (c *Config) loadModules() {
 
 	err = os.Mkdir(wd+string(os.PathSeparator)+c.MODDIR, os.ModeDir)
 	if err != nil {
+		errMsg := "GO-WOXY Core - Error creating mods folder : "
 		if os.IsNotExist(err) {
-			log.Fatalln("GO-WOXY Core - Error creating mods folder : ", err)
+			log.Fatalln(errMsg, err)
 		} else if os.IsExist(err) {
-			log.Println("GO-WOXY Core - Error creating mods folder : ", err)
+			log.Println(errMsg, err)
 		}
 	}
 
 	Router := GetManager().GetRouter()
 	for k := range c.MODULES {
 		mod := c.MODULES[k]
+
 		err := mod.Setup(Router, true, c.MODDIR)
 		if err != nil {
 			log.Fatalln("GO-WOXY Core - Error setup module ", mod.NAME, " : ", err)

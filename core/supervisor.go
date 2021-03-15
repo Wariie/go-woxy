@@ -1,13 +1,8 @@
 package core
 
 import (
-	"errors"
-	"strings"
+	"log"
 	"time"
-
-	"github.com/mitchellh/go-ps"
-
-	"github.com/Wariie/go-woxy/com"
 )
 
 //Supervisor -
@@ -44,14 +39,15 @@ func (s *Supervisor) Supervise() {
 			}
 			//CHECK MODULE RUNNING
 			m := GetManager().GetConfig().MODULES[s.listModule[k]]
-			if m.checkModuleRunning() {
-				if m.STATE != Online && m.STATE != Loading && m.STATE != Downloaded {
-					m.STATE = Online
-				}
-				//ELSE SET STATE TO UNKNOWN
-			} else if m.STATE != Loading && m.STATE != Downloaded {
+			timeBeforeLastPing := time.Until(m.EXE.LastPing)
+
+			if m.STATE != Loading && m.STATE != Downloaded && timeBeforeLastPing.Minutes() > 5 {
 				m.STATE = Unknown
+				//TODO BEST LOGGING
+				log.Println("GO-WOXY Core - Module " + m.NAME + " not pinging since 5 minutes")
 				s.Remove(m.NAME)
+			} else if m.STATE != Online && m.STATE != Loading && m.STATE != Downloaded {
+				m.STATE = Online
 			}
 			GetManager().SaveModuleChanges(&m)
 		}
@@ -62,37 +58,4 @@ func (s *Supervisor) Supervise() {
 //Reload - Reload supervisor
 func (s *Supervisor) Reload() {
 	defer s.Supervise()
-}
-
-func checkModulePing(mc *ModuleConfig) bool {
-	var cr com.CommandRequest
-	cr.Generate("Ping", mc.PK, mc.NAME, GetManager().GetConfig().SECRET)
-	resp, err := com.SendRequest(mc.GetServer("/cmd"), &cr, false)
-	if err == nil && strings.Contains(resp, mc.NAME+" ALIVE") {
-		return true
-	}
-	return false
-}
-
-func findProcess(pid int) (int, string, error) {
-	pName := ""
-	err := errors.New("not found")
-	processes, _ := ps.Processes()
-
-	for i := range processes {
-		if processes[i].Pid() == pid {
-			pName = processes[i].Executable()
-			err = nil
-			break
-		}
-	}
-	return pid, pName, err
-}
-
-func checkPidRunning(mc *ModuleConfig) bool {
-	p, n, e := findProcess(mc.pid)
-	if p != 0 && n != "" && e == nil {
-		return true
-	}
-	return false
 }
