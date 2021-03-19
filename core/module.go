@@ -20,7 +20,6 @@ import (
 	"github.com/Wariie/go-woxy/com"
 	auth "github.com/abbot/go-http-auth"
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
 	"github.com/shirou/gopsutil/process"
 )
 
@@ -85,7 +84,7 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 func (mc *ModuleConfig) GetLog() string {
 
 	//TODO ADD REMOTE COMMAND TO GET LOG
-	file, err := os.Open(GetManager().GetConfig().MODDIR + mc.NAME + "/log.log")
+	file, err := os.Open(mc.EXE.BIN + "/log.log")
 	if err != nil {
 		log.Fatalln("GO-WOXY Core - Error reading log file :", err)
 		return ""
@@ -126,12 +125,12 @@ func Handle404Status(res *http.Response) error {
 }
 
 //HookAll - Create all binding between module config address and router server
-func (mc *ModuleConfig) HookAll(router *mux.Router) error {
+func (core *Core) HookAll(mc *ModuleConfig) error {
 	paths := mc.BINDING.PATH
 	var err error
 
 	for i := range paths {
-		err = mc.Hook(router, paths[i], "Any")
+		err = core.Hook(mc, paths[i], "Any")
 		if err != nil {
 			log.Println("GO-WOXY Core - Error during module path hooking : " + err.Error())
 			return err
@@ -141,7 +140,7 @@ func (mc *ModuleConfig) HookAll(router *mux.Router) error {
 }
 
 //Hook - Create a binding between module and router server
-func (mc *ModuleConfig) Hook(router *mux.Router, r Route, typeR string) error {
+func (core *Core) Hook(mc *ModuleConfig, r Route, typeR string) error {
 	if len(r.FROM) > 0 {
 		var handler http.Handler
 		if mc.AUTH.ENABLED {
@@ -151,16 +150,16 @@ func (mc *ModuleConfig) Hook(router *mux.Router, r Route, typeR string) error {
 			} else {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
 				authenticator := auth.NewBasicAuthenticator("guilhem-mateo.fr mod-manager", htpasswd)
-				handler = ReverseProxyAuth(authenticator, mc.NAME, r)
+				handler = core.ReverseProxyAuth(authenticator, mc.NAME, r)
 			}
 		} else if strings.Contains(mc.TYPES, "bind") {
 			handler = FileBind(mc.BINDING.ROOT, r)
 		} else {
-			handler = ReverseProxy(mc.NAME, r)
+			handler = core.ReverseProxy(mc.NAME, r)
 		}
 
 		if handler != nil {
-			router.PathPrefix(r.FROM).Handler(handlers.CombinedLoggingHandler(GetManager().GetAccessLogFileWriter(), handler))
+			core.router.PathPrefix(r.FROM).Handler(handlers.CombinedLoggingHandler(core.accessLogFile, handler))
 			log.Println("GO-WOXY Core - Module " + mc.NAME + " - Route created : " + r.FROM + " > " + r.TO)
 		} else {
 			log.Println("GO-WOXY Core - Error hooking module " + mc.NAME + " - Route : " + r.FROM + " > " + r.TO)
@@ -171,7 +170,7 @@ func (mc *ModuleConfig) Hook(router *mux.Router, r Route, typeR string) error {
 }
 
 // ReverseProxyAuth - Authentication middleware
-func ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) http.HandlerFunc {
+func (core *Core) ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) http.HandlerFunc {
 	return func(w http.ResponseWriter, re *http.Request) {
 		user := a.CheckAuth(re)
 		if user == "" {
@@ -180,14 +179,14 @@ func ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) http.HandlerFu
 			return
 		}
 		w.Header().Set("user", user)
-		ReverseProxy(modName, r)(w, re)
+		core.ReverseProxy(modName, r)(w, re)
 	}
 }
 
 //ReverseProxy - reverse proxy for mod
-func ReverseProxy(modName string, r Route) http.HandlerFunc {
+func (core *Core) ReverseProxy(modName string, r Route) http.HandlerFunc {
 	return func(w http.ResponseWriter, re *http.Request) {
-		mod := GetManager().GetModule(modName)
+		mod := core.GetModule(modName)
 
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
@@ -268,10 +267,10 @@ func ReverseProxy(modName string, r Route) http.HandlerFunc {
 }
 
 //Setup - Setup module from config
-func (mc *ModuleConfig) Setup(router *mux.Router, hook bool, modulePath string) error {
+func (core *Core) Setup(mc *ModuleConfig, hook bool, modulePath string) error {
 	log.Println("GO-WOXY Core - Setup mod : ", mc)
 	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
-		err := mc.HookAll(router)
+		err := core.HookAll(mc)
 		if err != nil {
 			log.Println(err)
 		}

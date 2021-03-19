@@ -8,6 +8,7 @@ import (
 //Supervisor -
 type Supervisor struct {
 	listModule []string
+	core       *Core
 }
 
 //Remove -
@@ -31,6 +32,7 @@ func (s *Supervisor) Add(m string) {
 func (s *Supervisor) Supervise() {
 	//ENDLESS LOOP
 	for {
+		var mod *ModuleConfig
 		//FOR EACH REGISTERED MODULE
 		for k := range s.listModule {
 			if k >= len(s.listModule) {
@@ -38,18 +40,26 @@ func (s *Supervisor) Supervise() {
 				return
 			}
 			//CHECK MODULE RUNNING
-			m := GetManager().GetConfig().MODULES[s.listModule[k]]
-			timeBeforeLastPing := time.Until(m.EXE.LastPing)
 
-			if m.STATE != Loading && m.STATE != Downloaded && timeBeforeLastPing.Minutes() > 5 {
-				m.STATE = Unknown
-				//TODO BEST LOGGING
-				log.Println("GO-WOXY Core - Module " + m.NAME + " not pinging since 5 minutes")
-				s.Remove(m.NAME)
-			} else if m.STATE != Online && m.STATE != Loading && m.STATE != Downloaded {
-				m.STATE = Online
+			for _, m := range s.core.GetConfig().modulesList {
+				if m.NAME == s.listModule[k] {
+					mod = m
+					break
+				}
 			}
-			GetManager().SaveModuleChanges(&m)
+
+			timeBeforeLastPing := time.Until(mod.EXE.LastPing)
+
+			if mod.STATE != Loading && mod.STATE != Downloaded && timeBeforeLastPing.Minutes() > 5 {
+				mod.STATE = Unknown
+				//TODO BEST LOGGING
+				log.Println("GO-WOXY Core - Module " + mod.NAME + " not pinging since 5 minutes")
+				s.Remove(mod.NAME)
+			} else if mod.STATE != Online && mod.STATE != Loading && mod.STATE != Downloaded {
+				mod.STATE = Online
+			}
+
+			//s.core.SaveModuleChanges(&m)
 		}
 		time.Sleep(time.Millisecond * 10)
 	}
@@ -58,4 +68,8 @@ func (s *Supervisor) Supervise() {
 //Reload - Reload supervisor
 func (s *Supervisor) Reload() {
 	defer s.Supervise()
+}
+
+func (s *Supervisor) SetCore(core *Core) {
+	s.core = core
 }

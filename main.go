@@ -8,9 +8,11 @@ import (
 
 func main() {
 
-	if len(os.Args) == 2 {
+	/*if len(os.Args) == 2 {
 		core.LaunchCore(os.Args[1])
 	} else {
 		core.LaunchCore("")
-	}
+	}*/
+	c := core.Core{}
+	c.GoWoxy(os.Args[1])
 }
