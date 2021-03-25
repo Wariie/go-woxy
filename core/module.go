@@ -1,8 +1,9 @@
 package core
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"errors"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"github.com/Wariie/go-woxy/com"
+	"github.com/Wariie/go-woxy/tools"
 	auth "github.com/abbot/go-http-auth"
 	"github.com/gorilla/handlers"
 	"github.com/shirou/gopsutil/process"
@@ -96,6 +98,17 @@ func (mc *ModuleConfig) GetLog() string {
 		return ""
 	}
 	return string(b)
+}
+
+func (mc *ModuleConfig) ApiKeyMatch(key string) bool {
+	//r := strings.Trim(key, "\n\t") == strings.Trim(core.config.SECRET, "\n\t")
+
+	h := sha256.New()
+	h.Write([]byte(mc.API_KEY))
+	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
+	r := key == hash
+	log.Println("TEST API KEY : RECEIVED ", key, ",HASH", hash, ",GENERATED", mc.API_KEY)
+	return r
 }
 
 //GetPerf - GetPerf from Module
@@ -267,10 +280,10 @@ func (core *Core) ReverseProxy(modName string, r Route) http.HandlerFunc {
 }
 
 //Setup - Setup module from config
-func (core *Core) Setup(mc *ModuleConfig, hook bool, modulePath string) error {
+func (core *Core) Setup(mc ModuleConfig, hook bool, modulePath string) (*ModuleConfig, error) {
 	log.Println("GO-WOXY Core - Setup mod : ", mc)
 	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
-		err := core.HookAll(mc)
+		err := core.HookAll(&mc)
 		if err != nil {
 			log.Println(err)
 		}
@@ -279,15 +292,15 @@ func (core *Core) Setup(mc *ModuleConfig, hook bool, modulePath string) error {
 
 	//IF CONTAINS EXE CONFIG && NOT REMOTE
 	if !mc.EXE.REMOTE {
+		mc.generateApiKey()
 		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
 			mc.Download(modulePath)
+			mc.copyApiKey()
 		}
-		mc.copySecret()
 		mc.STATE = Loading
-		go mc.Start()
 	}
-
-	return nil
+	log.Println(mc.NAME, mc.API_KEY)
+	return &mc, nil
 }
 
 //Start - Start module with config args and auto args
@@ -303,29 +316,34 @@ func (mc *ModuleConfig) Start() {
 
 	cmd := exec.Command(platformParam[0], platformParam[1:]...)
 	cmd.Dir = mc.EXE.BIN
-	output, err := cmd.Output()
-	if err != nil {
+	cmd.Start()
+	mc.pid = cmd.Process.Pid
+	/*if err != nil {
 		log.Println("GO-WOXY Core - Error:", err)
 	}
-	log.Println("GO-WOXY Core - Output :", string(output), err)
+	log.Println("GO-WOXY Core - Output :", string(output), err)*/
 }
 
-func (mc *ModuleConfig) copySecret() {
-	source, err := os.Open(".secret")
-	if err != nil {
-		log.Println("GO-WOXY Core - Error reading generated secret file : ", err)
-	}
-	defer source.Close()
-
-	destination, err := os.Create(mc.EXE.BIN + string(os.PathSeparator) + ".secret")
+func (mc *ModuleConfig) copyApiKey() {
+	destination, err := os.Create("." + string(os.PathSeparator) + mc.EXE.BIN + string(os.PathSeparator) + ".secret")
 	if err != nil {
 		log.Println("GO-WOXY Core - Error creating mod secret file : ", err)
 	}
+
 	defer destination.Close()
-	nBytes, err := io.Copy(destination, source)
+
+	nBytes, err := destination.Write([]byte(mc.API_KEY))
 	if err != nil {
 		log.Println("GO-WOXY Core - Error Copying Secret : ", err, nBytes)
 	}
+}
+
+func (mc *ModuleConfig) generateApiKey() {
+	/* b := []byte(tools.String(64))
+	h := sha256.New()
+	h.Write(b)
+	h.Sum(nil)*/
+	mc.API_KEY = base64.URLEncoding.EncodeToString([]byte(tools.String(64)))
 }
 
 //ErrorPage - Content description for go-woxy error page
@@ -337,6 +355,7 @@ type ErrorPage struct {
 
 /*ModuleConfig - Module configuration */
 type ModuleConfig struct {
+	API_KEY      string
 	AUTH         ModuleAuthConfig
 	BINDING      ServerConfig
 	COMMANDS     []string

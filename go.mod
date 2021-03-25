@@ -18,8 +18,6 @@ require (
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/kr/text v0.2.0 // indirect
-	github.com/mitchellh/go-ps v1.0.0
-	github.com/orcaman/concurrent-map v0.0.0-20210106121528-16402b402231
 	github.com/shirou/gopsutil v3.21.2+incompatible
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.4 // indirect

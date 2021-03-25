@@ -41,9 +41,9 @@ func (s *Supervisor) Supervise() {
 			}
 			//CHECK MODULE RUNNING
 
-			for _, m := range s.core.GetConfig().modulesList {
+			for _, m := range s.core.modulesList {
 				if m.NAME == s.listModule[k] {
-					mod = m
+					mod = &m
 					break
 				}
 			}

@@ -2,14 +2,11 @@ package core
 
 import (
 	"bufio"
-	"crypto/sha256"
-	"encoding/base64"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 
-	"github.com/Wariie/go-woxy/tools"
 	"gopkg.in/yaml.v2"
 )
 
@@ -17,7 +14,6 @@ import (
 type Config struct {
 	ACCESSLOGFILE string
 	MODULES       map[string]ModuleConfig
-	modulesList   []*ModuleConfig
 	MOTD          string
 	NAME          string
 	SECRET        string
@@ -59,11 +55,6 @@ func (c *Config) Load(configPath string) {
 	}
 
 	// Convert map to slice of values.
-
-	for _, mod := range c.MODULES {
-		c.modulesList = append(c.modulesList, &mod)
-	}
-
 	log.Println("GO-WOXY Core - Config file readed")
 }
 
@@ -99,19 +90,6 @@ func (c *Config) checkServer() {
 	//CHECK PORT IF NOT PRESENT -> DEFAULT 2000
 	if c.SERVER.PORT == "" {
 		c.SERVER.PORT = "2000"
-	}
-}
-
-func (c *Config) generateSecret() {
-	if c.SECRET == "" {
-		b := []byte(tools.String(64))
-		err := ioutil.WriteFile(".secret", b, 0644)
-		if err != nil {
-			log.Fatalln("GO-WOXY Core - Error creating secret file : ", err)
-		}
-		h := sha256.New()
-		h.Write(b)
-		c.SECRET = base64.URLEncoding.EncodeToString(h.Sum(nil))
 	}
 }
 

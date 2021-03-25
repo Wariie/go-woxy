@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -32,8 +33,9 @@ import (
 
 //Core - GO-WOXY Core Server
 type Core struct {
+	modulesList   []ModuleConfig
 	mux           sync.Mutex
-	config        Config
+	config        *Config
 	router        *mux.Router
 	cp            *CommandProcessorImpl
 	s             *Supervisor
@@ -45,13 +47,7 @@ type Core struct {
 func (core *Core) GetConfig() Config {
 	core.mux.Lock()
 	defer core.mux.Unlock()
-	return core.config
-}
-
-func (core *Core) SetConfig(c Config) {
-	core.mux.Lock()
-	defer core.mux.Unlock()
-	core.config = c
+	return *core.config
 }
 
 func (core *Core) GetRouter() *mux.Router {
@@ -112,9 +108,9 @@ func (core *Core) GetModule(name string) *ModuleConfig {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 
-	for _, m := range core.config.modulesList {
+	for _, m := range core.modulesList {
 		if m.NAME == name {
-			return m
+			return &m
 		}
 	}
 	return &ModuleConfig{}
@@ -123,9 +119,9 @@ func (core *Core) GetModule(name string) *ModuleConfig {
 func (core *Core) SaveModuleChanges(mc *ModuleConfig) {
 	core.mux.Lock()
 	defer core.mux.Unlock()
-	for _, m := range core.config.modulesList {
+	for i, m := range core.modulesList {
 		if m.NAME == mc.NAME {
-			m = mc
+			core.modulesList[i] = *mc
 			return
 		}
 	}
@@ -134,9 +130,9 @@ func (core *Core) SaveModuleChanges(mc *ModuleConfig) {
 func (core *Core) SearchModWithHash(hash string) *ModuleConfig {
 	core.mux.Lock()
 	defer core.mux.Unlock()
-	for _, m := range core.config.modulesList {
+	for _, m := range core.modulesList {
 		if m.PK == hash {
-			return m
+			return &m
 		}
 	}
 	return &ModuleConfig{NAME: "error"}
@@ -165,11 +161,6 @@ func (core *Core) generateSecret() {
 }
 
 func (core *Core) launchServer() {
-
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-
 	log.Println("GO-WOXY Core - Starting")
 	//AUTHENTICATION & COMMAND ENDPOINT
 
@@ -287,23 +278,36 @@ func (core *Core) loadModules() {
 		}
 	}
 
-	for _, m := range core.config.modulesList {
-		err := core.Setup(m, true, modDirName)
+	for i, m := range core.modulesList {
+		mN, err := core.Setup(m, true, modDirName)
+		core.modulesList[i] = *mN
 		if err != nil {
 			log.Fatalln("GO-WOXY Core - Error setup module ", m.NAME, " : ", err)
 		}
-
-		//modulesList.Set(m.NAME, m)
 	}
 
 	//ADD HUB MODULE FOR COMMAND GESTURE
-	core.config.modulesList = append(core.config.modulesList, &ModuleConfig{NAME: "hub", PK: "hub"})
+	core.modulesList = append(core.modulesList, ModuleConfig{NAME: "hub", PK: "hub"})
+}
+
+func (core *Core) startModules() {
+	time.Sleep(time.Second * 1)
+
+	for i, m := range core.modulesList {
+		m.Start()
+		core.modulesList[i] = m
+	}
 }
 
 func (core *Core) init() {
 
 	//TODO HANDLE TEMPLATE SOURCE DIR
 	//router.LoadHTMLGlob("." + string(os.PathSeparator) + config.RESOURCEDIR + "*" + string(os.PathSeparator) + "*")
+
+	for _, mod := range core.config.MODULES {
+		core.modulesList = append(core.modulesList, mod)
+	}
+
 	core.generateSecret()
 
 	if len(core.config.ACCESSLOGFILE) == 0 {
@@ -329,8 +333,9 @@ func (core *Core) init() {
 
 /*LoadConfigFromPath - Load config file from path */
 func (core *Core) loadConfigFromPath(configPath string) {
-	core.config = Config{}
-	core.config.Load(configPath)
+	cfg := Config{}
+	cfg.Load(configPath)
+	core.config = &cfg
 }
 
 //LaunchCore - start core server
@@ -346,10 +351,13 @@ func (core *Core) GoWoxy(configPath string) {
 	// START MODULE SUPERVISOR
 	core.initSupervisor()
 
-	// STEP 4 LOAD MODULES
-	go core.loadModules()
+	// SETUP MODULES
+	core.loadModules()
 
-	// STEP 5 START SERVER WHERE MODULES WILL REGISTER
+	// BATCH START MODULES
+	go core.startModules()
+
+	// START SERVER WHERE MODULES WILL REGISTER
 	core.launchServer()
 }
 
@@ -360,11 +368,9 @@ func (core *Core) initSupervisor() {
 }
 
 func (core *Core) showMotd() {
-	motd := core.config.GetMotdFileContent()
-	//motd := config.GetMotd()
-	log.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
-	log.Println(motd)
-	log.Println("------------------------------------------------------------ ")
+	fmt.Println(" -------------------- Go-Woxy - V 0.0.1 -------------------- ")
+	fmt.Println(core.config.GetMotdFileContent())
+	fmt.Println("------------------------------------------------------------ ")
 }
 
 func (core *Core) registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
@@ -441,19 +447,19 @@ func (core *Core) connect() http.HandlerFunc {
 
 		//GET THE MODULE TARGET
 		var modC *ModuleConfig
-		for _, m := range core.config.modulesList {
+		for _, m := range core.modulesList {
 			if m.NAME == cr.Name {
-				modC = m
+				modC = &m
 				break
 			}
 		}
 
 		var resultW []byte
-		if modC != nil && len(modC.NAME) > 0 {
+		if modC == nil || len(modC.NAME) <= 0 {
 			//ERROR DURING THE BODY PARSING
 			errMsg := "Error reading ConnexionRequest"
 			log.Println("GO-WOXY Core - " + errMsg)
-			resultW = []byte(errMsg)
+			resultW = []byte(errMsg) //TODO BETTER RESPONSE
 		} else {
 
 			//GET THE REMOTE HOST ADDRESS IF HOST IS EMPTY
@@ -465,7 +471,7 @@ func (core *Core) connect() http.HandlerFunc {
 			//cr.Secret --> API KEY corresponding
 
 			//CHECK SECRET FOR AUTH
-			rs := core.hashMatchSecretHash(cr.Secret)
+			rs := modC.ApiKeyMatch(cr.Secret)
 			if rs && cr.ModHash != "" {
 				go core.registerModule(modC, &cr)
 			} else {
@@ -484,7 +490,6 @@ func (core *Core) connect() http.HandlerFunc {
 			log.Println("GO-WOXY Core - Module", modC.NAME, " failed to respond :", err.Error(), " bytes : ", i)
 		}
 
-		//core.config.MODULES.Set(modC.NAME, modC)
 	}
 }
 
@@ -503,19 +508,19 @@ func (core *Core) command() http.HandlerFunc {
 		action := ""
 
 		//CHECK AUTH ( TODO API KEY)
-		rs := t["Secret"] == core.config.SECRET
 
 		// CHECK ERROR DURING READING DATA
 		if t["error"] == "error" {
 			response = "Error reading Request"
-		} else if t["Hash"] != "" && rs {
+		} else if t["Hash"] != "" {
 
 			//GET MOD WITH HASH
 			mc := core.SearchModWithHash(t["Hash"])
 
 			if mc.NAME == "error" {
 				response = "Error module not found"
-			} else {
+				//TODO HANDLE HUB COMMANDS AUTHENTICATION
+			} else if mc.NAME == "hub" || mc.ApiKeyMatch(t["Secret"]) {
 				action += "To " + mc.NAME + " - "
 
 				//PROCESS REQUEST
@@ -533,12 +538,12 @@ func (core *Core) command() http.HandlerFunc {
 					action += "Command [ " + cr.Command + " ]"
 				}
 				//core.config.MODULES.Set(mc.NAME, mc)
+			} else {
+				response = "Secret not matching with server"
 			}
 		} else {
 			if len(t["Hash"]) == 0 {
 				response = "Empty Hash : Try to start module"
-			} else if !rs {
-				response = "Secret not matching with server"
 			} else {
 				response = "Unknown error"
 			}

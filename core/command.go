@@ -172,9 +172,10 @@ func restartModuleCommand(core *Core, r *com.Request, mc *ModuleConfig, args ...
 		}
 
 		mc.STATE = Stopped
-		if err := core.Setup(mc, false, core.GetConfig().MODDIR); err == nil {
+		if mc, err := core.Setup(*mc, false, core.GetConfig().MODDIR); err == nil {
 			response += "Success"
 			mc.STATE = Stopped
+			mc.Start()
 		}
 
 	} else {
@@ -188,8 +189,9 @@ func startModuleCommand(core *Core, r *com.Request, mc *ModuleConfig, args ...st
 
 	var err error
 	if mc.STATE != Online {
-		err = core.Setup(mc, false, core.GetConfig().MODDIR)
+		mc, err := core.Setup(*mc, false, core.GetConfig().MODDIR)
 		if err == nil {
+			mc.Start()
 			response += "Success"
 		} else {
 			response += err.Error()
