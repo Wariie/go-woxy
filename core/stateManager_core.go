@@ -98,12 +98,6 @@ func (core *Core) GetSupervisor() *Supervisor {
 	return core.s
 }
 
-func (core *Core) AddModuleToSupervisor(mc *ModuleConfig) {
-	core.mux.Lock()
-	defer core.mux.Unlock()
-	core.s.Add(mc.NAME)
-}
-
 func (core *Core) GetModule(name string) *ModuleConfig {
 	core.mux.Lock()
 	defer core.mux.Unlock()
@@ -278,6 +272,8 @@ func (core *Core) loadModules() {
 		}
 	}
 
+	core.mux.Lock()
+	defer core.mux.Unlock()
 	for i, m := range core.modulesList {
 		mN, err := core.Setup(m, true, modDirName)
 		core.modulesList[i] = *mN
@@ -293,9 +289,23 @@ func (core *Core) loadModules() {
 func (core *Core) startModules() {
 	time.Sleep(time.Second * 1)
 
+	core.mux.Lock()
+	defer core.mux.Unlock()
+
 	for i, m := range core.modulesList {
-		m.Start()
-		core.modulesList[i] = m
+		if len(m.EXE.BIN) > 0 {
+
+			//START MODULE
+			m.Start()
+
+			//ADD IT TO SUPERVISOR IF SUPERVISED
+			if m.EXE.SUPERVISED {
+				core.s.Add(m.NAME)
+			}
+
+			//SAVE CHANGES
+			core.modulesList[i] = m
+		}
 	}
 }
 
@@ -303,6 +313,9 @@ func (core *Core) init() {
 
 	//TODO HANDLE TEMPLATE SOURCE DIR
 	//router.LoadHTMLGlob("." + string(os.PathSeparator) + config.RESOURCEDIR + "*" + string(os.PathSeparator) + "*")
+
+	core.mux.Lock()
+	defer core.mux.Unlock()
 
 	for _, mod := range core.config.MODULES {
 		core.modulesList = append(core.modulesList, mod)
@@ -373,9 +386,7 @@ func (core *Core) showMotd() {
 	fmt.Println("------------------------------------------------------------ ")
 }
 
-func (core *Core) registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool {
-	tm := m
-
+func (core *Core) registerModule(m *ModuleConfig, cr *com.ConnexionRequest) {
 	pid, err := strconv.Atoi(cr.Pid)
 	if err != nil {
 		log.Println("GO-WOXY Core - Error reading PID :", err)
@@ -384,56 +395,15 @@ func (core *Core) registerModule(m *ModuleConfig, cr *com.ConnexionRequest) bool
 	m.pid = pid
 	m.PK = cr.ModHash
 	m.COMMANDS = cr.CustomCommands
-	m.STATE = Online
-	m.RESOURCEPATH = cr.ResourcePath
-
-	if len(m.RESOURCEPATH) == 0 {
-		m.RESOURCEPATH = "resources/"
-	}
 
 	if len(m.BINDING.PORT) == 0 || len(cr.Port) > 0 {
 		m.BINDING.PORT = cr.Port
 	}
 
-	var crr com.CommandRequest
-	crr.Generate("Ping", m.PK, m.NAME, core.config.SECRET)
-	var c interface{} = &crr
-	p := (c).(com.Request)
-
-	time.Sleep(time.Second * 10)
-
-	//RETRY 15 TIME TO CHECK MODULE COME ONLINE
-	try := 0
-	r := false
-	for {
-		res, e := core.GetCommandProcessor().Run("Ping", core, &p, m, "")
-		log.Print(res, e)
-
-		if res != "" && err == nil {
-			r = true
-			break
-		} else if try > 15 {
-			break
-		}
-		try++
-		time.Sleep(time.Second * 1)
+	err = core.HookAll(m)
+	if err != nil {
+		log.Println("Go-WOXY Core - Error trying to hook module", m.NAME)
 	}
-
-	if !r {
-		tm.STATE = Failed
-		m = tm
-	} else {
-		err = core.HookAll(m)
-		if err == nil && m.EXE.SUPERVISED {
-			core.AddModuleToSupervisor(m)
-		} else if err != nil {
-			log.Println("Go-WOXY Core - Error trying to hook module", m.NAME)
-		}
-	}
-
-	//TODO CHECK IF WORK WITHTOUT IT
-	//core.config.MODULES.Set(m.NAME, m)
-	return r
 }
 
 func (core *Core) connect() http.HandlerFunc {
@@ -445,14 +415,7 @@ func (core *Core) connect() http.HandlerFunc {
 		buf.ReadFrom(r.Body)
 		cr.Decode(buf.Bytes())
 
-		//GET THE MODULE TARGET
-		var modC *ModuleConfig
-		for _, m := range core.modulesList {
-			if m.NAME == cr.Name {
-				modC = &m
-				break
-			}
-		}
+		var modC *ModuleConfig = core.GetModule(cr.Name)
 
 		var resultW []byte
 		if modC == nil || len(modC.NAME) <= 0 {
@@ -462,21 +425,24 @@ func (core *Core) connect() http.HandlerFunc {
 			resultW = []byte(errMsg) //TODO BETTER RESPONSE
 		} else {
 
+			log.Println("GO-WOXY Core - Module connecting with name '" + modC.NAME + "'")
+
 			//GET THE REMOTE HOST ADDRESS IF HOST IS EMPTY
 			if !modC.EXE.REMOTE {
 				modC.BINDING.ADDRESS = strings.Split(r.Host, ":")[0]
 			}
 
-			//TODO SET API KEY MECANISM
-			//cr.Secret --> API KEY corresponding
-
 			//CHECK SECRET FOR AUTH
 			rs := modC.ApiKeyMatch(cr.Secret)
 			if rs && cr.ModHash != "" {
-				go core.registerModule(modC, &cr)
+				modC.STATE = Online
+				core.registerModule(modC, &cr)
 			} else {
 				modC.STATE = Failed
 			}
+
+			core.SaveModuleChanges(modC)
+			log.Println("GO-WOXY Core - Module", modC.NAME, "STATE", modC.STATE)
 
 			//SEND RESPONSE
 			result := strconv.FormatBool(rs)
@@ -493,11 +459,6 @@ func (core *Core) connect() http.HandlerFunc {
 	}
 }
 
-func (core *Core) hashMatchSecretHash(hash string) bool {
-	r := strings.Trim(hash, "\n\t") == strings.Trim(core.config.SECRET, "\n\t")
-	return r
-}
-
 // Command - Access point to handle module commands
 func (core *Core) command() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -506,8 +467,6 @@ func (core *Core) command() http.HandlerFunc {
 		from := r.RemoteAddr
 		response := ""
 		action := ""
-
-		//CHECK AUTH ( TODO API KEY)
 
 		// CHECK ERROR DURING READING DATA
 		if t["error"] == "error" {
@@ -541,6 +500,8 @@ func (core *Core) command() http.HandlerFunc {
 			} else {
 				response = "Secret not matching with server"
 			}
+
+			core.SaveModuleChanges(mc)
 		} else {
 			if len(t["Hash"]) == 0 {
 				response = "Empty Hash : Try to start module"

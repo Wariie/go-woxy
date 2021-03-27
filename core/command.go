@@ -115,13 +115,15 @@ func pingCommand(core *Core, r *com.Request, mc *ModuleConfig, args ...string) (
 		return com.SendRequest(mc.GetServer("/cmd"), *r, false)
 	}
 
-	mc.EXE.LastPing = time.Now()
-
+	cr := (*r).(*com.CommandRequest)
+	mod := core.GetModule(cr.Name)
+	mod.EXE.LastPing = time.Now()
+	core.SaveModuleChanges(mod)
 	return "Pong", nil
 }
 
 func listModuleCommand(core *Core, r *com.Request, mc *ModuleConfig, args ...string) (string, error) {
-	rb, err := json.Marshal(core.GetConfig().MODULES)
+	rb, err := json.Marshal(core.modulesList)
 	if err != nil {
 		return "Error :", err
 	}

@@ -291,9 +291,9 @@ func (core *Core) Setup(mc ModuleConfig, hook bool, modulePath string) (*ModuleC
 	}
 
 	//IF CONTAINS EXE CONFIG && NOT REMOTE
-	if !mc.EXE.REMOTE {
+	if !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
 		mc.generateApiKey()
-		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
+		if !mc.EXE.REMOTE && (strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@")) {
 			mc.Download(modulePath)
 			mc.copyApiKey()
 		}
@@ -317,11 +317,8 @@ func (mc *ModuleConfig) Start() {
 	cmd := exec.Command(platformParam[0], platformParam[1:]...)
 	cmd.Dir = mc.EXE.BIN
 	cmd.Start()
+	mc.EXE.LastPing = time.Now()
 	mc.pid = cmd.Process.Pid
-	/*if err != nil {
-		log.Println("GO-WOXY Core - Error:", err)
-	}
-	log.Println("GO-WOXY Core - Output :", string(output), err)*/
 }
 
 func (mc *ModuleConfig) copyApiKey() {
@@ -339,10 +336,6 @@ func (mc *ModuleConfig) copyApiKey() {
 }
 
 func (mc *ModuleConfig) generateApiKey() {
-	/* b := []byte(tools.String(64))
-	h := sha256.New()
-	h.Write(b)
-	h.Sum(nil)*/
 	mc.API_KEY = base64.URLEncoding.EncodeToString([]byte(tools.String(64)))
 }
 
@@ -403,15 +396,16 @@ type Route struct {
 }
 
 //ModuleState - ModuleConfig State
-type ModuleState string
+type ModuleState int
 
 //ModuleState list
 const (
-	Unknown    ModuleState = "UNKNOWN"
-	Loading    ModuleState = "LOADING"
-	Online     ModuleState = "ONLINE"
-	Stopped    ModuleState = "STOPPED"
-	Downloaded ModuleState = "DOWNLOADED"
-	Error      ModuleState = "ERROR"
-	Failed     ModuleState = "FAILED"
+	Stopped    ModuleState = 0
+	Unknown    ModuleState = 1
+	Online     ModuleState = 2
+	Downloaded ModuleState = 3
+	Loading    ModuleState = 4
+
+	Error  ModuleState = 999
+	Failed ModuleState = 998
 )

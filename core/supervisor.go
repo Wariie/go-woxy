@@ -2,17 +2,21 @@ package core
 
 import (
 	"log"
+	"sync"
 	"time"
 )
 
 //Supervisor -
 type Supervisor struct {
+	mux        sync.Mutex
 	listModule []string
 	core       *Core
 }
 
 //Remove -
 func (s *Supervisor) Remove(m string) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	for i := range s.listModule {
 		if m == s.listModule[i] {
 			s.listModule[i] = s.listModule[len(s.listModule)-1] // Copy last element to index i.
@@ -25,6 +29,8 @@ func (s *Supervisor) Remove(m string) {
 
 //Add -
 func (s *Supervisor) Add(m string) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	s.listModule = append(s.listModule, m)
 }
 
@@ -33,41 +39,40 @@ func (s *Supervisor) Supervise() {
 	//ENDLESS LOOP
 	for {
 		var mod *ModuleConfig
+
+		s.mux.Lock()
+		modulesList := s.listModule
+		s.mux.Unlock()
 		//FOR EACH REGISTERED MODULE
-		for k := range s.listModule {
-			if k >= len(s.listModule) {
-				defer s.Reload()
-				return
-			}
+		for k := range modulesList {
 			//CHECK MODULE RUNNING
 
-			for _, m := range s.core.modulesList {
-				if m.NAME == s.listModule[k] {
-					mod = &m
-					break
-				}
-			}
+			mod = s.core.GetModule(modulesList[k])
 
 			timeBeforeLastPing := time.Until(mod.EXE.LastPing)
 
-			if mod.STATE != Loading && mod.STATE != Downloaded && timeBeforeLastPing.Minutes() > 5 {
-				mod.STATE = Unknown
-				//TODO BEST LOGGING
-				log.Println("GO-WOXY Core - Module " + mod.NAME + " not pinging since 5 minutes")
-				s.Remove(mod.NAME)
+			var editStat bool = false
+
+			//if Loading | Unknown | Online
+			var managingState bool = mod.STATE < Downloaded && mod.STATE >= Unknown
+
+			if managingState && timeBeforeLastPing.Minutes() < -5 {
+				if mod.STATE != Unknown {
+					mod.STATE = Unknown
+					editStat = true
+					log.Println("GO-WOXY Core - Module " + mod.NAME + " not pinging since 5 minutes")
+				}
 			} else if mod.STATE != Online && mod.STATE != Loading && mod.STATE != Downloaded {
 				mod.STATE = Online
+				editStat = true
 			}
 
-			//s.core.SaveModuleChanges(&m)
+			if editStat {
+				s.core.SaveModuleChanges(mod)
+			}
 		}
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * 100)
 	}
-}
-
-//Reload - Reload supervisor
-func (s *Supervisor) Reload() {
-	defer s.Supervise()
 }
 
 func (s *Supervisor) SetCore(core *Core) {
