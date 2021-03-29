@@ -285,19 +285,32 @@ func (core *Core) ReverseProxy(modName *string, route *Route) http.Handler {
 	})
 }
 
-func (core *Core) GetModuleFromPath(path string) (*ModuleConfig, *Route) {
+func (core *Core) GetModuleFromPath(route string) (*ModuleConfig, *Route) {
 	core.mux.Lock()
 	modList := core.modulesList
 	core.mux.Unlock()
 
+	var ms []ModuleConfig
+	var id []int
+
 	for _, m := range modList {
-		for _, path := range m.BINDING.PATH {
-			if path.FROM == path.FROM {
-				return &m, &path
+		for pathId, path := range m.BINDING.PATH {
+			if path.FROM == route {
+				ms = append(ms, m)
+				id = append(id, pathId)
 			}
 		}
 	}
-	return nil, nil
+
+	var x, lenR int
+	for i, m := range ms {
+		if len(m.BINDING.PATH[id[i]].FROM) > lenR {
+			lenR = len(m.BINDING.PATH[id[i]].FROM)
+			x = i
+		}
+	}
+
+	return &ms[x], &ms[x].BINDING.PATH[id[x]]
 }
 
 //ReverseProxyFix - reverse proxy for mod
