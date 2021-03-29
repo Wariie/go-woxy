@@ -1,14 +1,12 @@
 package core
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -22,8 +20,6 @@ import (
 	"syscall"
 	"text/template"
 	"time"
-
-	_ "net/http/pprof"
 
 	"github.com/Wariie/go-woxy/com"
 	"github.com/Wariie/go-woxy/tools"
@@ -86,18 +82,14 @@ func (core *Core) SetCommandProcessor(cp *CommandProcessorImpl) {
 	core.cp = cp
 }
 
-func (core *Core) SetSupervisor(s *Supervisor) {
-	core.mux.Lock()
-	defer core.mux.Unlock()
-	core.s = s
-}
-
+//GetSupervisor - Get module supervisor
 func (core *Core) GetSupervisor() *Supervisor {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	return core.s
 }
 
+//GetModule - Get module reference from core list module
 func (core *Core) GetModule(name string) *ModuleConfig {
 	core.mux.Lock()
 	defer core.mux.Unlock()
@@ -132,14 +124,6 @@ func (core *Core) SearchModWithHash(hash string) *ModuleConfig {
 	return &ModuleConfig{NAME: "error"}
 }
 
-func (core *Core) GetAccessLogFileWriter() io.Writer {
-	return bufio.NewWriter(core.accessLogFile)
-}
-
-func (core *Core) SetAccessLogFile(accesslogfile *os.File) {
-	core.accessLogFile = accesslogfile
-}
-
 //TODO DELETE AND ADD API KEY HANDLING
 func (core *Core) generateSecret() {
 	if len(core.config.SECRET) == 0 {
@@ -163,7 +147,7 @@ func (core *Core) launchServer() {
 	core.router.PathPrefix("/connect").Handler(handlers.CombinedLoggingHandler(core.accessLogFile, core.connect()))
 	core.router.PathPrefix("/cmd").Handler(handlers.CombinedLoggingHandler(core.accessLogFile, core.command()))
 
-	core.configAndServe(core.router)
+	core.configAndServe()
 }
 
 func (core *Core) error404(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +167,7 @@ func (core *Core) error404(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (core *Core) configAndServe(router *mux.Router) {
+func (core *Core) configAndServe() {
 	path := ""
 	server := core.config.SERVER
 
@@ -195,7 +179,7 @@ func (core *Core) configAndServe(router *mux.Router) {
 	var s = HttpServer{
 		Server: http.Server{
 			Addr:         server.ADDRESS + ":" + server.PORT + path,
-			Handler:      router,
+			Handler:      core.router,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		},
@@ -275,6 +259,8 @@ func (core *Core) loadModules() {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	for i, m := range core.modulesList {
+		i := i
+		m := m
 		mN, err := core.Setup(m, true, modDirName)
 		core.modulesList[i] = *mN
 		if err != nil {
@@ -351,7 +337,7 @@ func (core *Core) loadConfigFromPath(configPath string) {
 	core.config = &cfg
 }
 
-//LaunchCore - start core server
+//GoWoxy - start core server
 func (core *Core) GoWoxy(configPath string) {
 
 	//Load Config
@@ -433,7 +419,7 @@ func (core *Core) connect() http.HandlerFunc {
 			}
 
 			//CHECK SECRET FOR AUTH
-			rs := modC.ApiKeyMatch(cr.Secret)
+			rs := modC.APIKeyMatch(cr.Secret)
 			if rs && cr.ModHash != "" {
 				modC.STATE = Online
 				core.registerModule(modC, &cr)
@@ -479,7 +465,7 @@ func (core *Core) command() http.HandlerFunc {
 			if mc.NAME == "error" {
 				response = "Error module not found"
 				//TODO HANDLE HUB COMMANDS AUTHENTICATION
-			} else if mc.NAME == "hub" || mc.ApiKeyMatch(t["Secret"]) {
+			} else if mc.NAME == "hub" || mc.APIKeyMatch(t["Secret"]) {
 				action += "To " + mc.NAME + " - "
 
 				//PROCESS REQUEST
@@ -513,7 +499,7 @@ func (core *Core) command() http.HandlerFunc {
 		action += " - Result : " + response
 
 		//LOG COMMAND RESULT
-		log.Println("GO-WOXY Core - From", from, ':', action)
+		log.Println("GO-WOXY Core - From", from, action)
 
 		w.WriteHeader(200)
 		w.Write([]byte(response))

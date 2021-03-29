@@ -93,6 +93,7 @@ func (c *Config) checkServer() {
 	}
 }
 
+//GetMotdFileContent - Get motd file content from motd path
 func (c *Config) GetMotdFileContent() string {
 	if c.MOTD == "" {
 		c.MOTD = "motd.txt"

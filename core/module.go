@@ -100,14 +100,14 @@ func (mc *ModuleConfig) GetLog() string {
 	return string(b)
 }
 
-func (mc *ModuleConfig) ApiKeyMatch(key string) bool {
+//APIKeyMatch - Check if given key match api key hash
+func (mc *ModuleConfig) APIKeyMatch(key string) bool {
 	//r := strings.Trim(key, "\n\t") == strings.Trim(core.config.SECRET, "\n\t")
 
 	h := sha256.New()
 	h.Write([]byte(mc.API_KEY))
 	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
 	r := key == hash
-	log.Println("TEST API KEY : RECEIVED ", key, ",HASH", hash, ",GENERATED", mc.API_KEY)
 	return r
 }
 
@@ -142,8 +142,8 @@ func (core *Core) HookAll(mc *ModuleConfig) error {
 	paths := mc.BINDING.PATH
 	var err error
 
-	for i := range paths {
-		err = core.Hook(mc, paths[i], "Any")
+	for _, path := range paths {
+		err = core.Hook(mc, path, "Any")
 		if err != nil {
 			log.Println("GO-WOXY Core - Error during module path hooking : " + err.Error())
 			return err
@@ -162,13 +162,14 @@ func (core *Core) Hook(mc *ModuleConfig, r Route, typeR string) error {
 				log.Panicln("GO-WOXY Core - Hook " + mc.NAME + " : .htpasswd file not found")
 			} else {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
+				//TODO HANDLE PARAMETERS
 				authenticator := auth.NewBasicAuthenticator("guilhem-mateo.fr mod-manager", htpasswd)
 				handler = core.ReverseProxyAuth(authenticator, mc.NAME, r)
 			}
 		} else if strings.Contains(mc.TYPES, "bind") {
 			handler = FileBind(mc.BINDING.ROOT, r)
 		} else {
-			handler = core.ReverseProxy(mc.NAME, r)
+			core.router.PathPrefix(r.FROM).Handler(core.ReverseProxy(&mc.NAME, &r))
 		}
 
 		if handler != nil {
@@ -185,6 +186,7 @@ func (core *Core) Hook(mc *ModuleConfig, r Route, typeR string) error {
 // ReverseProxyAuth - Authentication middleware
 func (core *Core) ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) http.HandlerFunc {
 	return func(w http.ResponseWriter, re *http.Request) {
+		r := r
 		user := a.CheckAuth(re)
 		if user == "" {
 			w.Header().Add("WWW-Authenticate", "Basic realm="+strconv.Quote(a.Realm))
@@ -192,35 +194,39 @@ func (core *Core) ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) h
 			return
 		}
 		w.Header().Set("user", user)
-		core.ReverseProxy(modName, r)(w, re)
+		core.ReverseProxy(&modName, &r).ServeHTTP(w, re)
 	}
 }
 
 //ReverseProxy - reverse proxy for mod
-func (core *Core) ReverseProxy(modName string, r Route) http.HandlerFunc {
-	return func(w http.ResponseWriter, re *http.Request) {
-		mod := core.GetModule(modName)
+func (core *Core) ReverseProxy(modName *string, route *Route) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		modName := modName
+		route := route
+		log.Println(modName, route)
+
+		mod := core.GetModule(*modName)
 
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
 
 			//IF ROOT IS PRESENT REDIRECT TO IT
 			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
-				http.ServeFile(w, re, mod.BINDING.ROOT)
+				http.ServeFile(w, r, mod.BINDING.ROOT)
 				//ELSE IF BINDING IS TYPE **REVERSE**
 			} else if strings.Contains(mod.TYPES, "reverse") {
 
-				path := re.URL.Path
-				if r.FROM != r.TO {
-					if r.FROM != "/" {
-						i := strings.Index(path, r.FROM)
-						path = path[i+len(r.FROM):]
+				path := r.URL.Path
+				if route.FROM != route.TO {
+					if route.FROM != "/" {
+						i := strings.Index(path, route.FROM)
+						path = path[i+len(route.FROM):]
 					} else {
 						log.Println(path)
 					}
 
-					if r.TO != "/" && len(r.TO) > 1 && !strings.Contains(path, r.TO) {
-						path = r.TO + path
+					if route.TO != "/" && len(route.TO) > 1 && !strings.Contains(path, route.TO) {
+						path = route.TO + path
 					}
 				}
 
@@ -248,7 +254,7 @@ func (core *Core) ReverseProxy(modName string, r Route) http.HandlerFunc {
 				}
 				proxy.ErrorHandler = ErrorHandler
 				proxy.ModifyResponse = Handle404Status
-				proxy.ServeHTTP(w, re)
+				proxy.ServeHTTP(w, r)
 			}
 		} else {
 			title := ""
@@ -276,7 +282,106 @@ func (core *Core) ReverseProxy(modName string, r Route) http.HandlerFunc {
 			tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
 			tmpl.Execute(w, data)
 		}
+	})
+}
+
+func (core *Core) GetModuleFromPath(path string) (*ModuleConfig, *Route) {
+	core.mux.Lock()
+	modList := core.modulesList
+	core.mux.Unlock()
+
+	for _, m := range modList {
+		for _, path := range m.BINDING.PATH {
+			if path.FROM == path.FROM {
+				return &m, &path
+			}
+		}
 	}
+	return nil, nil
+}
+
+//ReverseProxyFix - reverse proxy for mod
+func (core *Core) ReverseProxyFix() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		path := r.URL.Path
+		mod, route := core.GetModuleFromPath(path)
+
+		//CHECK IF MODULE IS ONLINE
+		if mod != nil && mod.STATE == Online {
+
+			//IF ROOT IS PRESENT REDIRECT TO IT
+			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
+				http.ServeFile(w, r, mod.BINDING.ROOT)
+				//ELSE IF BINDING IS TYPE **REVERSE**
+			} else if strings.Contains(mod.TYPES, "reverse") {
+
+				if route.FROM != route.TO {
+					if route.FROM != "/" {
+						i := strings.Index(path, route.FROM)
+						path = path[i+len(route.FROM):]
+					} else {
+						log.Println(path)
+					}
+
+					if route.TO != "/" && len(route.TO) > 1 && !strings.Contains(path, route.TO) {
+						path = route.TO + path
+					}
+				}
+
+				//BUILD URL PROXY
+				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
+				if err != nil {
+					log.Println(err) //TODO ERROR HANDLING
+				}
+				log.Println(mod.NAME + " - " + urlProxy.String())
+
+				//TODO ADD CUSTOM HEADERS HERE
+
+				//SETUP REVERSE PROXY DIRECTOR
+				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
+				proxy.Director = func(req *http.Request) {
+
+					req.URL.Scheme = urlProxy.Scheme
+					req.Host = urlProxy.Host
+					req.URL.Host = urlProxy.Host
+					req.URL.Path = urlProxy.Path
+
+					if _, ok := req.Header["User-Agent"]; !ok {
+						req.Header.Set("User-Agent", "")
+					}
+				}
+				proxy.ErrorHandler = ErrorHandler
+				proxy.ModifyResponse = Handle404Status
+				proxy.ServeHTTP(w, r)
+			}
+		} else {
+			title := ""
+			code := 500
+			message := ""
+			if mod != nil && (mod.STATE == Loading || mod.STATE == Downloaded) {
+				title = "Loading"
+				code += 3
+				message = "Module is loading ..."
+			} else if mod != nil && mod.STATE == Stopped {
+				title = "Stopped"
+				code = 410
+				message = "Module stopped by an administrator"
+			} else if mod == nil || mod.STATE == Error || mod.STATE == Unknown {
+				title = "Error"
+				message = "Error"
+			}
+
+			data := ErrorPage{
+				Title:   title,
+				Code:    code,
+				Message: message,
+			}
+
+			tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
+			tmpl.Execute(w, data)
+		}
+	})
 }
 
 //Setup - Setup module from config
