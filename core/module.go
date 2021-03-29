@@ -1,8 +1,9 @@
 package core
 
 import (
-	"fmt"
-	"io"
+	"crypto/sha256"
+	"encoding/base64"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -14,27 +15,25 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"text/template"
+	"time"
 
 	"github.com/Wariie/go-woxy/com"
+	"github.com/Wariie/go-woxy/tools"
 	auth "github.com/abbot/go-http-auth"
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/handlers"
 	"github.com/shirou/gopsutil/process"
 )
 
-func (mc *ModuleConfig) checkModuleRunning() bool {
-	try := 0
-	b := false
-	for b == false && try < 5 {
-		if mc.pid != 0 && (mc.EXE != ModuleExecConfig{}) && !mc.EXE.REMOTE {
-			b = checkPidRunning(mc)
+//FileBind - File bind handler
+func FileBind(fileName string, r Route) http.HandlerFunc {
+	return func(w http.ResponseWriter, re *http.Request) {
+		if fileName != "" {
+			http.ServeFile(w, re, fileName)
+		} else {
+			w.Write([]byte("GO-WOXY Core - Error Bind - " + fileName + " was not found"))
 		}
-
-		if !b {
-			b = checkModulePing(mc)
-		}
-		try++
 	}
-	return b
 }
 
 //Download - Download module from repository ( git clone )
@@ -42,7 +41,7 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 
 	if mc.STATE != Online {
 		pathSeparator := string(os.PathSeparator)
-		fmt.Println("GO-WOXY Core - Downloading " + mc.NAME)
+		log.Println("GO-WOXY Core - Downloading " + mc.NAME)
 		var listArgs []string
 		var action string
 		path := ""
@@ -59,7 +58,7 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 		cmd := exec.Command("git", listArgs...)
 		cmd.Dir = path
 		out, err := cmd.Output()
-		fmt.Println("GO-WOXY Core -", action, "mod :", mc, "-", string(out), err)
+		log.Println("GO-WOXY Core - ", action, "mod :", mc, "-", string(out), err)
 
 		mc.EXE.BIN = moduleDir + mc.NAME + pathSeparator
 		mc.STATE = Downloaded
@@ -68,14 +67,48 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 	}
 }
 
+//ErrorHandler -
+func ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
+	title := "Error"
+	//message := "Error"
+
+	data := ErrorPage{
+		Title:   title,
+		Code:    400,
+		Message: err.Error(),
+	}
+
+	tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
+	tmpl.Execute(w, data)
+}
+
 //GetLog - GetLog from Module
 func (mc *ModuleConfig) GetLog() string {
-	file, err := os.Open(GetManager().GetConfig().MODDIR + mc.NAME + "/log.log")
+
+	//TODO ADD REMOTE COMMAND TO GET LOG
+	file, err := os.Open(mc.EXE.BIN + "/log.log")
 	if err != nil {
-		log.Fatalln("failed reading file :", err)
+		log.Fatalln("GO-WOXY Core - Error reading log file :", err)
+		return ""
 	}
+
 	b, err := ioutil.ReadAll(file)
+	if err != nil {
+		log.Println("GO-WOXY Core - Error reading module log file : " + err.Error())
+		return ""
+	}
 	return string(b)
+}
+
+//APIKeyMatch - Check if given key match api key hash
+func (mc *ModuleConfig) APIKeyMatch(key string) bool {
+	//r := strings.Trim(key, "\n\t") == strings.Trim(core.config.SECRET, "\n\t")
+
+	h := sha256.New()
+	h.Write([]byte(mc.API_KEY))
+	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
+	r := key == hash
+	return r
 }
 
 //GetPerf - GetPerf from Module
@@ -96,217 +129,132 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 	return com.Server{IP: com.IP(mc.BINDING.ADDRESS), Path: com.Path(path), Port: com.Port(mc.BINDING.PORT), Protocol: com.Protocol(mc.BINDING.PROTOCOL)}
 }
 
-//HookAll - Create all binding between module config address and gin server
-func (mc *ModuleConfig) HookAll(router *gin.Engine) error {
-	paths := mc.BINDING.PATH
-
-	/*if strings.Contains(mc.TYPES, "resource") {
-		sP := ""
-		if len(paths[0].FROM) > 1 {
-			sP = paths[0].FROM
-		}
-		r := Route{FROM: sP + "/" + mc.RESOURCEPATH + "*filepath", TO: "/" + mc.RESOURCEPATH + "*filepath"}
-		err := mc.Hook(router, r, "GET")
-		if err != nil {
-			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
-		}
+//Handle404Status - Throw err when proxied response status is 404
+func Handle404Status(res *http.Response) error {
+	if res.StatusCode == 404 {
+		return errors.New("404 error from the host")
 	}
+	return nil
+}
 
-	if strings.Contains(mc.TYPES, "test") {
-		err := mc.Hook(router, paths[0], "Any")
-		if err != nil {
-			log.Panicln("GO-WOXY Core - Error cannot bind resource at the same address")
-		}
-	} else if len(paths) > 0 {
-		for i := range paths {
-			err := mc.Hook(router, paths[i], "Any")
-			if err != nil {
-				return err
-			}
-		}
-	}*/
+//HookAll - Create all binding between module config address and router server
+func (core *Core) HookAll(mc *ModuleConfig) error {
+	paths := mc.BINDING.PATH
 	var err error
 
-	for i := range paths {
-		err := mc.Hook(router, paths[i], "Any")
+	for _, path := range paths {
+		err = core.Hook(mc, path)
 		if err != nil {
-			log.Println("GO-WOXY Core - Error : " + err.Error())
+			log.Println("GO-WOXY Core - Error during module path hooking : " + err.Error())
 			return err
 		}
 	}
-
 	return err
 }
 
-//Hook - Create a binding between module and gin server
-func (mc *ModuleConfig) Hook(router *gin.Engine, r Route, typeR string) error {
-	typeS := typeR
-	if typeR == "" {
-		typeR = "GET"
-	} else if typeR == "Any" {
-		typeS = "GET"
-	}
-
-	routes := router.Routes()
-	for i := range routes {
-		if routes[i].Path == r.FROM && routes[i].Method == typeS {
-			return nil
-		}
-	}
-
+//Hook - Create a binding between module and router server
+func (core *Core) Hook(mc *ModuleConfig, r Route) error {
 	if len(r.FROM) > 0 {
-
-		if strings.Contains(mc.TYPES, "reverse") && !strings.Contains(r.FROM, "/*filepath") {
-			r.FROM += "/*filepath"
-		}
-
+		var handler http.Handler
 		if mc.AUTH.ENABLED {
 			_, err := os.Stat(".htpasswd")
 			if os.IsNotExist(err) {
 				log.Panicln("GO-WOXY Core - Hook " + mc.NAME + " : .htpasswd file not found")
 			} else {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
-				authenticator := auth.NewBasicAuthenticator("Some Realm", htpasswd)
-				authorized := router.Group("/", BasicAuth(authenticator))
-				if typeR != "Any" {
-					authorized.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
-				} else {
-					authorized.Any(r.FROM, ReverseProxy(mc.NAME, r))
-				}
+				//TODO HANDLE PARAMETERS
+				authenticator := auth.NewBasicAuthenticator("guilhem-mateo.fr mod-manager", htpasswd)
+				handler = core.ReverseProxyAuth(authenticator, mc.NAME, r)
 			}
-		} else if typeR != "Any" {
-			router.Handle(typeR, r.FROM, ReverseProxy(mc.NAME, r))
+		} else if strings.Contains(mc.TYPES, "bind") {
+			handler = FileBind(mc.BINDING.ROOT, r)
 		} else {
-			router.Any(r.FROM, ReverseProxy(mc.NAME, r))
+			core.router.PathPrefix(r.FROM).Handler(core.ReverseProxy(&mc.NAME, &r))
 		}
-		fmt.Println("GO-WOXY Core - Module " + mc.NAME + " Hooked to Go-Proxy Server at - " + r.FROM + " => " + r.TO)
-	}
-	return nil
-}
 
-//Setup - Setup module from config
-func (mc *ModuleConfig) Setup(router *gin.Engine, hook bool, modulePath string) error {
-	fmt.Println("GO-WOXY Core - Setup mod : ", mc)
-	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
-		err := mc.HookAll(router)
-		if err != nil {
-			log.Println(err)
+		if handler != nil {
+			core.router.PathPrefix(r.FROM).Handler(handlers.CombinedLoggingHandler(core.accessLogFile, handler))
+			log.Println("GO-WOXY Core - Module " + mc.NAME + " - Route created : " + r.FROM + " > " + r.TO)
+		} else {
+			log.Println("GO-WOXY Core - Error hooking module " + mc.NAME + " - Route : " + r.FROM + " > " + r.TO)
 		}
-		mc.STATE = Online
 	}
-
-	if !mc.EXE.REMOTE && !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
-		if strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@") {
-			mc.Download(modulePath)
-		}
-		mc.copySecret()
-		mc.STATE = Loading
-		go mc.Start()
-	} // ELSE NO BUILD
 
 	return nil
 }
 
-//Start - Start module with config args and auto args
-func (mc *ModuleConfig) Start() {
-	fmt.Println("GO-WOXY Core - Starting mod : ", mc)
-
-	var platformParam []string
-	if runtime.GOOS == "windows" {
-		platformParam = []string{"cmd", "/c ", "go", "run", mc.EXE.MAIN, "1>", "log.log", "2>&1"}
-	} else {
-		platformParam = []string{"/bin/sh", "-c", "go run " + mc.EXE.MAIN + " > log.log 2>&1"}
-	}
-
-	cmd := exec.Command(platformParam[0], platformParam[1:]...)
-	cmd.Dir = mc.EXE.BIN
-	output, err := cmd.Output()
-	if err != nil {
-		log.Println("GO-WOXY Core - Error:", err)
-	}
-	log.Println("GO-WOXY Core - Output :", string(output), err)
-}
-
-func (mc *ModuleConfig) copySecret() {
-	source, err := os.Open(".secret")
-	if err != nil {
-		log.Println("GO-WOXY Core - Error reading generated secret file")
-	}
-	defer source.Close()
-
-	destination, err := os.Create(mc.EXE.BIN + string(os.PathSeparator) + ".secret")
-	if err != nil {
-		log.Println("GO-WOXY Core - Error creating mod secret file")
-	}
-	defer destination.Close()
-	nBytes, err := io.Copy(destination, source)
-	if err != nil {
-		log.Println("GO-WOXY Core - Error Copying Secret:", err, nBytes)
-	}
-}
-
-// BasicAuth - Authentication gin middleware
-func BasicAuth(a *auth.BasicAuth) gin.HandlerFunc {
-	realmHeader := "Basic realm=" + strconv.Quote(a.Realm)
-
-	return func(c *gin.Context) {
-		user := a.CheckAuth(c.Request)
+// ReverseProxyAuth - Authentication middleware
+func (core *Core) ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) http.HandlerFunc {
+	return func(w http.ResponseWriter, re *http.Request) {
+		r := r
+		user := a.CheckAuth(re)
 		if user == "" {
-			c.Header("WWW-Authenticate", realmHeader)
-			c.AbortWithStatus(http.StatusUnauthorized)
+			w.Header().Add("WWW-Authenticate", "Basic realm="+strconv.Quote(a.Realm))
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		c.Set("user", user)
+		w.Header().Set("user", user)
+		core.ReverseProxy(&modName, &r).ServeHTTP(w, re)
 	}
-}
-
-func singleJoiningSlash(a, b string) string {
-	aslash := strings.HasSuffix(a, "/")
-	bslash := strings.HasPrefix(b, "/")
-	switch {
-	case aslash && bslash:
-
-		return a + b[1:]
-	case !aslash && !bslash:
-
-		return a + "/" + b
-	}
-	return a + b
 }
 
 //ReverseProxy - reverse proxy for mod
-func ReverseProxy(modName string, r Route) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		mod := GetManager().GetModule(modName)
+func (core *Core) ReverseProxy(modName *string, route *Route) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		modName := modName
+		route := route
+		log.Println(modName, route)
+
+		mod := core.GetModule(*modName)
+
 		//CHECK IF MODULE IS ONLINE
 		if mod.STATE == Online {
+
 			//IF ROOT IS PRESENT REDIRECT TO IT
 			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
-				c.File(mod.BINDING.ROOT)
+				http.ServeFile(w, r, mod.BINDING.ROOT)
 				//ELSE IF BINDING IS TYPE **REVERSE**
 			} else if strings.Contains(mod.TYPES, "reverse") {
-				//REVERSE PROXY TO IT
-				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + r.TO)
-				if err != nil {
-					log.Println(err)
+
+				path := r.URL.Path
+				if route.FROM != route.TO {
+					if route.FROM != "/" {
+						i := strings.Index(path, route.FROM)
+						path = path[i+len(route.FROM):]
+					} else {
+						log.Println(path)
+					}
+
+					if route.TO != "/" && len(route.TO) > 1 && !strings.Contains(path, route.TO) {
+						path = route.TO + path
+					}
 				}
+
+				//BUILD URL PROXY
+				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
+				if err != nil {
+					log.Println(err) //TODO ERROR HANDLING
+				}
+				log.Println(mod.NAME + " - " + urlProxy.String())
+
 				//TODO ADD CUSTOM HEADERS HERE
 
+				//SETUP REVERSE PROXY DIRECTOR
 				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
 				proxy.Director = func(req *http.Request) {
+
 					req.URL.Scheme = urlProxy.Scheme
 					req.Host = urlProxy.Host
 					req.URL.Host = urlProxy.Host
-					if r.FROM != r.TO {
-						req.URL.Path = strings.Join(strings.Split(req.URL.Path, r.FROM)[1:], r.FROM)
-					}
-					req.Host = req.URL.Host
+					req.URL.Path = urlProxy.Path
 
 					if _, ok := req.Header["User-Agent"]; !ok {
 						req.Header.Set("User-Agent", "")
 					}
 				}
-				proxy.ServeHTTP(c.Writer, c.Request)
+				proxy.ErrorHandler = ErrorHandler
+				proxy.ModifyResponse = Handle404Status
+				proxy.ServeHTTP(w, r)
 			}
 		} else {
 			title := ""
@@ -324,17 +272,201 @@ func ReverseProxy(modName string, r Route) gin.HandlerFunc {
 				title = "Error"
 				message = "Error"
 			}
-			c.HTML(code, "loading.html", gin.H{
-				"title":   title,
-				"code":    code,
-				"message": message,
-			})
+
+			data := ErrorPage{
+				Title:   title,
+				Code:    code,
+				Message: message,
+			}
+
+			tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
+			tmpl.Execute(w, data)
+		}
+	})
+}
+
+func (core *Core) GetModuleFromPath(route string) (*ModuleConfig, *Route) {
+	core.mux.Lock()
+	modList := core.modulesList
+	core.mux.Unlock()
+
+	var ms []ModuleConfig
+	var id []int
+
+	for _, m := range modList {
+		for pathId, path := range m.BINDING.PATH {
+			if path.FROM == route {
+				ms = append(ms, m)
+				id = append(id, pathId)
+			}
 		}
 	}
+
+	var x, lenR int
+	for i, m := range ms {
+		if len(m.BINDING.PATH[id[i]].FROM) > lenR {
+			lenR = len(m.BINDING.PATH[id[i]].FROM)
+			x = i
+		}
+	}
+
+	return &ms[x], &ms[x].BINDING.PATH[id[x]]
+}
+
+//ReverseProxyFix - reverse proxy for mod
+func (core *Core) ReverseProxyFix() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		path := r.URL.Path
+		mod, route := core.GetModuleFromPath(path)
+
+		//CHECK IF MODULE IS ONLINE
+		if mod != nil && mod.STATE == Online {
+
+			//IF ROOT IS PRESENT REDIRECT TO IT
+			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
+				http.ServeFile(w, r, mod.BINDING.ROOT)
+				//ELSE IF BINDING IS TYPE **REVERSE**
+			} else if strings.Contains(mod.TYPES, "reverse") {
+
+				if route.FROM != route.TO {
+					if route.FROM != "/" {
+						i := strings.Index(path, route.FROM)
+						path = path[i+len(route.FROM):]
+					} else {
+						log.Println(path)
+					}
+
+					if route.TO != "/" && len(route.TO) > 1 && !strings.Contains(path, route.TO) {
+						path = route.TO + path
+					}
+				}
+
+				//BUILD URL PROXY
+				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
+				if err != nil {
+					log.Println(err) //TODO ERROR HANDLING
+				}
+				log.Println(mod.NAME + " - " + urlProxy.String())
+
+				//TODO ADD CUSTOM HEADERS HERE
+
+				//SETUP REVERSE PROXY DIRECTOR
+				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
+				proxy.Director = func(req *http.Request) {
+
+					req.URL.Scheme = urlProxy.Scheme
+					req.Host = urlProxy.Host
+					req.URL.Host = urlProxy.Host
+					req.URL.Path = urlProxy.Path
+
+					if _, ok := req.Header["User-Agent"]; !ok {
+						req.Header.Set("User-Agent", "")
+					}
+				}
+				proxy.ErrorHandler = ErrorHandler
+				proxy.ModifyResponse = Handle404Status
+				proxy.ServeHTTP(w, r)
+			}
+		} else {
+			title := ""
+			code := 500
+			message := ""
+			if mod != nil && (mod.STATE == Loading || mod.STATE == Downloaded) {
+				title = "Loading"
+				code += 3
+				message = "Module is loading ..."
+			} else if mod != nil && mod.STATE == Stopped {
+				title = "Stopped"
+				code = 410
+				message = "Module stopped by an administrator"
+			} else if mod == nil || mod.STATE == Error || mod.STATE == Unknown {
+				title = "Error"
+				message = "Error"
+			}
+
+			data := ErrorPage{
+				Title:   title,
+				Code:    code,
+				Message: message,
+			}
+
+			tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
+			tmpl.Execute(w, data)
+		}
+	})
+}
+
+//Setup - Setup module from config
+func (core *Core) Setup(mc ModuleConfig, hook bool, modulePath string) (*ModuleConfig, error) {
+	log.Println("GO-WOXY Core - Setup mod : ", mc)
+	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+		err := core.HookAll(&mc)
+		if err != nil {
+			log.Println(err)
+		}
+		mc.STATE = Online
+	}
+
+	//IF CONTAINS EXE CONFIG && NOT REMOTE
+	if !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+		mc.generateApiKey()
+		if !mc.EXE.REMOTE && (strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@")) {
+			mc.Download(modulePath)
+			mc.copyApiKey()
+		}
+		mc.STATE = Loading
+	}
+	log.Println(mc.NAME, mc.API_KEY)
+	return &mc, nil
+}
+
+//Start - Start module with config args and auto args
+func (mc *ModuleConfig) Start() {
+	log.Println("GO-WOXY Core - Starting mod : ", mc)
+
+	var platformParam []string
+	if runtime.GOOS == "windows" {
+		platformParam = []string{"cmd", "/c ", "go", "run", mc.EXE.MAIN, "1>", "log.log", "2>&1"}
+	} else {
+		platformParam = []string{"/bin/sh", "-c", "go run " + mc.EXE.MAIN + " > log.log 2>&1"}
+	}
+
+	cmd := exec.Command(platformParam[0], platformParam[1:]...)
+	cmd.Dir = mc.EXE.BIN
+	cmd.Start()
+	mc.EXE.LastPing = time.Now()
+	mc.pid = cmd.Process.Pid
+}
+
+func (mc *ModuleConfig) copyApiKey() {
+	destination, err := os.Create("." + string(os.PathSeparator) + mc.EXE.BIN + string(os.PathSeparator) + ".secret")
+	if err != nil {
+		log.Println("GO-WOXY Core - Error creating mod secret file : ", err)
+	}
+
+	defer destination.Close()
+
+	nBytes, err := destination.Write([]byte(mc.API_KEY))
+	if err != nil {
+		log.Println("GO-WOXY Core - Error Copying Secret : ", err, nBytes)
+	}
+}
+
+func (mc *ModuleConfig) generateApiKey() {
+	mc.API_KEY = base64.URLEncoding.EncodeToString([]byte(tools.String(64)))
+}
+
+//ErrorPage - Content description for go-woxy error page
+type ErrorPage struct {
+	Title   string
+	Code    int
+	Message string
 }
 
 /*ModuleConfig - Module configuration */
 type ModuleConfig struct {
+	API_KEY      string
 	AUTH         ModuleAuthConfig
 	BINDING      ServerConfig
 	COMMANDS     []string
@@ -355,6 +487,7 @@ type ModuleExecConfig struct {
 	REMOTE     bool
 	SRC        string
 	SUPERVISED bool
+	LastPing   time.Time
 }
 
 /*ServerConfig - Server configuration*/
@@ -374,21 +507,23 @@ type ModuleAuthConfig struct {
 	TYPE    string
 }
 
-// Route - Route redirection
+//Route - Route redirection
 type Route struct {
 	FROM string
 	TO   string
 }
 
 //ModuleState - ModuleConfig State
-type ModuleState string
+type ModuleState int
 
+//ModuleState list
 const (
-	Unknown    ModuleState = "UNKNOWN"
-	Loading    ModuleState = "LOADING"
-	Online     ModuleState = "ONLINE"
-	Stopped    ModuleState = "STOPPED"
-	Downloaded ModuleState = "DOWNLOADED"
-	Error      ModuleState = "ERROR"
-	Failed     ModuleState = "FAILED"
+	Stopped    ModuleState = 0
+	Unknown    ModuleState = 1
+	Online     ModuleState = 2
+	Downloaded ModuleState = 3
+	Loading    ModuleState = 4
+
+	Error  ModuleState = 999
+	Failed ModuleState = 998
 )

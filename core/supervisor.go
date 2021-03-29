@@ -1,22 +1,22 @@
 package core
 
 import (
-	"errors"
-	"strings"
+	"log"
+	"sync"
 	"time"
-
-	"github.com/mitchellh/go-ps"
-
-	"github.com/Wariie/go-woxy/com"
 )
 
 //Supervisor -
 type Supervisor struct {
+	mux        sync.Mutex
 	listModule []string
+	core       *Core
 }
 
 //Remove -
 func (s *Supervisor) Remove(m string) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	for i := range s.listModule {
 		if m == s.listModule[i] {
 			s.listModule[i] = s.listModule[len(s.listModule)-1] // Copy last element to index i.
@@ -29,6 +29,8 @@ func (s *Supervisor) Remove(m string) {
 
 //Add -
 func (s *Supervisor) Add(m string) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
 	s.listModule = append(s.listModule, m)
 }
 
@@ -36,63 +38,43 @@ func (s *Supervisor) Add(m string) {
 func (s *Supervisor) Supervise() {
 	//ENDLESS LOOP
 	for {
+		var mod *ModuleConfig
+
+		s.mux.Lock()
+		modulesList := s.listModule
+		s.mux.Unlock()
 		//FOR EACH REGISTERED MODULE
-		for k := range s.listModule {
-			if k >= len(s.listModule) {
-				defer s.Reload()
-				return
-			}
+		for k := range modulesList {
 			//CHECK MODULE RUNNING
-			m := GetManager().GetConfig().MODULES[s.listModule[k]]
-			if m.checkModuleRunning() {
-				if m.STATE != Online && m.STATE != Loading && m.STATE != Downloaded {
-					m.STATE = Online
+
+			mod = s.core.GetModule(modulesList[k])
+
+			timeBeforeLastPing := time.Until(mod.EXE.LastPing)
+
+			var editStat bool = false
+
+			//if Loading | Unknown | Online
+			var managingState bool = mod.STATE < Downloaded && mod.STATE >= Unknown
+
+			if managingState && timeBeforeLastPing.Minutes() < -5 {
+				if mod.STATE != Unknown {
+					mod.STATE = Unknown
+					editStat = true
+					log.Println("GO-WOXY Core - Module " + mod.NAME + " not pinging since 5 minutes")
 				}
-				//ELSE SET STATE TO UNKNOWN
-			} else if m.STATE != Loading && m.STATE != Downloaded {
-				m.STATE = Unknown
-				s.Remove(m.NAME)
+			} else if mod.STATE != Online && mod.STATE != Loading && mod.STATE != Downloaded {
+				mod.STATE = Online
+				editStat = true
 			}
-			GetManager().SaveModuleChanges(&m)
+
+			if editStat {
+				s.core.SaveModuleChanges(mod)
+			}
 		}
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * 100)
 	}
 }
 
-//Reload - Reload supervisor
-func (s *Supervisor) Reload() {
-	defer s.Supervise()
-}
-
-func checkModulePing(mc *ModuleConfig) bool {
-	var cr com.CommandRequest
-	cr.Generate("Ping", mc.PK, mc.NAME, GetManager().GetConfig().SECRET)
-	resp, err := com.SendRequest(mc.GetServer("/cmd"), &cr, false)
-	if err == nil && strings.Contains(resp, mc.NAME+" ALIVE") {
-		return true
-	}
-	return false
-}
-
-func findProcess(pid int) (int, string, error) {
-	pName := ""
-	err := errors.New("not found")
-	processes, _ := ps.Processes()
-
-	for i := range processes {
-		if processes[i].Pid() == pid {
-			pName = processes[i].Executable()
-			err = nil
-			break
-		}
-	}
-	return pid, pName, err
-}
-
-func checkPidRunning(mc *ModuleConfig) bool {
-	p, n, e := findProcess(mc.pid)
-	if p != 0 && n != "" && e == nil {
-		return true
-	}
-	return false
+func (s *Supervisor) SetCore(core *Core) {
+	s.core = core
 }

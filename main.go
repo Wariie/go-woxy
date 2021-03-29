@@ -7,10 +7,10 @@ import (
 )
 
 func main() {
-
+	core := core.Core{}
 	if len(os.Args) == 2 {
-		core.LaunchCore(os.Args[1])
+		core.GoWoxy(os.Args[1])
 	} else {
-		core.LaunchCore("")
+		core.GoWoxy("")
 	}
 }

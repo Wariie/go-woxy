@@ -8,18 +8,18 @@ import (
 	"encoding/base64"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"syscall"
 	"time"
 
-	"github.com/foolin/goview/supports/ginview"
-	"github.com/gin-contrib/logger"
-	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog"
-	zLog "github.com/rs/zerolog/log"
+	"github.com/gorilla/mux"
 
 	"github.com/Wariie/go-woxy/com"
 )
@@ -29,38 +29,39 @@ type (
 	/*Module - Module*/
 	Module interface {
 		Init()
-		Register(string, func(*gin.Context), string)
+		Register(string, func(w http.ResponseWriter, r *http.Request), string)
 		Run()
 		Stop()
 		SetServer()
 		SetHubServer()
-		SetCommand(string, func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error))
+		SetCommand(string, func(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error))
 	}
 
 	/*ModuleImpl - Impl of Module*/
 	ModuleImpl struct {
+		Mode           string
 		Name           string
 		InstanceName   string
-		Router         *gin.Engine
+		Router         *mux.Router
 		Hash           string
 		Secret         string
 		HubServer      com.Server
 		Server         com.Server
 		ResourcePath   string
 		Certs          []string
-		CustomCommands map[string]func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error)
+		CustomCommands map[string]func(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error)
 	}
 )
 
 //Stop - stop module
-func (mod *ModuleImpl) Stop(c *gin.Context) {
-	GetModManager().Shutdown(c)
+func (mod *ModuleImpl) Stop(w http.ResponseWriter, r *http.Request) {
+	GetModManager().Shutdown(w)
 }
 
 //SetCommand - set command
-func (mod *ModuleImpl) SetCommand(name string, run func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error)) {
+func (mod *ModuleImpl) SetCommand(name string, run func(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error)) {
 	if mod.CustomCommands == nil {
-		mod.CustomCommands = map[string]func(r *com.Request, c *gin.Context, mod *ModuleImpl) (string, error){}
+		mod.CustomCommands = map[string]func(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error){}
 	}
 	mod.CustomCommands[name] = run
 }
@@ -131,7 +132,7 @@ func (mod *ModuleImpl) SetHubPath(path string) {
 //Run - start module function
 func (mod *ModuleImpl) Run() {
 	log.Println("RUN - ", mod.Name)
-	if mod.connectToHub() {
+	if mod.Mode == "Test" || mod.connectToHub() {
 		mod.serve()
 	}
 }
@@ -139,17 +140,11 @@ func (mod *ModuleImpl) Run() {
 //Init - init module
 func (mod *ModuleImpl) Init() {
 
-	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	r := mux.NewRouter()
+	r.StrictSlash(true)
 
-	zLog.Logger = zLog.Output(
-		zerolog.ConsoleWriter{
-			Out:     os.Stdout,
-			NoColor: false,
-		},
-	)
-
-	r := gin.New()
-	r.Use(logger.SetLogger(), gin.Recovery())
+	//TODO SET LOGGER
+	//r.Use(logger.SetLogger(), gin.Recovery())
 
 	GetModManager().SetRouter(r)
 	GetModManager().SetMod(mod)
@@ -157,7 +152,7 @@ func (mod *ModuleImpl) Init() {
 	mod.readSecret()
 
 	if mod.ResourcePath == "" {
-		mod.ResourcePath = "resources/"
+		mod.ResourcePath = "/resources"
 	}
 
 	//DEFAULT MODULE SERVER PARAMETER
@@ -189,20 +184,28 @@ func (mod *ModuleImpl) readSecret() {
 	mod.Secret = base64.URLEncoding.EncodeToString(h.Sum(nil))
 }
 
+type HttpServer struct {
+	http.Server
+	shutdownReq chan bool
+	reqCount    uint32
+}
+
+//TODO ADD CUSTOM LOGGING
 //Register - register http handler for path
-func (mod *ModuleImpl) Register(method string, path string, handler gin.HandlerFunc, typeM string) {
+func (mod *ModuleImpl) Register(path string, handler http.HandlerFunc, typeM string) {
 	log.Println("REGISTER - ", path)
 	r := GetModManager().GetRouter()
-	r.Handle(method, path, handler)
+	main := r.PathPrefix(path).Subrouter()
 
 	if typeM == "WEB" {
-		if len(path) > 1 {
-			path += "/"
+		if len(path) == 1 {
+			path = ""
 		}
-		r.HTMLRender = ginview.Default()
-		r.Static(path+mod.ResourcePath, "/"+mod.ResourcePath)
+
+		//TODO CHECK IF DISABLE SERVER RESOURCES
+		main.PathPrefix(mod.ResourcePath).Handler(http.StripPrefix(path+mod.ResourcePath, http.FileServer(http.Dir("."+mod.ResourcePath))))
 	}
-	GetModManager().SetRouter(r)
+	main.PathPrefix("").HandlerFunc(handler)
 }
 
 /*serve -  */
@@ -210,41 +213,66 @@ func (mod *ModuleImpl) serve() {
 
 	r := GetModManager().GetRouter()
 	s := GetModManager().GetMod().Server
-	r.POST("/cmd", cmd)
+	r.HandleFunc("/cmd", cmd)
+	r.NotFoundHandler = r.NewRoute().HandlerFunc(http.NotFound).GetHandler()
 
-	Server := &http.Server{
-		Addr:    string(s.IP) + ":" + string(s.Port),
-		Handler: r,
+	server := &HttpServer{
+		Server: http.Server{
+			Addr:         string(s.IP) + ":" + string(s.Port),
+			Handler:      r,
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+		},
+		shutdownReq: make(chan bool),
 	}
 
-	go checkHubRunning(mod.HubServer, mod)
+	//IF TEST MODE DON'T LAUNCH HUB CHECKING
+	if mod.Mode != "Test" {
+		go checkHubRunning(mod.HubServer, mod)
+	}
+
+	var listener net.Listener
 
 	if len(mod.Certs) == 2 { //CERTIFCATE AND KEY DETECTED
 		var cfg tls.Config
 		cer, err := tls.LoadX509KeyPair(mod.Certs[0], mod.Certs[1])
 		if err != nil {
-			log.Println(err)
+			log.Println("Error creating tls config :", err)
 			cfg = tls.Config{}
 		} else {
 			cfg = tls.Config{Certificates: []tls.Certificate{cer}}
 		}
 
-		Server.TLSConfig = &cfg
+		//server.TLSConfig = &cfg
 
-		GetModManager().SetServer(Server)
-		GetModManager().SetRouter(r)
-
-		if err := Server.ListenAndServeTLS(mod.Certs[0], mod.Certs[1]); err != http.ErrServerClosed {
-			log.Fatal(err)
+		listener, err = tls.Listen("tcp", string(s.IP)+":"+string(s.Port), &cfg)
+		if err != nil {
+			log.Fatalln("Error setupping https listener :", err)
 		}
 	} else {
-		GetModManager().SetServer(Server)
-		GetModManager().SetRouter(r)
 
-		if err := Server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatal(err)
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			log.Fatalln("Error setupping http listener :", err)
 		}
 	}
+
+	server.Serve(listener)
+
+	GetModManager().SetServer(server)
+
+	done := make(chan bool)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Printf("Listen and serve: %v", err)
+		}
+		done <- true
+	}()
+
+	//wait shutdown
+	server.WaitShutdown()
+
+	<-done
 }
 
 func checkHubRunning(hubServer com.Server, mod *ModuleImpl) {
@@ -252,19 +280,20 @@ func checkHubRunning(hubServer com.Server, mod *ModuleImpl) {
 
 	for {
 		cr := com.CommandRequest{}
-		cr.Generate("Ping", "hub", "hub", mod.Secret)
+		cr.Generate("Ping", "hub", mod.Name, mod.Secret)
 		body, err := com.SendRequest(hubServer, &cr, false)
 		if !strings.Contains(body, "Pong") || err != nil {
 			if retry > 15 {
 				log.Fatalf("Hub not responding after " + strconv.Itoa(retry) + " retries")
 			}
+			time.Sleep(time.Second)
 			log.Println("Cannot access hub : not responding ")
 			retry++
 		} else {
 			retry = 0
 		}
 
-		time.Sleep(time.Second)
+		time.Sleep(time.Minute)
 	}
 }
 
@@ -284,22 +313,28 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 	//SEND REQUEST
 	body, err := com.SendRequest(com.Server{IP: mod.HubServer.IP, Port: mod.HubServer.Port, Path: "", Protocol: mod.HubServer.Protocol}, &cr, false)
-	var crr com.ConnexionRequest
-	crr.Decode(bytes.NewBufferString(body).Bytes())
-	s, err := strconv.ParseBool(crr.State)
 
-	if s && err == nil {
-		log.Println("	SUCCESS")
-		GetModManager().SetMod(mod)
-	} else {
+	if err != nil {
 		log.Println("	ERROR - ", err)
+	} else {
+		var crr com.ConnexionRequest
+		crr.Decode(bytes.NewBufferString(body).Bytes())
+		s, err := strconv.ParseBool(crr.State)
+
+		if s && err == nil {
+			log.Println("	SUCCESS")
+			GetModManager().SetMod(mod)
+		} else {
+			log.Println("	ERROR - ", err)
+		}
+		return s && err == nil
 	}
-	return s && err == nil
+	return false
 }
 
 type modManager struct {
-	server *http.Server
-	router *gin.Engine
+	server *HttpServer
+	router *mux.Router
 	mod    *ModuleImpl
 }
 
@@ -314,19 +349,19 @@ func GetModManager() *modManager {
 	return singleton
 }
 
-func (sm *modManager) GetServer() *http.Server {
+func (sm *modManager) GetServer() *HttpServer {
 	return sm.server
 }
 
-func (sm *modManager) SetServer(s *http.Server) {
+func (sm *modManager) SetServer(s *HttpServer) {
 	sm.server = s
 }
 
-func (sm *modManager) GetRouter() *gin.Engine {
+func (sm *modManager) GetRouter() *mux.Router {
 	return sm.router
 }
 
-func (sm *modManager) SetRouter(r *gin.Engine) {
+func (sm *modManager) SetRouter(r *mux.Router) {
 	sm.router = r
 }
 
@@ -342,12 +377,51 @@ func (sm *modManager) GetSecret() string {
 	return sm.mod.Secret
 }
 
-func (sm *modManager) Shutdown(c context.Context) {
-	time.Sleep(5 * time.Second)
+func (s *HttpServer) WaitShutdown() {
+	irqSig := make(chan os.Signal, 1)
+	signal.Notify(irqSig, syscall.SIGINT, syscall.SIGTERM)
+
+	//Wait interrupt or shutdown request through /shutdown
+	select {
+	case sig := <-irqSig:
+		log.Printf("Shutdown request (signal: %v)", sig)
+	case sig := <-s.shutdownReq:
+		log.Printf("Shutdown request (/shutdown %v)", sig)
+	}
+
+	log.Printf("Stoping http server ...")
+
+	//Create shutdown context with 10 second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	//shutdown the server
+	err := s.Shutdown(ctx)
+	if err != nil {
+		log.Printf("Shutdown request error: %v", err)
+	}
+}
+
+func (s *HttpServer) ShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Shutdown server"))
+
+	//Do nothing if shutdown request already issued
+	//if s.reqCount == 0 then set to 1, return true otherwise false
+	if !atomic.CompareAndSwapUint32(&s.reqCount, 0, 1) {
+		log.Printf("Shutdown through API call in progress...")
+		return
+	}
+
+	go func() {
+		s.shutdownReq <- true
+	}()
+}
+
+func (sm *modManager) Shutdown(w http.ResponseWriter) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	if err := sm.server.Shutdown(ctx); err != nil {
-		log.Fatal("Server force to shutdown:", err)
+		log.Fatal("Server forced to shutdown:", err)
 	}
 	log.Println("Server exiting")
 }

@@ -181,7 +181,7 @@ Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the 
 
 ## TODO LIST
 
-* Merge core - core - tools into core
+* Switch Gin Router to Mux - TO BE TESTED
 * Role / API Key
 * Plugin intregration
   
