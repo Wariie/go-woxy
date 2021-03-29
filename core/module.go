@@ -143,7 +143,7 @@ func (core *Core) HookAll(mc *ModuleConfig) error {
 	var err error
 
 	for _, path := range paths {
-		err = core.Hook(mc, path, "Any")
+		err = core.Hook(mc, path)
 		if err != nil {
 			log.Println("GO-WOXY Core - Error during module path hooking : " + err.Error())
 			return err
@@ -153,7 +153,7 @@ func (core *Core) HookAll(mc *ModuleConfig) error {
 }
 
 //Hook - Create a binding between module and router server
-func (core *Core) Hook(mc *ModuleConfig, r Route, typeR string) error {
+func (core *Core) Hook(mc *ModuleConfig, r Route) error {
 	if len(r.FROM) > 0 {
 		var handler http.Handler
 		if mc.AUTH.ENABLED {

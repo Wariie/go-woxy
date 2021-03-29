@@ -373,6 +373,7 @@ func (core *Core) showMotd() {
 }
 
 func (core *Core) registerModule(m *ModuleConfig, cr *com.ConnexionRequest) {
+
 	pid, err := strconv.Atoi(cr.Pid)
 	if err != nil {
 		log.Println("GO-WOXY Core - Error reading PID :", err)
