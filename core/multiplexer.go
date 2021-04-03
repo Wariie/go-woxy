@@ -98,16 +98,18 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, re *http.Request) {
 		}
 	}
 
-	//Process middlewares
-	for _, mw := range r.Middlewares {
-		handler = mw.Middleware(handler)
-	}
-
 	if handler != nil {
+		//Process middlewares
+		for _, mw := range r.Middlewares {
+			handler = mw.Middleware(handler)
+		}
+
+		//If handler redirect request
 		handler.Handle(ctx)
 		return
 	}
 
+	//Else route to NotFound page
 	ctx.ModuleConfig = nil
 	ctx.Route = nil
 	r.DefaultRoute(ctx)

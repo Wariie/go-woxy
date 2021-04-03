@@ -28,15 +28,17 @@ import (
 	"github.com/Wariie/go-woxy/com"
 	"github.com/Wariie/go-woxy/tools"
 	auth "github.com/abbot/go-http-auth"
+	"github.com/sirupsen/logrus"
 )
 
 //Core - GO-WOXY Core Server
 type Core struct {
+	cp          *CommandProcessorImpl
+	config      *Config
+	loggers     map[string]*logrus.Logger
 	modulesList []ModuleConfig
 	mux         sync.Mutex
-	config      *Config
 	router      *Router
-	cp          *CommandProcessorImpl
 	s           *Supervisor
 	server      *HttpServer
 	roles       []Role
@@ -164,6 +166,7 @@ func (core *Core) ReverseProxyFix() HandlerFunc {
 			//IF ROOT IS PRESENT REDIRECT TO IT
 			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
 				http.ServeFile(ctx.ResponseWriter, ctx.Request, mod.BINDING.ROOT)
+
 				//ELSE IF BINDING IS TYPE **REVERSE**
 			} else if strings.Contains(mod.TYPES, "reverse") {
 
@@ -185,7 +188,6 @@ func (core *Core) ReverseProxyFix() HandlerFunc {
 				if err != nil {
 					log.Println(err) //TODO ERROR HANDLING
 				}
-				log.Println(mod.NAME + " - " + urlProxy.String())
 
 				//TODO ADD CUSTOM HEADERS HERE
 
@@ -355,13 +357,13 @@ func (core *Core) configAndServe() {
 		listener, err = tls.Listen("tcp", server.ADDRESS+":"+server.PORT+path, tlsConfig)
 
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("GO-WOXY Core - ", err)
 		}
 
 	} else {
 		listener, err = net.Listen("tcp", server.ADDRESS+":"+server.PORT+path)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("GO-WOXY Core -", err)
 		}
 	}
 
@@ -475,12 +477,25 @@ func (core *Core) init() {
 		log.Fatalln("GO-WOXY Core - Error opening access log file " + core.config.ACCESSLOGFILE + " : " + err.Error())
 	}
 
-	logFiles := make(map[string]*log.Logger, 2)
-	logFiles["core"] = log.New(systemLogFile, "Core - ", log.Ldate|log.Ltime)
-	logFiles["access"] = log.New(accessLogFile, "", log.LstdFlags)
+	core.loggers = make(map[string]*logrus.Logger, 2)
+
+	var coreLogger = logrus.Logger{
+		Out:       systemLogFile,
+		Formatter: new(logrus.TextFormatter),
+		Hooks:     make(logrus.LevelHooks),
+		Level:     logrus.DebugLevel,
+	}
+
+	coreLogger.SetFormatter(&logrus.TextFormatter{})
+	core.loggers["core"] = &coreLogger
+
+	accessLogger := *&coreLogger
+	accessLogger.SetOutput(accessLogFile)
+	accessLogger.SetFormatter(&logrus.TextFormatter{})
+	core.loggers["access"] = &accessLogger
 
 	router := NewRouter(core.error404()) //Custom Http Router
-	router.Middlewares = append(router.Middlewares, logMiddleware(logFiles))
+	router.Middlewares = append(router.Middlewares, core.logMiddleware())
 
 	cp := CommandProcessorImpl{}
 	cp.Init()
@@ -488,21 +503,34 @@ func (core *Core) init() {
 	core.router = router
 }
 
-func logMiddleware(loggers map[string]*log.Logger) MiddlewareFunc {
+func (core *Core) logMiddleware() MiddlewareFunc {
 	return func(next Handler) Handler {
 		return HandlerFunc(func(ctx *Context) {
-			logMsg := fmt.Sprintf("%s \"%s %s %s\"",
-				ctx.RemoteAddr,
+			requestLog := fmt.Sprintf("%s %s %s",
 				ctx.Request.Method,
 				ctx.URL.Path,
 				ctx.Request.Proto,
 			)
+			var routedToLog string
 
+			var logger *logrus.Logger
 			if ctx.URL.Path == "/cmd" || ctx.URL.Path == "/connect" {
-				loggers["core"].Println("REQUEST -", ctx.URL.Path, "- Routed internally")
+				//TODO ADD LOGGER CONSTS
+				logger = core.GetLogger("core")
+				routedToLog = "internally"
 			} else {
-				loggers["access"].Println(logMsg)
+				logger = core.GetLogger("access")
+				if ctx.ModuleConfig != nil {
+					routedToLog = ctx.ModuleConfig.NAME
+				} else {
+					routedToLog = "NOT FOUND"
+				}
 			}
+			logger.WithFields(logrus.Fields{
+				"from":    ctx.RemoteAddr,
+				"request": requestLog,
+				"to":      routedToLog,
+			}).Info("routed")
 			next.Handle(ctx)
 		})
 	}
