@@ -6,14 +6,18 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
+	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,63 +27,49 @@ import (
 
 	"github.com/Wariie/go-woxy/com"
 	"github.com/Wariie/go-woxy/tools"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
+	auth "github.com/abbot/go-http-auth"
+	"github.com/sirupsen/logrus"
 )
 
 //Core - GO-WOXY Core Server
 type Core struct {
-	modulesList   []ModuleConfig
-	mux           sync.Mutex
-	config        *Config
-	router        *mux.Router
-	cp            *CommandProcessorImpl
-	s             *Supervisor
-	server        *HttpServer
-	roles         []Role
-	accessLogFile *os.File
+	cp          *CommandProcessorImpl
+	config      *Config
+	loggers     map[string]*logrus.Logger
+	modulesList []ModuleConfig
+	mux         sync.Mutex
+	router      *Router
+	s           *Supervisor
+	server      *HttpServer
+	roles       []Role
 }
 
+//GetConfig - Get go-woxy config
 func (core *Core) GetConfig() Config {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	return *core.config
 }
 
-func (core *Core) GetRouter() *mux.Router {
-	core.mux.Lock()
-	defer core.mux.Unlock()
-	return core.router
-}
-
-func (core *Core) SetRouter(r *mux.Router) {
-	core.mux.Lock()
-	defer core.mux.Unlock()
-	core.router = r
-}
-
+//GetServer - Get server
 func (core *Core) GetServer() *HttpServer {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	return core.server
 }
 
+//SetServer - Set server
 func (core *Core) SetServer(s *HttpServer) {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	core.server = s
 }
 
+//GetCommandProcessor - Get CommandProcessor
 func (core *Core) GetCommandProcessor() *CommandProcessorImpl {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	return core.cp
-}
-
-func (core *Core) SetCommandProcessor(cp *CommandProcessorImpl) {
-	core.mux.Lock()
-	defer core.mux.Unlock()
-	core.cp = cp
 }
 
 //GetSupervisor - Get module supervisor
@@ -102,6 +92,152 @@ func (core *Core) GetModule(name string) *ModuleConfig {
 	return &ModuleConfig{}
 }
 
+//HookAll - Create all binding between module config address and router server
+func (core *Core) HookAll(mc *ModuleConfig) {
+	routes := mc.BINDING.PATH
+	var err error
+
+	for _, route := range routes {
+		err = core.Hook(mc, route)
+		if err != nil {
+			log.Println("GO-WOXY Core - Error hooking", mc.NAME, "- Route", route.FROM, " > ", route.TO, ":", err.Error())
+		}
+	}
+}
+
+//Hook - Create a binding between module and router server
+func (core *Core) Hook(mc *ModuleConfig, r Route) error {
+	var err error
+	if len(r.FROM) > 0 {
+		var handler HandlerFunc
+		if mc.AUTH.ENABLED {
+			_, err = os.Stat(".htpasswd")
+			if os.IsNotExist(err) {
+				err = errors.New(".htpasswd file not found")
+			} else {
+				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
+				//TODO HANDLE PARAMETERS
+				authenticator := auth.NewBasicAuthenticator("guilhem-mateo.fr mod-manager", htpasswd)
+				handler = core.ReverseProxyAuth(authenticator, mc.NAME, r)
+			}
+		} else if strings.Contains(mc.TYPES, "bind") {
+			handler = FileBind(mc.BINDING.ROOT, r)
+		} else {
+			handler = core.ReverseProxyFix()
+		}
+
+		if handler != nil {
+			core.router.Handle(r.FROM, handler, mc, &r)
+			log.Println("GO-WOXY Core - Module " + mc.NAME + " - Route created : " + r.FROM + " > " + r.TO)
+		} else {
+			err = errors.New("no handler found with this configuration")
+		}
+	}
+
+	return err
+}
+
+// ReverseProxyAuth - Authentication middleware
+func (core *Core) ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
+		user := a.CheckAuth(ctx.Request)
+		if user == "" {
+			ctx.ResponseWriter.Header().Add("WWW-Authenticate", "Basic realm="+strconv.Quote(a.Realm))
+			ctx.ResponseWriter.WriteHeader(http.StatusUnauthorized)
+
+		}
+		ctx.ResponseWriter.Header().Set("user", user)
+		core.ReverseProxyFix().Handle(ctx)
+	})
+}
+
+//ReverseProxyFix - reverse proxy for mod
+func (core *Core) ReverseProxyFix() HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
+
+		path := ctx.URL.Path
+
+		mod := ctx.ModuleConfig
+		route := ctx.Route
+
+		//CHECK IF MODULE IS ONLINE
+		if mod != nil && mod.STATE == Online {
+
+			//IF ROOT IS PRESENT REDIRECT TO IT
+			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
+				http.ServeFile(ctx.ResponseWriter, ctx.Request, mod.BINDING.ROOT)
+
+				//ELSE IF BINDING IS TYPE **REVERSE**
+			} else if strings.Contains(mod.TYPES, "reverse") {
+
+				if route.FROM != route.TO {
+					if route.FROM != "/" {
+						i := strings.Index(path, route.FROM)
+						path = path[i+len(route.FROM):]
+					} else {
+						log.Println(path)
+					}
+
+					if route.TO != "/" && len(route.TO) > 1 && !strings.Contains(path, route.TO) {
+						path = route.TO + path
+					}
+				}
+
+				//BUILD URL PROXY
+				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
+				if err != nil {
+					log.Println(err) //TODO ERROR HANDLING
+				}
+
+				//TODO ADD CUSTOM HEADERS HERE
+
+				//SETUP REVERSE PROXY DIRECTOR
+				proxy := httputil.NewSingleHostReverseProxy(urlProxy)
+				proxy.Director = func(req *http.Request) {
+
+					req.URL.Scheme = urlProxy.Scheme
+					req.Host = urlProxy.Host
+					req.URL.Host = urlProxy.Host
+					req.URL.Path = urlProxy.Path
+
+					if _, ok := req.Header["User-Agent"]; !ok {
+						req.Header.Set("User-Agent", "")
+					}
+				}
+				proxy.ErrorHandler = ErrorHandler
+				proxy.ModifyResponse = Handle404Status
+				proxy.ServeHTTP(ctx.ResponseWriter, ctx.Request)
+			}
+		} else {
+			title := ""
+			code := 500
+			message := ""
+			if mod != nil && (mod.STATE == Loading || mod.STATE == Downloaded) {
+				title = "Loading"
+				code += 3
+				message = "Module is loading ..."
+			} else if mod != nil && mod.STATE == Stopped {
+				title = "Stopped"
+				code = 410
+				message = "Module stopped by an administrator"
+			} else if mod == nil || mod.STATE == Error || mod.STATE == Unknown {
+				title = "Error"
+				message = "Error"
+			}
+
+			data := ErrorPage{
+				Title:   title,
+				Code:    code,
+				Message: message,
+			}
+
+			tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
+			tmpl.Execute(ctx.ResponseWriter, data)
+		}
+	})
+}
+
+//SaveModuleChanges - Thread safe way to edit Module state
 func (core *Core) SaveModuleChanges(mc *ModuleConfig) {
 	core.mux.Lock()
 	defer core.mux.Unlock()
@@ -113,6 +249,7 @@ func (core *Core) SaveModuleChanges(mc *ModuleConfig) {
 	}
 }
 
+//SearchModWithHash - Thread safe way to get module with his hash
 func (core *Core) SearchModWithHash(hash string) *ModuleConfig {
 	core.mux.Lock()
 	defer core.mux.Unlock()
@@ -122,6 +259,26 @@ func (core *Core) SearchModWithHash(hash string) *ModuleConfig {
 		}
 	}
 	return &ModuleConfig{NAME: "error"}
+}
+
+//Setup - Setup module from config
+func (core *Core) Setup(mc ModuleConfig, hook bool, modulePath string) (*ModuleConfig, error) {
+	log.Println("GO-WOXY Core - Setup mod : ", mc)
+	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+		core.HookAll(&mc)
+		mc.STATE = Online
+	}
+
+	//IF CONTAINS EXE CONFIG && NOT REMOTE
+	if !reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
+		mc.generateAPIKey()
+		if !mc.EXE.REMOTE && (strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@")) {
+			mc.Download(modulePath)
+			mc.copyAPIKey()
+		}
+		mc.STATE = Loading
+	}
+	return &mc, nil
 }
 
 //TODO DELETE AND ADD API KEY HANDLING
@@ -140,31 +297,32 @@ func (core *Core) generateSecret() {
 
 func (core *Core) launchServer() {
 	log.Println("GO-WOXY Core - Starting")
-	//AUTHENTICATION & COMMAND ENDPOINT
 
-	//SWITCH THIS TO INTERNAL LOGGING INSTEAD OF ACCESS LOGGING ?
-	core.router.NotFoundHandler = handlers.CombinedLoggingHandler(core.accessLogFile, http.HandlerFunc(core.error404))
-	core.router.PathPrefix("/connect").Handler(handlers.CombinedLoggingHandler(core.accessLogFile, core.connect()))
-	core.router.PathPrefix("/cmd").Handler(handlers.CombinedLoggingHandler(core.accessLogFile, core.command()))
+	//AUTHENTICATION & COMMAND ENDPOINT
+	core.router.DefaultRoute = core.error404()
+	core.router.Handle("/connect", core.connect(), nil, nil)
+	core.router.Handle("/cmd", core.command(), nil, nil)
 
 	core.configAndServe()
 }
 
-func (core *Core) error404(w http.ResponseWriter, r *http.Request) {
-	fp := path.Join("resources/html", "404.html")
-	tmpl, err := template.ParseFiles(fp)
-	if err != nil {
-		log.Println("GO-WOXY Core - Error 404 template Not Found")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(404)
-	if err := tmpl.Execute(w, nil); err != nil {
-		log.Println("GO-WOXY Core - Error executing 404 template")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	} else {
-		log.Println("GO-WOXY Core - 404 Not Found")
-	}
+func (core *Core) error404() HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
+		fp := path.Join("resources/html", "404.html")
+		tmpl, err := template.ParseFiles(fp)
+		if err != nil {
+			log.Println("GO-WOXY Core - Error 404 template Not Found")
+			http.Error(ctx.ResponseWriter, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		ctx.ResponseWriter.WriteHeader(404)
+		if err := tmpl.Execute(ctx.ResponseWriter, nil); err != nil {
+			log.Println("GO-WOXY Core - Error executing 404 template")
+			http.Error(ctx.ResponseWriter, err.Error(), http.StatusInternalServerError)
+		} else {
+			log.Println("GO-WOXY Core - 404 Not Found")
+		}
+	})
 }
 
 func (core *Core) configAndServe() {
@@ -199,13 +357,13 @@ func (core *Core) configAndServe() {
 		listener, err = tls.Listen("tcp", server.ADDRESS+":"+server.PORT+path, tlsConfig)
 
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("GO-WOXY Core - ", err)
 		}
 
 	} else {
 		listener, err = net.Listen("tcp", server.ADDRESS+":"+server.PORT+path)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("GO-WOXY Core -", err)
 		}
 	}
 
@@ -247,13 +405,8 @@ func (core *Core) loadModules() {
 	}
 
 	err = os.Mkdir(wd+string(os.PathSeparator)+modDirName, os.ModeDir)
-	if err != nil {
-		errMsg := "GO-WOXY Core - Error creating mods folder : "
-		if os.IsNotExist(err) {
-			log.Fatalln(errMsg, err)
-		} else if os.IsExist(err) {
-			log.Println(errMsg, err)
-		}
+	if err != nil && os.IsNotExist(err) {
+		log.Fatalln("GO-WOXY Core - Error creating mods folder : ", err)
 	}
 
 	core.mux.Lock()
@@ -313,21 +466,74 @@ func (core *Core) init() {
 		core.config.ACCESSLOGFILE = "access.log"
 	}
 
-	//ACCESS LOGGING
-	f, err := os.OpenFile(core.config.ACCESSLOGFILE, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
+	//ACCESS LOG FILES OPENING
+	accessLogFile, err := os.OpenFile(core.config.ACCESSLOGFILE, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		log.Fatalln("GO-WOXY Core - Error opening access log file " + core.config.ACCESSLOGFILE + " : " + err.Error())
-	} else {
-		core.accessLogFile = f
 	}
 
-	router := mux.NewRouter()
-	//router.Use()
+	systemLogFile, err := os.OpenFile("core.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		log.Fatalln("GO-WOXY Core - Error opening access log file " + core.config.ACCESSLOGFILE + " : " + err.Error())
+	}
+
+	core.loggers = make(map[string]*logrus.Logger, 2)
+
+	var coreLogger = logrus.Logger{
+		Out:       systemLogFile,
+		Formatter: new(logrus.TextFormatter),
+		Hooks:     make(logrus.LevelHooks),
+		Level:     logrus.DebugLevel,
+	}
+
+	coreLogger.SetFormatter(&logrus.TextFormatter{})
+	core.loggers["core"] = &coreLogger
+
+	accessLogger := *&coreLogger
+	accessLogger.SetOutput(accessLogFile)
+	accessLogger.SetFormatter(&logrus.TextFormatter{})
+	core.loggers["access"] = &accessLogger
+
+	router := NewRouter(core.error404()) //Custom Http Router
+	router.Middlewares = append(router.Middlewares, core.logMiddleware())
 
 	cp := CommandProcessorImpl{}
 	cp.Init()
 	core.cp = &cp
 	core.router = router
+}
+
+func (core *Core) logMiddleware() MiddlewareFunc {
+	return func(next Handler) Handler {
+		return HandlerFunc(func(ctx *Context) {
+			requestLog := fmt.Sprintf("%s %s %s",
+				ctx.Request.Method,
+				ctx.URL.Path,
+				ctx.Request.Proto,
+			)
+			var routedToLog string
+
+			var logger *logrus.Logger
+			if ctx.URL.Path == "/cmd" || ctx.URL.Path == "/connect" {
+				//TODO ADD LOGGER CONSTS
+				logger = core.GetLogger("core")
+				routedToLog = "internally"
+			} else {
+				logger = core.GetLogger("access")
+				if ctx.ModuleConfig != nil {
+					routedToLog = ctx.ModuleConfig.NAME
+				} else {
+					routedToLog = "NOT FOUND"
+				}
+			}
+			logger.WithFields(logrus.Fields{
+				"from":    ctx.RemoteAddr,
+				"request": requestLog,
+				"to":      routedToLog,
+			}).Info("routed")
+			next.Handle(ctx)
+		})
+	}
 }
 
 /*LoadConfigFromPath - Load config file from path */
@@ -387,19 +593,16 @@ func (core *Core) registerModule(m *ModuleConfig, cr *com.ConnexionRequest) {
 		m.BINDING.PORT = cr.Port
 	}
 
-	err = core.HookAll(m)
-	if err != nil {
-		log.Println("Go-WOXY Core - Error trying to hook module", m.NAME)
-	}
+	core.HookAll(m)
 }
 
-func (core *Core) connect() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (core *Core) connect() HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
 
 		//READ Body and try to found ConnexionRequest
 		var cr com.ConnexionRequest
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(r.Body)
+		buf.ReadFrom(ctx.Body)
 		cr.Decode(buf.Bytes())
 
 		var modC *ModuleConfig = core.GetModule(cr.Name)
@@ -416,7 +619,7 @@ func (core *Core) connect() http.HandlerFunc {
 
 			//GET THE REMOTE HOST ADDRESS IF HOST IS EMPTY
 			if !modC.EXE.REMOTE {
-				modC.BINDING.ADDRESS = strings.Split(r.Host, ":")[0]
+				modC.BINDING.ADDRESS = strings.Split(ctx.Host, ":")[0]
 			}
 
 			//CHECK SECRET FOR AUTH
@@ -429,7 +632,6 @@ func (core *Core) connect() http.HandlerFunc {
 			}
 
 			core.SaveModuleChanges(modC)
-			log.Println("GO-WOXY Core - Module", modC.NAME, "STATE", modC.STATE)
 
 			//SEND RESPONSE
 			result := strconv.FormatBool(rs)
@@ -438,20 +640,20 @@ func (core *Core) connect() http.HandlerFunc {
 			cr.State = result
 			resultW = cr.Encode()
 		}
-		i, err := w.Write(resultW)
+		i, err := ctx.ByteText(200, resultW)
 		if err != nil {
 			log.Println("GO-WOXY Core - Module", modC.NAME, " failed to respond :", err.Error(), " bytes : ", i)
 		}
 
-	}
+	})
 }
 
 // Command - Access point to handle module commands
-func (core *Core) command() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		t, b := com.GetCustomRequestType(r)
+func (core *Core) command() HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
+		t, b := com.GetCustomRequestType(ctx.Request)
 
-		from := r.RemoteAddr
+		from := ctx.Request.RemoteAddr
 		response := ""
 		action := ""
 
@@ -502,17 +704,52 @@ func (core *Core) command() http.HandlerFunc {
 		//LOG COMMAND RESULT
 		log.Println("GO-WOXY Core - From", from, action)
 
-		w.WriteHeader(200)
-		w.Write([]byte(response))
-	}
+		ctx.ByteText(200, []byte(response))
+	})
 }
 
+//FileBind - File bind handler
+func FileBind(fileName string, r Route) HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
+		if fileName != "" {
+			http.ServeFile(ctx.ResponseWriter, ctx.Request, fileName)
+		} else {
+			ctx.Text(400, "GO-WOXY Core - Error Bind - "+fileName+" was not found")
+		}
+	})
+}
+
+//ErrorHandler -
+func ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
+	title := "Error"
+	//message := "Error"
+
+	data := ErrorPage{
+		Title:   title,
+		Code:    400,
+		Message: err.Error(),
+	}
+
+	tmpl := template.Must(template.ParseFiles("./resources/html/loading.html"))
+	tmpl.Execute(w, data)
+}
+
+// - Throw err when proxied response status is 404
+func Handle404Status(res *http.Response) error {
+	if res.StatusCode == 404 {
+		return errors.New("404 error from the host")
+	}
+	return nil
+}
+
+//HttpServer -
 type HttpServer struct {
 	http.Server
 	shutdownReq chan bool
 	reqCount    uint32
 }
 
+//WaitShutdown - Wait server to shutdown correctly
 func (s *HttpServer) WaitShutdown() {
 	irqSig := make(chan os.Signal, 1)
 	signal.Notify(irqSig, syscall.SIGINT, syscall.SIGTERM)

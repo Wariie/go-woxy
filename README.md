@@ -181,9 +181,10 @@ Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the 
 
 ## TODO LIST
 
-* Switch Gin Router to Mux - TO BE TESTED
-* Role / API Key
-* Plugin intregration
+* Custom http router - BASIC DONE
+* API Key - DONE (1 per module )
+* Role - TBD ( handle api key)
+* Plugin intregration ( middleware ) - TBD
   
       POST_REQUEST
         - METRICS
@@ -202,4 +203,4 @@ Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the 
       POST_STOP
       ...
 
-* Metrics
+* Metrics - Prometheus ? 

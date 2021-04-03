@@ -75,6 +75,7 @@ func (s *Supervisor) Supervise() {
 	}
 }
 
+//SetCore - Set core
 func (s *Supervisor) SetCore(core *Core) {
 	s.core = core
 }

@@ -23,6 +23,7 @@ type Config struct {
 	VERSION       int
 }
 
+//Load - Load config from file path 'configPath'
 func (c *Config) Load(configPath string) {
 
 	if len(configPath) == 0 {
