@@ -26,8 +26,8 @@ type Config struct {
 //Load - Load config from file path 'configPath'
 func (c *Config) Load(configPath string) {
 
+	//EMPTY CONFIG FILE PATH
 	if len(configPath) == 0 {
-		//EMPTY CONFIG FILE PATH
 		//TRY DEFAULT cfg.yml
 		configPath = "cfg.yml"
 	}
@@ -67,6 +67,13 @@ func (c *Config) checkModules() {
 			m.STATE = Online
 		} else {
 			m.STATE = Unknown
+		}
+
+		//log.Println(*m.LOG.enabled)
+		if m.LOG.Enabled == nil {
+			enabled := true
+			m.LOG.Enabled = &enabled
+			m.LOG.Path = "default"
 		}
 
 		if m.BINDING.PROTOCOL == "" {
