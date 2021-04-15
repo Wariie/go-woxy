@@ -147,9 +147,21 @@ type ModuleConfig struct {
 	pid          int
 	PK           string
 	RESOURCEPATH string
+	LOG          ModuleLogConfig
 	STATE        ModuleState
 	TYPES        string
 	VERSION      int
+}
+
+/*ModuleLogConfig - Module Logging Configuration */
+type ModuleLogConfig struct {
+	Enabled *bool  `yaml:"enabled"`
+	File    string `yaml:"file"`
+	Path    string `yaml:"path"`
+}
+
+func (mlc *ModuleLogConfig) IsEnabled() bool {
+	return *mlc.Enabled
 }
 
 /*ModuleExecConfig - Module exec file informations */

@@ -28,6 +28,9 @@
         src: 'https://github.com/Wariie/mod.v0.git'
         main: "testMod.go"
         supervised: true
+      log:
+        enabled: true 
+        file: website.log
       binding:
         path: 
           - from: '/'

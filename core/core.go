@@ -309,12 +309,10 @@ func (core *Core) startModules() {
 
 func (core *Core) init() {
 
-	//TODO HANDLE TEMPLATE SOURCE DIR
-	//router.LoadHTMLGlob("." + string(os.PathSeparator) + config.RESOURCEDIR + "*" + string(os.PathSeparator) + "*")
-
 	core.mux.Lock()
 	defer core.mux.Unlock()
 
+	//Load ModuleConfigs from loaded config
 	for _, mod := range core.config.MODULES {
 		core.modulesList = append(core.modulesList, mod)
 	}
@@ -325,41 +323,72 @@ func (core *Core) init() {
 		core.config.ACCESSLOGFILE = "access.log"
 	}
 
-	//ACCESS LOG FILES OPENING
+	//Setup go-woxy log files
+	core.initLogs()
+
+	//Setup server router with error handling page
+	router := NewRouter(core.error404()) //Custom Http Router
+	router.Middlewares = append(router.Middlewares, core.logMiddleware())
+
+	//Setup CommandProcessor
+	cp := CommandProcessorImpl{}
+	cp.Init()
+	core.cp = &cp
+	core.router = router
+}
+
+func (core *Core) initLogs() {
+
+	//Open default system access log file
+	coreLogFile, err := os.OpenFile("core.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
+	if err != nil {
+		log.Fatalln("GO-WOXY Core - Error opening access log file " + core.config.ACCESSLOGFILE + " : " + err.Error())
+	}
+
+	//Open default access log file
 	accessLogFile, err := os.OpenFile(core.config.ACCESSLOGFILE, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
 	if err != nil {
 		log.Fatalln("GO-WOXY Core - Error opening access log file " + core.config.ACCESSLOGFILE + " : " + err.Error())
 	}
 
-	systemLogFile, err := os.OpenFile("core.log", os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
-	if err != nil {
-		log.Fatalln("GO-WOXY Core - Error opening access log file " + core.config.ACCESSLOGFILE + " : " + err.Error())
-	}
-
-	core.loggers = make(map[string]*logrus.Logger, 2)
-
+	//Init logrus
 	var coreLogger = logrus.Logger{
-		Out:       systemLogFile,
+		Out:       coreLogFile,
 		Formatter: new(logrus.TextFormatter),
 		Hooks:     make(logrus.LevelHooks),
 		Level:     logrus.DebugLevel,
 	}
+
+	//init go-woxy loggers map
+	// - accessLogFile - default log file for module
+	// - coreLogFile - system access log file
+	// * 1/module
+	core.loggers = make(map[string]*logrus.Logger, len(core.modulesList)+2)
 
 	coreLogger.SetFormatter(&logrus.TextFormatter{})
 	core.loggers["core"] = &coreLogger
 
 	accessLogger := *&coreLogger
 	accessLogger.SetOutput(accessLogFile)
-	accessLogger.SetFormatter(&logrus.TextFormatter{})
 	core.loggers["access"] = &accessLogger
 
-	router := NewRouter(error404()) //Custom Http Router
-	router.Middlewares = append(router.Middlewares, core.logMiddleware())
+	//CREATE CUSTOM MODULE LOGGERS
+	for _, m := range core.modulesList {
+		logger := *&accessLogger
+		var logFile *os.File = accessLogFile
+		if m.LOG.IsEnabled() && m.LOG.Path != "default" {
+			path := m.LOG.Path + m.LOG.File
+			logFile, err = os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModePerm)
+			if err != nil {
+				log.Println("GO-WOXY Core - Error opening access log file " + path + " : " + err.Error())
+			}
+		}
 
-	cp := CommandProcessorImpl{}
-	cp.Init()
-	core.cp = &cp
-	core.router = router
+		if logFile != nil && err == nil {
+			logger.SetOutput(logFile)
+			core.loggers[m.NAME] = &logger
+		}
+	}
 }
 
 func (core *Core) logMiddleware() MiddlewareFunc {
@@ -378,7 +407,7 @@ func (core *Core) logMiddleware() MiddlewareFunc {
 				logger = core.GetLogger("core")
 				routedToLog = "internally"
 			} else {
-				logger = core.GetLogger("access")
+				logger = core.GetLogger(ctx.ModuleConfig.NAME)
 				if ctx.ModuleConfig != nil {
 					routedToLog = ctx.ModuleConfig.NAME
 				} else {
