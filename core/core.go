@@ -327,7 +327,7 @@ func (core *Core) init() {
 	core.initLogs()
 
 	//Setup server router with error handling page
-	router := NewRouter(core.error404()) //Custom Http Router
+	router := NewRouter(error404()) //Custom Http Router
 	router.Middlewares = append(router.Middlewares, core.logMiddleware())
 
 	//Setup CommandProcessor
