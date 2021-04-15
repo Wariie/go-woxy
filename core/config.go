@@ -2,11 +2,14 @@ package core
 
 import (
 	"bufio"
+	"crypto/sha256"
+	"encoding/base64"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/Wariie/go-woxy/tools"
 	"gopkg.in/yaml.v2"
 )
 
@@ -91,6 +94,19 @@ func (c *Config) checkServer() {
 	//CHECK PORT IF NOT PRESENT -> DEFAULT 2000
 	if c.SERVER.PORT == "" {
 		c.SERVER.PORT = "2000"
+	}
+}
+
+func (c *Config) generateSecret() {
+	if len(c.SECRET) == 0 {
+		b := []byte(tools.String(64))
+		err := ioutil.WriteFile(".secret", b, 0644)
+		if err != nil {
+			log.Fatalln("GO-WOXY Core - Error creating secret file : ", err)
+		}
+		h := sha256.New()
+		h.Write(b)
+		c.SECRET = base64.URLEncoding.EncodeToString(h.Sum(nil))
 	}
 }
 
