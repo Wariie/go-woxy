@@ -181,26 +181,9 @@ Check **[here](https://github.com/Wariie/go-woxy/tree/master/modbase)** for the 
 
 ## TODO LIST
 
-* Custom http router - BASIC DONE
+* Custom http router - DONE
+* Seperate mod logging  ( optionnal with filename in config )
+* Config parameter handling ( ex : from: "/{{ NAME }}")
 * API Key - DONE (1 per module )
 * Role - TBD ( handle api key)
-* Plugin intregration ( middleware ) - TBD
-  
-      POST_REQUEST
-        - METRICS
-      BEFORE_REQUEST
-        - AUTH
-      BEFORE_INSTALL
-
-      POST_INSTALL
-
-      BEFORE_START
-
-      POST_START
-
-      BEFORE_STOP
-
-      POST_STOP
-      ...
-
-* Metrics - Prometheus ? 
+* Metrics : Prometheus ? 
