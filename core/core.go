@@ -23,7 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//Core - GO-WOXY Core Server
+// Core - GO-WOXY Core Server
 type Core struct {
 	cp          *CommandProcessorImpl
 	config      *Config
@@ -36,42 +36,42 @@ type Core struct {
 	roles       []Role
 }
 
-//GetConfig - Get go-woxy config
+// GetConfig - Get go-woxy config
 func (core *Core) GetConfig() Config {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	return *core.config
 }
 
-//GetServer - Get server
+// GetServer - Get server
 func (core *Core) GetServer() *HttpServer {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	return core.server
 }
 
-//SetServer - Set server
+// SetServer - Set server
 func (core *Core) SetServer(s *HttpServer) {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	core.server = s
 }
 
-//GetCommandProcessor - Get CommandProcessor
+// GetCommandProcessor - Get CommandProcessor
 func (core *Core) GetCommandProcessor() *CommandProcessorImpl {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	return core.cp
 }
 
-//GetSupervisor - Get module supervisor
+// GetSupervisor - Get module supervisor
 func (core *Core) GetSupervisor() *Supervisor {
 	core.mux.Lock()
 	defer core.mux.Unlock()
 	return core.s
 }
 
-//GetModule - Get module reference from core list module
+// GetModule - Get module reference from core list module
 func (core *Core) GetModule(name string) *ModuleConfig {
 	core.mux.Lock()
 	defer core.mux.Unlock()
@@ -84,7 +84,7 @@ func (core *Core) GetModule(name string) *ModuleConfig {
 	return &ModuleConfig{}
 }
 
-//HookAll - Create all binding between module config address and router server
+// HookAll - Create all binding between module config address and router server
 func (core *Core) HookAll(mc *ModuleConfig) {
 	routes := mc.BINDING.PATH
 	var err error
@@ -97,7 +97,7 @@ func (core *Core) HookAll(mc *ModuleConfig) {
 	}
 }
 
-//Hook - Create a binding between module and router server
+// Hook - Create a binding between module and router server
 func (core *Core) Hook(mc *ModuleConfig, r Route) error {
 	var err error
 	if len(r.FROM) > 0 {
@@ -125,11 +125,10 @@ func (core *Core) Hook(mc *ModuleConfig, r Route) error {
 			err = errors.New("no handler found with this configuration")
 		}
 	}
-
 	return err
 }
 
-//SaveModuleChanges - Thread safe way to edit Module state
+// SaveModuleChanges - Thread safe way to edit Module state
 func (core *Core) SaveModuleChanges(mc *ModuleConfig) {
 	core.mux.Lock()
 	defer core.mux.Unlock()
@@ -141,7 +140,7 @@ func (core *Core) SaveModuleChanges(mc *ModuleConfig) {
 	}
 }
 
-//SearchModWithHash - Thread safe way to get module with his hash
+// SearchModWithHash - Thread safe way to get module with his hash
 func (core *Core) SearchModWithHash(hash string) *ModuleConfig {
 	core.mux.Lock()
 	defer core.mux.Unlock()
@@ -153,7 +152,7 @@ func (core *Core) SearchModWithHash(hash string) *ModuleConfig {
 	return &ModuleConfig{NAME: "error"}
 }
 
-//Setup - Setup module from config
+// Setup - Setup module from config
 func (core *Core) Setup(mc ModuleConfig, hook bool, modulePath string) (*ModuleConfig, error) {
 	log.Println("GO-WOXY Core - Setup mod : ", mc)
 	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
@@ -368,13 +367,13 @@ func (core *Core) initLogs() {
 	coreLogger.SetFormatter(&logrus.TextFormatter{})
 	core.loggers["core"] = &coreLogger
 
-	accessLogger := *&coreLogger
+	accessLogger := coreLogger
 	accessLogger.SetOutput(accessLogFile)
 	core.loggers["access"] = &accessLogger
 
 	//CREATE CUSTOM MODULE LOGGERS
 	for _, m := range core.modulesList {
-		logger := *&accessLogger
+		logger := accessLogger
 		var logFile *os.File = accessLogFile
 		if m.LOG.IsEnabled() && m.LOG.Path != "default" {
 			path := m.LOG.Path + m.LOG.File
@@ -431,7 +430,7 @@ func (core *Core) loadConfigFromPath(configPath string) {
 	core.config = &cfg
 }
 
-//GoWoxy - start core server
+// GoWoxy - start core server
 func (core *Core) GoWoxy(configPath string) {
 
 	//Load Config
@@ -596,14 +595,14 @@ func (core *Core) command() HandlerFunc {
 	})
 }
 
-//HttpServer -
+// HttpServer -
 type HttpServer struct {
 	http.Server
 	shutdownReq chan bool
 	reqCount    uint32
 }
 
-//WaitShutdown - Wait server to shutdown correctly
+// WaitShutdown - Wait server to shutdown correctly
 func (s *HttpServer) WaitShutdown() {
 	irqSig := make(chan os.Signal, 1)
 	signal.Notify(irqSig, syscall.SIGINT, syscall.SIGTERM)

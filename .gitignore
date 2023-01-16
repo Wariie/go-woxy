@@ -28,6 +28,7 @@
 
 /mods
 /tmp
+/bin
 
 .htpasswd
 .secret

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"crypto/sha256"
 	"encoding/base64"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -26,7 +25,7 @@ type Config struct {
 	VERSION       int
 }
 
-//Load - Load config from file path 'configPath'
+// Load - Load config from file path 'configPath'
 func (c *Config) Load(configPath string) {
 
 	//EMPTY CONFIG FILE PATH
@@ -36,7 +35,7 @@ func (c *Config) Load(configPath string) {
 	}
 
 	//READ CONFIG FILE
-	data, err := ioutil.ReadFile(configPath)
+	data, err := os.ReadFile(configPath)
 	if err != nil {
 		log.Fatalf("GO-WOXY Core - Error reading config file : %v", err)
 	}
@@ -59,7 +58,7 @@ func (c *Config) Load(configPath string) {
 	}
 
 	// Convert map to slice of values.
-	log.Println("GO-WOXY Core - Config file readed")
+	log.Println("GO-WOXY Core - Config loaded")
 }
 
 func (c *Config) checkModules() {
@@ -107,7 +106,7 @@ func (c *Config) checkServer() {
 func (c *Config) generateSecret() {
 	if len(c.SECRET) == 0 {
 		b := []byte(tools.String(64))
-		err := ioutil.WriteFile(".secret", b, 0644)
+		err := os.WriteFile(".secret", b, 0644)
 		if err != nil {
 			log.Fatalln("GO-WOXY Core - Error creating secret file : ", err)
 		}
@@ -117,7 +116,7 @@ func (c *Config) generateSecret() {
 	}
 }
 
-//GetMotdFileContent - Get motd file content from motd path
+// GetMotdFileContent - Get motd file content from motd path
 func (c *Config) GetMotdFileContent() string {
 	if c.MOTD == "" {
 		c.MOTD = "motd.txt"

@@ -1,4 +1,4 @@
-FROM tikhoplav/go as prepare
+FROM golang:1.19.5-alpine as prepare
 ENV GOPROXY direct
 ENV GOSUMDB off
 WORKDIR /source

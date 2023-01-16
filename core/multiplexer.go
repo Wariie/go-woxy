@@ -12,14 +12,14 @@ type Handler interface {
 	Handle(ctx *Context)
 }
 
-//Handler - Handler endpoint function
+// Handler - Handler endpoint function
 type HandlerFunc func(*Context)
 
 func (h HandlerFunc) Handle(ctx *Context) {
 	h(ctx)
 }
 
-//PatternRoute - Module route
+// PatternRoute - Module route
 type PatternRoute struct {
 	Pattern *regexp.Regexp
 	Handler HandlerFunc
@@ -27,7 +27,7 @@ type PatternRoute struct {
 	Route   *Route
 }
 
-func (pr PatternRoute) Handle(h Handler) {
+func (pr *PatternRoute) Handle(h Handler) {
 	pr.Handler = HandlerFunc(h.Handle)
 }
 
@@ -42,14 +42,14 @@ type middleware interface {
 	Middleware(handler Handler) Handler
 }
 
-//Router - Server router containing routes
+// Router - Server router containing routes
 type Router struct {
 	Routes       []PatternRoute
 	DefaultRoute HandlerFunc
 	Middlewares  []middleware
 }
 
-//NewRouter - Init new router instance
+// NewRouter - Init new router instance
 func NewRouter(NotFoundHandler HandlerFunc) *Router {
 	router := &Router{
 		DefaultRoute: NotFoundHandler,
@@ -65,7 +65,7 @@ func (r *Router) Handler(pattern string, handler Handler, mod *ModuleConfig, ro 
 	r.Handle(pattern, handler.Handle, mod, ro)
 }
 
-//Handle - Handle new router into router
+// Handle - Handle new router into router
 func (r *Router) Handle(pattern string, handler HandlerFunc, mod *ModuleConfig, ro *Route) {
 	re := regexp.MustCompile(pattern)
 	route := PatternRoute{Pattern: re, Handler: handler, Module: mod, Route: ro}
@@ -77,7 +77,7 @@ func (r *Router) Handle(pattern string, handler HandlerFunc, mod *ModuleConfig, 
 	})
 }
 
-//ServerHTTP - Serve route from router
+// ServerHTTP - Serve route from router
 func (r *Router) ServeHTTP(w http.ResponseWriter, re *http.Request) {
 	ctx := &Context{Request: re, ResponseWriter: w}
 	var handler Handler
@@ -115,7 +115,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, re *http.Request) {
 	r.DefaultRoute(ctx)
 }
 
-//Context -
+// Context -
 type Context struct {
 	http.ResponseWriter
 	*http.Request
@@ -124,19 +124,19 @@ type Context struct {
 	*Route
 }
 
-//Text - Send text to context writer
+// Text - Send text to context writer
 func (c *Context) Text(code int, body string) (int, error) {
 	c.ResponseWriter.Header().Set("Content-Type", "text/plain")
 	c.WriteHeader(code)
 	return io.WriteString(c.ResponseWriter, fmt.Sprintf("%s\n", body))
 }
 
-//ByteText - Send byte text to context writer
+// ByteText - Send byte text to context writer
 func (c *Context) ByteText(code int, body []byte) (int, error) {
 	return c.Text(code, string(body))
 }
 
-//HtmlText - Send html text to context writer
+// HtmlText - Send html text to context writer
 func (c *Context) HtmlText(code int, body string, data interface{}) {
 	//
 }

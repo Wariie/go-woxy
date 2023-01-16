@@ -3,7 +3,6 @@ package core
 import (
 	"crypto/sha256"
 	"encoding/base64"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -15,7 +14,7 @@ import (
 	"github.com/shirou/gopsutil/process"
 )
 
-//Download - Download module from repository ( git clone )
+// Download - Download module from repository ( git clone )
 func (mc *ModuleConfig) Download(moduleDir string) {
 
 	if mc.STATE != Online {
@@ -46,17 +45,11 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 	}
 }
 
-//GetLog - GetLog from Module
+// GetLog - GetLog from Module
 func (mc *ModuleConfig) GetLog() string {
 
 	//TODO ADD REMOTE COMMAND TO GET LOG
-	file, err := os.Open(mc.EXE.BIN + "/log.log")
-	if err != nil {
-		log.Fatalln("GO-WOXY Core - Error reading log file :", err)
-		return ""
-	}
-
-	b, err := ioutil.ReadAll(file)
+	b, err := os.ReadFile(mc.EXE.BIN + "/log.log")
 	if err != nil {
 		log.Println("GO-WOXY Core - Error reading module log file : " + err.Error())
 		return ""
@@ -64,7 +57,7 @@ func (mc *ModuleConfig) GetLog() string {
 	return string(b)
 }
 
-//APIKeyMatch - Check if given key match api key hash
+// APIKeyMatch - Check if given key match api key hash
 func (mc *ModuleConfig) APIKeyMatch(key string) bool {
 	//r := strings.Trim(key, "\n\t") == strings.Trim(core.config.SECRET, "\n\t")
 
@@ -75,7 +68,7 @@ func (mc *ModuleConfig) APIKeyMatch(key string) bool {
 	return r
 }
 
-//GetPerf - GetPerf from Module
+// GetPerf - GetPerf from Module
 func (mc *ModuleConfig) GetPerf() (float64, float32) {
 	var p, err = process.NewProcess(int32(mc.pid))
 	ram, err := p.MemoryPercent()
@@ -85,7 +78,7 @@ func (mc *ModuleConfig) GetPerf() (float64, float32) {
 	return cpu, ram
 }
 
-//GetServer - Get Module Server configuration
+// GetServer - Get Module Server configuration
 func (mc *ModuleConfig) GetServer(path string) com.Server {
 	if path == "" {
 		path = mc.BINDING.PATH[0].FROM
@@ -93,7 +86,7 @@ func (mc *ModuleConfig) GetServer(path string) com.Server {
 	return com.Server{IP: com.IP(mc.BINDING.ADDRESS), Path: com.Path(path), Port: com.Port(mc.BINDING.PORT), Protocol: com.Protocol(mc.BINDING.PROTOCOL)}
 }
 
-//Start - Start module with config args and auto args
+// Start - Start module with config args and auto args
 func (mc *ModuleConfig) Start() {
 	log.Println("GO-WOXY Core - Starting mod : ", mc)
 
@@ -129,7 +122,7 @@ func (mc *ModuleConfig) generateAPIKey() {
 	mc.API_KEY = base64.URLEncoding.EncodeToString([]byte(tools.String(64)))
 }
 
-//ErrorPage - Content description for go-woxy error page
+// ErrorPage - Content description for go-woxy error page
 type ErrorPage struct {
 	Title   string
 	Code    int
@@ -191,16 +184,16 @@ type ModuleAuthConfig struct {
 	TYPE    string
 }
 
-//Route - Route redirection
+// Route - Route redirection
 type Route struct {
 	FROM string
 	TO   string
 }
 
-//ModuleState - ModuleConfig State
+// ModuleState - ModuleConfig State
 type ModuleState int
 
-//ModuleState list
+// ModuleState list
 const (
 	Stopped    ModuleState = 0
 	Unknown    ModuleState = 1
