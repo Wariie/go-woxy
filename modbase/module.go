@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -53,12 +54,12 @@ type (
 	}
 )
 
-//Stop - stop module
+// Stop - stop module
 func (mod *ModuleImpl) Stop(w http.ResponseWriter, r *http.Request) {
 	GetModManager().Shutdown(w)
 }
 
-//SetCommand - set command
+// SetCommand - set command
 func (mod *ModuleImpl) SetCommand(name string, run func(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error)) {
 	if mod.CustomCommands == nil {
 		mod.CustomCommands = map[string]func(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error){}
@@ -66,7 +67,7 @@ func (mod *ModuleImpl) SetCommand(name string, run func(r *com.Request, w http.R
 	mod.CustomCommands[name] = run
 }
 
-//SetServer -
+// SetServer -
 func (mod *ModuleImpl) SetServer(ip string, path string, port string, proto string) {
 	if proto == "" {
 		proto = "http"
@@ -74,34 +75,34 @@ func (mod *ModuleImpl) SetServer(ip string, path string, port string, proto stri
 	mod.Server = com.Server{IP: com.IP(ip), Port: com.Port(port), Path: com.Path(path), Protocol: com.Protocol(proto)}
 }
 
-//SetAddress - Set address for server
+// SetAddress - Set address for server
 func (mod *ModuleImpl) SetAddress(addr string) {
 	mod.Server.IP = com.IP(addr)
 }
 
-//SetCerts - Set certificate and key for server
+// SetCerts - Set certificate and key for server
 func (mod *ModuleImpl) SetCerts(keyPath string, certPath string) {
 	mod.Certs = make([]string, 0)
 	mod.Certs = append(mod.Certs, certPath)
 	mod.Certs = append(mod.Certs, keyPath)
 }
 
-//SetPort - Set port for server
+// SetPort - Set port for server
 func (mod *ModuleImpl) SetPort(port string) {
 	mod.Server.Port = com.Port(port)
 }
 
-//SetProtocol - Set protocol for server
+// SetProtocol - Set protocol for server
 func (mod *ModuleImpl) SetProtocol(proto string) {
 	mod.Server.Protocol = com.Protocol(proto)
 }
 
-//SetPath - Set path for server
+// SetPath - Set path for server
 func (mod *ModuleImpl) SetPath(path string) {
 	mod.Server.Path = com.Path(path)
 }
 
-//SetHubServer -
+// SetHubServer -
 func (mod *ModuleImpl) SetHubServer(ip string, path string, port string, proto string) {
 	if proto == "" {
 		proto = "http"
@@ -109,27 +110,27 @@ func (mod *ModuleImpl) SetHubServer(ip string, path string, port string, proto s
 	mod.HubServer = com.Server{IP: com.IP(ip), Port: com.Port(port), Path: com.Path(path), Protocol: com.Protocol(proto)}
 }
 
-//SetHubAddress - Set address for hub server
+// SetHubAddress - Set address for hub server
 func (mod *ModuleImpl) SetHubAddress(addr string) {
 	mod.HubServer.IP = com.IP(addr)
 }
 
-//SetHubPort - Set port for hub server
+// SetHubPort - Set port for hub server
 func (mod *ModuleImpl) SetHubPort(port string) {
 	mod.HubServer.Port = com.Port(port)
 }
 
-//SetHubProtocol - Set protocol for hub server
+// SetHubProtocol - Set protocol for hub server
 func (mod *ModuleImpl) SetHubProtocol(proto string) {
 	mod.HubServer.Protocol = com.Protocol(proto)
 }
 
-//SetHubPath - Set path for hub server
+// SetHubPath - Set path for hub server
 func (mod *ModuleImpl) SetHubPath(path string) {
 	mod.HubServer.Path = com.Path(path)
 }
 
-//Run - start module function
+// Run - start module function
 func (mod *ModuleImpl) Run() {
 	log.Println("RUN - ", mod.Name)
 	if mod.Mode == "Test" || mod.connectToHub() {
@@ -137,11 +138,11 @@ func (mod *ModuleImpl) Run() {
 	}
 }
 
-//Init - init module
+// Init - init module
 func (mod *ModuleImpl) Init() {
 
-	r := mux.NewRouter()
-	r.StrictSlash(true)
+	r := NewRouter(notFound())
+	//r.StrictSlash(true)
 
 	//TODO SET LOGGER
 	//r.Use(logger.SetLogger(), gin.Recovery())
@@ -190,12 +191,11 @@ type HttpServer struct {
 	reqCount    uint32
 }
 
-//TODO ADD CUSTOM LOGGING
-//Register - register http handler for path
-func (mod *ModuleImpl) Register(path string, handler http.HandlerFunc, typeM string) {
+// TODO ADD CUSTOM LOGGING
+// Register - register http handler for path
+func (mod *ModuleImpl) Register(path string, handler HandlerFunc, typeM string) {
 	log.Println("REGISTER - ", path)
 	r := GetModManager().GetRouter()
-	main := r.PathPrefix(path).Subrouter()
 
 	if typeM == "WEB" {
 		if len(path) == 1 {
@@ -203,18 +203,20 @@ func (mod *ModuleImpl) Register(path string, handler http.HandlerFunc, typeM str
 		}
 
 		//TODO CHECK IF DISABLE SERVER RESOURCES
-		main.PathPrefix(mod.ResourcePath).Handler(http.StripPrefix(path+mod.ResourcePath, http.FileServer(http.Dir("."+mod.ResourcePath))))
+
+		r.Handle(path, resources(path, mod.ResourcePath), &Route{TO: path})
 	}
-	main.PathPrefix("").HandlerFunc(handler)
+
+	r.Handle(path, handler, &Route{TO: path})
 }
 
 /*serve -  */
 func (mod *ModuleImpl) serve() {
 
+	GetModManager().SortRoutes()
 	r := GetModManager().GetRouter()
 	s := GetModManager().GetMod().Server
-	r.HandleFunc("/cmd", cmd)
-	r.NotFoundHandler = r.NewRoute().HandlerFunc(http.NotFound).GetHandler()
+	r.Handle("/cmd", cmd(), &Route{TO: "/cmd"})
 
 	server := &HttpServer{
 		Server: http.Server{
@@ -247,7 +249,7 @@ func (mod *ModuleImpl) serve() {
 
 		listener, err = tls.Listen("tcp", string(s.IP)+":"+string(s.Port), &cfg)
 		if err != nil {
-			log.Fatalln("Error setupping https listener :", err)
+			log.Fatalln("Error setuping https listener :", err)
 		}
 	} else {
 
@@ -334,14 +336,14 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 type modManager struct {
 	server *HttpServer
-	router *mux.Router
+	router *Router
 	mod    *ModuleImpl
 }
 
 var singleton *modManager
 var once sync.Once
 
-//GetModManager -
+// GetModManager -
 func GetModManager() *modManager {
 	once.Do(func() {
 		singleton = &modManager{}
@@ -357,11 +359,11 @@ func (sm *modManager) SetServer(s *HttpServer) {
 	sm.server = s
 }
 
-func (sm *modManager) GetRouter() *mux.Router {
+func (sm *modManager) GetRouter() *Router {
 	return sm.router
 }
 
-func (sm *modManager) SetRouter(r *mux.Router) {
+func (sm *modManager) SetRouter(r *Router) {
 	sm.router = r
 }
 
@@ -375,6 +377,12 @@ func (sm *modManager) GetMod() *ModuleImpl {
 
 func (sm *modManager) GetSecret() string {
 	return sm.mod.Secret
+}
+
+func (sm *modManager) SortRoutes() {
+	sort.SliceStable(sm.router.Routes, func(i, j int) bool {
+		return len(sm.router.Routes[i].Pattern.String()) > len(sm.router.Routes[j].Pattern.String())
+	})
 }
 
 func (s *HttpServer) WaitShutdown() {

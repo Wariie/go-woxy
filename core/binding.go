@@ -28,7 +28,7 @@ func ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) HandlerFunc {
 	})
 }
 
-//ReverseProxyFix - reverse proxy for mod
+// ReverseProxyFix - reverse proxy for mod
 func ReverseProxy() HandlerFunc {
 	return HandlerFunc(func(ctx *Context) {
 
@@ -114,7 +114,7 @@ func ReverseProxy() HandlerFunc {
 	})
 }
 
-//FileBind - File bind handler
+// FileBind - File bind handler
 func FileBind(fileName string, r Route) HandlerFunc {
 	return HandlerFunc(func(ctx *Context) {
 		if fileName != "" {
@@ -125,7 +125,7 @@ func FileBind(fileName string, r Route) HandlerFunc {
 	})
 }
 
-//ErrorHandler -
+// ErrorHandler -
 func ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	title := "Error"
 	//message := "Error"

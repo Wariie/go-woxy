@@ -20,7 +20,7 @@
       auth:
         enabled: false
         type: 'http'
-    mod.v0: 
+    website: 
       version: 1.0
       types: 'reverse'
       exe:

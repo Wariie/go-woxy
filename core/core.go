@@ -3,7 +3,9 @@ package core
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log"
@@ -165,7 +167,7 @@ func (core *Core) Setup(mc ModuleConfig, hook bool, modulePath string) (*ModuleC
 		mc.generateAPIKey()
 		if !mc.EXE.REMOTE && (strings.Contains(mc.EXE.SRC, "http") || strings.Contains(mc.EXE.SRC, "git@")) {
 			mc.Download(modulePath)
-			mc.copyAPIKey()
+			mc.copyAPIKey(core.config.SECRET)
 		}
 		mc.STATE = Loading
 	}
@@ -426,7 +428,7 @@ func (core *Core) logMiddleware() MiddlewareFunc {
 /*LoadConfigFromPath - Load config file from path */
 func (core *Core) loadConfigFromPath(configPath string) {
 	cfg := Config{}
-	cfg.Load(configPath)
+	cfg.LoadConfig(configPath)
 	core.config = &cfg
 }
 
@@ -434,7 +436,10 @@ func (core *Core) loadConfigFromPath(configPath string) {
 func (core *Core) GoWoxy(configPath string) {
 
 	//Load Config
+	core.mux.Lock()
 	core.loadConfigFromPath(configPath)
+	core.mux.Unlock()
+
 	core.showMotd()
 
 	//Init Go-Woxy core
@@ -510,7 +515,7 @@ func (core *Core) connect() HandlerFunc {
 			}
 
 			//CHECK SECRET FOR AUTH
-			rs := modC.APIKeyMatch(cr.Secret)
+			rs := core.APIKeyMatch(cr.Secret)
 			if rs && cr.ModHash != "" {
 				modC.STATE = Online
 				core.registerModule(modC, &cr)
@@ -546,16 +551,16 @@ func (core *Core) command() HandlerFunc {
 
 		// CHECK ERROR DURING READING DATA
 		if t["error"] == "error" {
-			response = "Error reading Request"
+			response = "Error : Failed reading request"
 		} else if t["Hash"] != "" {
 
 			//GET MOD WITH HASH
 			mc := core.SearchModWithHash(t["Hash"])
 
 			if mc.NAME == "error" {
-				response = "Error module not found"
+				response = "Error : Module \"" + mc.NAME + "\"not found"
 				//TODO HANDLE HUB COMMANDS AUTHENTICATION
-			} else if mc.NAME == "hub" || mc.APIKeyMatch(t["Secret"]) {
+			} else if core.APIKeyMatch(t["Secret"]) {
 				action += "To " + mc.NAME + " - "
 
 				//PROCESS REQUEST
@@ -572,7 +577,6 @@ func (core *Core) command() HandlerFunc {
 					}
 					action += "Command [ " + cr.Command + " ]"
 				}
-				//core.config.MODULES.Set(mc.NAME, mc)
 			} else {
 				response = "Secret not matching with server"
 			}
@@ -580,7 +584,7 @@ func (core *Core) command() HandlerFunc {
 			core.SaveModuleChanges(mc)
 		} else {
 			if len(t["Hash"]) == 0 {
-				response = "Empty Hash : Try to start module"
+				response = "Error : Empty module hash"
 			} else {
 				response = "Unknown error"
 			}
@@ -600,6 +604,17 @@ type HttpServer struct {
 	http.Server
 	shutdownReq chan bool
 	reqCount    uint32
+}
+
+// APIKeyMatch - Check if given key match api key hash
+func (core *Core) APIKeyMatch(key string) bool {
+	//r := strings.Trim(key, "\n\t") == strings.Trim(core.config.SECRET, "\n\t")
+
+	h := sha256.New()
+	h.Write([]byte(core.config.SECRET))
+	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
+	r := key == hash
+	return r
 }
 
 // WaitShutdown - Wait server to shutdown correctly
