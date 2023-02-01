@@ -8,8 +8,7 @@ import (
 
 func resources(path string, modResourcePath string) HandlerFunc {
 	return HandlerFunc(func(ctx *Context) {
-		http.StripPrefix(path+modResourcePath, http.FileServer(http.Dir("."+modResourcePath)))
-
+		http.StripPrefix(path+modResourcePath, http.FileServer(http.Dir("."+modResourcePath))).ServeHTTP(ctx.ResponseWriter, ctx.Request)
 	})
 }
 
