@@ -21,7 +21,6 @@ func ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) HandlerFunc {
 		if user == "" {
 			ctx.ResponseWriter.Header().Add("WWW-Authenticate", "Basic realm="+strconv.Quote(a.Realm))
 			ctx.ResponseWriter.WriteHeader(http.StatusUnauthorized)
-
 		}
 		ctx.ResponseWriter.Header().Set("user", user)
 		ReverseProxy().Handle(ctx)
