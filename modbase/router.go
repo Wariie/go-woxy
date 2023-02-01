@@ -57,10 +57,6 @@ func NewRouter(NotFoundHandler HandlerFunc) *Router {
 	return router
 }
 
-type HandleFunc interface {
-	Handle(h *Context)
-}
-
 func (r *Router) Handler(pattern string, handler Handler, ro *Route) {
 	r.Handle(pattern, handler.Handle, ro)
 }

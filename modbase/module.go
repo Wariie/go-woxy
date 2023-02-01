@@ -204,7 +204,7 @@ func (mod *ModuleImpl) Register(path string, handler HandlerFunc, typeM string) 
 
 		//TODO CHECK IF DISABLE SERVER RESOURCES
 
-		r.Handle(path+mod.ResourcePath, resources(path, mod.ResourcePath), &Route{TO: path})
+		r.Handle(path+mod.ResourcePath, resources(path, mod.ResourcePath), &Route{TO: path + mod.ResourcePath})
 	}
 
 	r.Handle(path, handler, &Route{TO: path})
