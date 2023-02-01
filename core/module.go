@@ -1,7 +1,6 @@
 package core
 
 import (
-	"crypto/sha256"
 	"encoding/base64"
 	"log"
 	"os"
@@ -47,25 +46,12 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 
 // GetLog - GetLog from Module
 func (mc *ModuleConfig) GetLog() string {
-
-	//TODO ADD REMOTE COMMAND TO GET LOG
 	b, err := os.ReadFile(mc.EXE.BIN + "/log.log")
 	if err != nil {
 		log.Println("GO-WOXY Core - Error reading module log file : " + err.Error())
 		return ""
 	}
 	return string(b)
-}
-
-// APIKeyMatch - Check if given key match api key hash
-func (mc *ModuleConfig) APIKeyMatch(key string) bool {
-	//r := strings.Trim(key, "\n\t") == strings.Trim(core.config.SECRET, "\n\t")
-
-	h := sha256.New()
-	h.Write([]byte(mc.API_KEY))
-	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
-	r := key == hash
-	return r
 }
 
 // GetPerf - GetPerf from Module
@@ -104,7 +90,7 @@ func (mc *ModuleConfig) Start() {
 	mc.pid = cmd.Process.Pid
 }
 
-func (mc *ModuleConfig) copyAPIKey() {
+func (mc *ModuleConfig) copyAPIKey(api_key string) {
 	destination, err := os.Create("." + string(os.PathSeparator) + mc.EXE.BIN + string(os.PathSeparator) + ".secret")
 	if err != nil {
 		log.Println("GO-WOXY Core - Error creating mod secret file : ", err)
@@ -112,7 +98,7 @@ func (mc *ModuleConfig) copyAPIKey() {
 
 	defer destination.Close()
 
-	nBytes, err := destination.Write([]byte(mc.API_KEY))
+	nBytes, err := destination.Write([]byte(api_key))
 	if err != nil {
 		log.Println("GO-WOXY Core - Error Copying Secret : ", err, nBytes)
 	}

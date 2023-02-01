@@ -10,16 +10,16 @@ import (
 
 var defaultPath = "/connect"
 
-//IP Address
+// IP Address
 type IP string
 
-//Port Server port
+// Port Server port
 type Port string
 
-//Path Server path
+// Path Server path
 type Path string
 
-//Protocol Server protocol
+// Protocol Server protocol
 type Protocol string
 
 /*Server - Struct */
@@ -53,12 +53,12 @@ type ConnexionRequest struct {
 	State          string
 }
 
-//Decode - Decode JSON to ConnexionRequest
+// Decode - Decode JSON to ConnexionRequest
 func (cr *ConnexionRequest) Decode(b []byte) {
 	json.NewDecoder(bytes.NewBuffer(b)).Decode(cr)
 }
 
-//Encode - Encode ConnexionRequest to JSON
+// Encode - Encode ConnexionRequest to JSON
 func (cr *ConnexionRequest) Encode() []byte {
 	b, err := json.Marshal(cr)
 	if err != nil {
@@ -67,7 +67,7 @@ func (cr *ConnexionRequest) Encode() []byte {
 	return b
 }
 
-//Generate - Generate ConnexionRequest with params
+// Generate - Generate ConnexionRequest with params
 func (cr *ConnexionRequest) Generate(list ...interface{}) {
 	cr.CustomCommands = list[0].([]string)
 	cr.ModHash = rand.String(15)
@@ -105,12 +105,12 @@ type CommandRequest struct {
 	Type         string
 }
 
-//Decode - Decode JSON to CommandRequest
+// Decode - Decode JSON to CommandRequest
 func (cr *CommandRequest) Decode(b []byte) {
 	json.NewDecoder(bytes.NewBuffer(b)).Decode(cr)
 }
 
-//Encode - Encode CommandRequest to JSON
+// Encode - Encode CommandRequest to JSON
 func (cr *CommandRequest) Encode() []byte {
 	b, err := json.Marshal(cr)
 	if err != nil {
@@ -119,11 +119,11 @@ func (cr *CommandRequest) Encode() []byte {
 	return b
 }
 
-//Generate - Generate CommandRequest with params
-//- Command   string
-//- Hash 	  string
-//- Name 	  string
-//- Secret    string
+// Generate - Generate CommandRequest with params
+// - Command   string
+// - Hash 	  string
+// - Name 	  string
+// - Secret    string
 func (cr *CommandRequest) Generate(list ...interface{}) {
 	cr.Command = list[0].(string)
 	cr.Hash = list[1].(string)

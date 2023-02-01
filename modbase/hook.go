@@ -6,48 +6,61 @@ import (
 	"github.com/Wariie/go-woxy/com"
 )
 
-func cmd(w http.ResponseWriter, r *http.Request) {
-	t, b := com.GetCustomRequestType(r)
+func resources(path string, modResourcePath string) HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
+		http.StripPrefix(path+modResourcePath, http.FileServer(http.Dir("."+modResourcePath))).ServeHTTP(ctx.ResponseWriter, ctx.Request)
+	})
+}
 
-	mod := GetModManager().GetMod()
+func notFound() HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
+		http.NotFound(ctx.ResponseWriter, ctx.Request)
+	})
+}
 
-	var response string
-	var err error
+func cmd() HandlerFunc {
+	return HandlerFunc(func(ctx *Context) {
+		t, b := com.GetCustomRequestType(ctx.Request)
 
-	if t["Hash"] != mod.Hash {
-		response = "Error reading module Hash"
-	} else {
-		switch t["Type"] {
-		case "Command":
-			var sr com.CommandRequest
-			sr.Decode(b)
+		mod := GetModManager().GetMod()
 
-			var ir interface{}
-			ir = &sr
-			p := (ir).(com.Request)
+		var response string
+		var err error
 
-			switch sr.Command {
-			case "Shutdown":
-				response, err = shutdown(&p, w, r, mod)
-			case "Ping":
-				response, err = ping(&p, w, r, mod)
-			default:
-				for k := range mod.CustomCommands {
-					if k == sr.Command {
+		if t["Hash"] != mod.Hash {
+			response = "Error reading module Hash"
+		} else {
+			switch t["Type"] {
+			case "Command":
+				var sr com.CommandRequest
+				sr.Decode(b)
 
-						response, err = mod.CustomCommands[k](&p, w, r, mod)
-						break
+				var ir interface{}
+				ir = &sr
+				p := (ir).(com.Request)
+
+				switch sr.Command {
+				case "Shutdown":
+					response, err = shutdown(&p, ctx.ResponseWriter, ctx.Request, mod)
+				case "Ping":
+					response, err = ping(&p, ctx.ResponseWriter, ctx.Request, mod)
+				default:
+					for k := range mod.CustomCommands {
+						if k == sr.Command {
+
+							response, err = mod.CustomCommands[k](&p, ctx.ResponseWriter, ctx.Request, mod)
+							break
+						}
 					}
 				}
 			}
 		}
-
-	}
-	if err != nil {
-		response += err.Error()
-	}
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(response))
+		if err != nil {
+			response += err.Error()
+		}
+		ctx.ResponseWriter.WriteHeader(http.StatusOK)
+		ctx.ResponseWriter.Write([]byte(response))
+	})
 }
 
 func shutdown(r *com.Request, w http.ResponseWriter, re *http.Request, mod *ModuleImpl) (string, error) {

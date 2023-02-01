@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/Wariie/go-woxy/tools"
-	"gopkg.in/yaml.v2"
+	"github.com/spf13/viper"
 )
 
 /*Config - Global configuration */
@@ -25,26 +25,26 @@ type Config struct {
 	VERSION       int
 }
 
-// Load - Load config from file path 'configPath'
-func (c *Config) Load(configPath string) {
-
+func (c *Config) LoadConfig(path string) (err error) {
 	//EMPTY CONFIG FILE PATH
-	if len(configPath) == 0 {
+	if len(path) == 0 {
 		//TRY DEFAULT cfg.yml
-		configPath = "cfg.yml"
+		path = "cfg.yml"
 	}
 
-	//READ CONFIG FILE
-	data, err := os.ReadFile(configPath)
+	viper.AddConfigPath(path)
+	viper.AddConfigPath(".")
+	viper.SetConfigName("cfg")
+	viper.SetConfigType("yml")
+
+	viper.AutomaticEnv()
+
+	err = viper.ReadInConfig()
 	if err != nil {
-		log.Fatalf("GO-WOXY Core - Error reading config file : %v", err)
+		return
 	}
 
-	//PARSE CONFIG FILE
-	err = yaml.Unmarshal(data, &c)
-	if err != nil || c.NAME == "" {
-		log.Fatalf("GO-WOXY Core - Error parsing config file %v", err)
-	}
+	err = viper.Unmarshal(&c)
 
 	c.checkServer()
 
@@ -59,6 +59,8 @@ func (c *Config) Load(configPath string) {
 
 	// Convert map to slice of values.
 	log.Println("GO-WOXY Core - Config loaded")
+
+	return err
 }
 
 func (c *Config) checkModules() {
@@ -71,7 +73,6 @@ func (c *Config) checkModules() {
 			m.STATE = Unknown
 		}
 
-		//log.Println(*m.LOG.enabled)
 		if m.LOG.Enabled == nil {
 			enabled := true
 			m.LOG.Enabled = &enabled

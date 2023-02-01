@@ -1,8 +1,9 @@
-package core
+package modbase
 
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"regexp"
 	"sort"
@@ -23,7 +24,6 @@ func (h HandlerFunc) Handle(ctx *Context) {
 type PatternRoute struct {
 	Pattern *regexp.Regexp
 	Handler HandlerFunc
-	Module  *ModuleConfig
 	Route   *Route
 }
 
@@ -57,14 +57,14 @@ func NewRouter(NotFoundHandler HandlerFunc) *Router {
 	return router
 }
 
-func (r *Router) Handler(pattern string, handler Handler, mod *ModuleConfig, ro *Route) {
-	r.Handle(pattern, handler.Handle, mod, ro)
+func (r *Router) Handler(pattern string, handler Handler, ro *Route) {
+	r.Handle(pattern, handler.Handle, ro)
 }
 
 // Handle - Handle new router into router
-func (r *Router) Handle(pattern string, handler HandlerFunc, mod *ModuleConfig, ro *Route) {
+func (r *Router) Handle(pattern string, handler HandlerFunc, ro *Route) {
 	re := regexp.MustCompile(pattern)
-	route := PatternRoute{Pattern: re, Handler: handler, Module: mod, Route: ro}
+	route := PatternRoute{Pattern: re, Handler: handler, Route: ro}
 	r.Routes = append(r.Routes, route)
 
 	//Sort routes depending on the endoint lenght
@@ -80,9 +80,8 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, re *http.Request) {
 
 	//Search route
 	for _, rt := range r.Routes {
+		log.Println(rt.Pattern)
 		if matches := rt.Pattern.FindStringSubmatch(ctx.URL.Path); len(matches) > 0 {
-
-			ctx.ModuleConfig = rt.Module
 			ctx.Route = rt.Route
 
 			if len(matches) > 1 {
@@ -99,14 +98,12 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, re *http.Request) {
 		for _, mw := range r.Middlewares {
 			handler = mw.Middleware(handler)
 		}
-
 		//If handler redirect request
 		handler.Handle(ctx)
 		return
 	}
 
 	//Else route to NotFound page
-	ctx.ModuleConfig = nil
 	ctx.Route = nil
 	r.DefaultRoute(ctx)
 }
@@ -116,7 +113,6 @@ type Context struct {
 	http.ResponseWriter
 	*http.Request
 	Params []string
-	*ModuleConfig
 	*Route
 }
 
@@ -135,4 +131,10 @@ func (c *Context) ByteText(code int, body []byte) (int, error) {
 // HtmlText - Send html text to context writer
 func (c *Context) HtmlText(code int, body string, data interface{}) {
 	//
+}
+
+// Route - Route redirection
+type Route struct {
+	FROM string
+	TO   string
 }

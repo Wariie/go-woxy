@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-//SendRequest - send request to server
+// SendRequest - send request to server
 func SendRequest(s Server, r Request, loging bool) (string, error) {
 
 	if loging {
