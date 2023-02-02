@@ -141,7 +141,7 @@ func (mod *ModuleImpl) Run() {
 // Init - init module
 func (mod *ModuleImpl) Init() {
 
-	r := NewRouter(notFound())
+	r := com.NewRouter(notFound())
 	//r.StrictSlash(true)
 
 	//TODO SET LOGGER
@@ -193,7 +193,7 @@ type HttpServer struct {
 
 // TODO ADD CUSTOM LOGGING
 // Register - register http handler for path
-func (mod *ModuleImpl) Register(path string, handler HandlerFunc, typeM string) {
+func (mod *ModuleImpl) Register(path string, handler com.HandlerFunc, typeM string) {
 	log.Println("REGISTER - ", path)
 	r := GetModManager().GetRouter()
 
@@ -204,10 +204,10 @@ func (mod *ModuleImpl) Register(path string, handler HandlerFunc, typeM string) 
 
 		//TODO CHECK IF DISABLE SERVER RESOURCES
 
-		r.Handle(path+mod.ResourcePath, resources(path, mod.ResourcePath), &Route{TO: path + mod.ResourcePath})
+		r.Handle(path+mod.ResourcePath, resources(path, mod.ResourcePath), nil, &com.Route{TO: path + mod.ResourcePath})
 	}
 
-	r.Handle(path, handler, &Route{TO: path})
+	r.Handle(path, handler, nil, &com.Route{TO: path})
 }
 
 /*serve -  */
@@ -216,7 +216,7 @@ func (mod *ModuleImpl) serve() {
 	GetModManager().SortRoutes()
 	r := GetModManager().GetRouter()
 	s := GetModManager().GetMod().Server
-	r.Handle("/cmd", cmd(), &Route{TO: "/cmd"})
+	r.Handle("/cmd", cmd(), nil, &com.Route{TO: "/cmd"})
 
 	server := &HttpServer{
 		Server: http.Server{
@@ -336,7 +336,7 @@ func (mod *ModuleImpl) connectToHub() bool {
 
 type modManager struct {
 	server *HttpServer
-	router *Router
+	router *com.Router
 	mod    *ModuleImpl
 }
 
@@ -359,11 +359,11 @@ func (sm *modManager) SetServer(s *HttpServer) {
 	sm.server = s
 }
 
-func (sm *modManager) GetRouter() *Router {
+func (sm *modManager) GetRouter() *com.Router {
 	return sm.router
 }
 
-func (sm *modManager) SetRouter(r *Router) {
+func (sm *modManager) SetRouter(r *com.Router) {
 	sm.router = r
 }
 

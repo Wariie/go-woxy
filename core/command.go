@@ -141,7 +141,7 @@ func shutdownModuleCommand(core *Core, r *com.Request, mc *ModuleConfig, args ..
 		response, err := defaultForwardCommand(core, r, mc, args...)
 		if strings.Contains(response, "SHUTTING DOWN "+mc.NAME) || (err != nil && strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host")) {
 			response = "Success"
-			mc.STATE = Stopped
+			mc.STATE = com.Stopped
 			core.GetSupervisor().Remove(mc.NAME)
 		} else {
 			response += " " + err.Error()
@@ -173,10 +173,10 @@ func restartModuleCommand(core *Core, r *com.Request, mc *ModuleConfig, args ...
 			time.Sleep(time.Second)
 		}
 
-		mc.STATE = Stopped
+		mc.STATE = com.Stopped
 		if mc, err := core.Setup(*mc, false, core.GetConfig().MODDIR); err == nil {
 			response += "Success"
-			mc.STATE = Stopped
+			mc.STATE = com.Stopped
 			mc.Start()
 		}
 
@@ -190,7 +190,7 @@ func startModuleCommand(core *Core, r *com.Request, mc *ModuleConfig, args ...st
 	response := ""
 
 	var err error
-	if mc.STATE != Online {
+	if mc.STATE != com.Online {
 		mc, err := core.Setup(*mc, false, core.GetConfig().MODDIR)
 		if err == nil {
 			mc.Start()

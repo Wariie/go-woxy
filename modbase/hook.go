@@ -6,20 +6,20 @@ import (
 	"github.com/Wariie/go-woxy/com"
 )
 
-func resources(path string, modResourcePath string) HandlerFunc {
-	return HandlerFunc(func(ctx *Context) {
+func resources(path string, modResourcePath string) com.HandlerFunc {
+	return com.HandlerFunc(func(ctx *com.Context) {
 		http.StripPrefix(path+modResourcePath, http.FileServer(http.Dir("."+modResourcePath))).ServeHTTP(ctx.ResponseWriter, ctx.Request)
 	})
 }
 
-func notFound() HandlerFunc {
-	return HandlerFunc(func(ctx *Context) {
+func notFound() com.HandlerFunc {
+	return com.HandlerFunc(func(ctx *com.Context) {
 		http.NotFound(ctx.ResponseWriter, ctx.Request)
 	})
 }
 
-func cmd() HandlerFunc {
-	return HandlerFunc(func(ctx *Context) {
+func cmd() com.HandlerFunc {
+	return com.HandlerFunc(func(ctx *com.Context) {
 		t, b := com.GetCustomRequestType(ctx.Request)
 
 		mod := GetModManager().GetMod()

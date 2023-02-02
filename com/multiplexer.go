@@ -1,4 +1,4 @@
-package core
+package com
 
 import (
 	"fmt"
@@ -21,10 +21,10 @@ func (h HandlerFunc) Handle(ctx *Context) {
 
 // PatternRoute - Module route
 type PatternRoute struct {
-	Pattern *regexp.Regexp
-	Handler HandlerFunc
-	Module  *ModuleConfig
-	Route   *Route
+	Pattern     *regexp.Regexp
+	Handler     HandlerFunc
+	RouteConfig *RouteConfig
+	Route       *Route
 }
 
 func (pr *PatternRoute) Handle(h Handler) {
@@ -57,14 +57,14 @@ func NewRouter(NotFoundHandler HandlerFunc) *Router {
 	return router
 }
 
-func (r *Router) Handler(pattern string, handler Handler, mod *ModuleConfig, ro *Route) {
-	r.Handle(pattern, handler.Handle, mod, ro)
+func (r *Router) Handler(pattern string, handler Handler, routeConfig *RouteConfig, ro *Route) {
+	r.Handle(pattern, handler.Handle, routeConfig, ro)
 }
 
 // Handle - Handle new router into router
-func (r *Router) Handle(pattern string, handler HandlerFunc, mod *ModuleConfig, ro *Route) {
+func (r *Router) Handle(pattern string, handler HandlerFunc, routeConfig *RouteConfig, ro *Route) {
 	re := regexp.MustCompile(pattern)
-	route := PatternRoute{Pattern: re, Handler: handler, Module: mod, Route: ro}
+	route := PatternRoute{Pattern: re, Handler: handler, RouteConfig: routeConfig, Route: ro}
 	r.Routes = append(r.Routes, route)
 
 	//Sort routes depending on the endoint lenght
@@ -82,7 +82,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, re *http.Request) {
 	for _, rt := range r.Routes {
 		if matches := rt.Pattern.FindStringSubmatch(ctx.URL.Path); len(matches) > 0 {
 
-			ctx.ModuleConfig = rt.Module
+			ctx.RouteConfig = rt.RouteConfig
 			ctx.Route = rt.Route
 
 			if len(matches) > 1 {
@@ -106,7 +106,7 @@ func (r *Router) ServeHTTP(w http.ResponseWriter, re *http.Request) {
 	}
 
 	//Else route to NotFound page
-	ctx.ModuleConfig = nil
+	ctx.RouteConfig = nil
 	ctx.Route = nil
 	r.DefaultRoute(ctx)
 }
@@ -116,7 +116,7 @@ type Context struct {
 	http.ResponseWriter
 	*http.Request
 	Params []string
-	*ModuleConfig
+	*RouteConfig
 	*Route
 }
 
@@ -136,3 +136,43 @@ func (c *Context) ByteText(code int, body []byte) (int, error) {
 func (c *Context) HtmlText(code int, body string, data interface{}) {
 	//
 }
+
+// Route - Route redirection
+type Route struct {
+	FROM string
+	TO   string
+}
+
+// RouteConfig - Parameter to handle route redirection
+type RouteConfig struct {
+	NAME    string
+	TYPES   string
+	BINDING ServerConfig
+	STATE   ModuleState
+}
+
+/*ServerConfig - Server configuration*/
+type ServerConfig struct {
+	ADDRESS  string
+	PATH     []Route
+	PORT     string
+	PROTOCOL string
+	ROOT     string
+	CERT     string
+	CERT_KEY string
+}
+
+// ModuleState - ModuleConfig State
+type ModuleState int
+
+// ModuleState list
+const (
+	Stopped    ModuleState = 0
+	Unknown    ModuleState = 1
+	Online     ModuleState = 2
+	Downloaded ModuleState = 3
+	Loading    ModuleState = 4
+
+	Error  ModuleState = 999
+	Failed ModuleState = 998
+)

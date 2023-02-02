@@ -1,15 +1,6 @@
 package modbase
 
-import (
-	"fmt"
-	"io"
-	"log"
-	"net/http"
-	"regexp"
-	"sort"
-)
-
-type Handler interface {
+/*type Handler interface {
 	Handle(ctx *Context)
 }
 
@@ -138,3 +129,4 @@ type Route struct {
 	FROM string
 	TO   string
 }
+*/
