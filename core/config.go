@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	com "github.com/Wariie/go-woxy/com"
 	"github.com/Wariie/go-woxy/tools"
 	"github.com/spf13/viper"
 )
@@ -21,7 +22,7 @@ type Config struct {
 	SECRET        string
 	MODDIR        string
 	RESOURCEDIR   string
-	SERVER        ServerConfig
+	SERVER        com.ServerConfig
 	VERSION       int
 }
 
@@ -68,9 +69,9 @@ func (c *Config) checkModules() {
 		m.NAME = k
 
 		if strings.Contains(m.TYPES, "bind") {
-			m.STATE = Online
+			m.STATE = com.Online
 		} else {
-			m.STATE = Unknown
+			m.STATE = com.Unknown
 		}
 
 		if m.LOG.Enabled == nil {

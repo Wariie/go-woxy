@@ -32,7 +32,7 @@ type Core struct {
 	loggers     map[string]*logrus.Logger
 	modulesList []ModuleConfig
 	mux         sync.Mutex
-	router      *Router
+	router      *com.Router
 	s           *Supervisor
 	server      *HttpServer
 	roles       []Role
@@ -100,10 +100,10 @@ func (core *Core) HookAll(mc *ModuleConfig) {
 }
 
 // Hook - Create a binding between module and router server
-func (core *Core) Hook(mc *ModuleConfig, r Route) error {
+func (core *Core) Hook(mc *ModuleConfig, r com.Route) error {
 	var err error
 	if len(r.FROM) > 0 {
-		var handler HandlerFunc
+		var handler com.HandlerFunc
 		if mc.AUTH.ENABLED {
 			_, err = os.Stat(".htpasswd")
 			if os.IsNotExist(err) {
@@ -112,16 +112,16 @@ func (core *Core) Hook(mc *ModuleConfig, r Route) error {
 				htpasswd := auth.HtpasswdFileProvider(".htpasswd")
 				//TODO HANDLE PARAMETERS
 				authenticator := auth.NewBasicAuthenticator("guilhem-mateo.fr mod-manager", htpasswd)
-				handler = ReverseProxyAuth(authenticator, mc.NAME, r)
+				handler = com.ReverseProxyAuth(authenticator)
 			}
 		} else if strings.Contains(mc.TYPES, "bind") {
-			handler = FileBind(mc.BINDING.ROOT, r)
+			handler = com.FileBind(mc.BINDING.ROOT, r)
 		} else {
-			handler = ReverseProxy()
+			handler = com.ReverseProxy()
 		}
 
 		if handler != nil {
-			core.router.Handle(r.FROM, handler, mc, &r)
+			core.router.Handle(r.FROM, handler, mc.getRouteConfig(), &r)
 			log.Println("GO-WOXY Core - Module " + mc.NAME + " - Route created : " + r.FROM + " > " + r.TO)
 		} else {
 			err = errors.New("no handler found with this configuration")
@@ -159,7 +159,7 @@ func (core *Core) Setup(mc ModuleConfig, hook bool, modulePath string) (*ModuleC
 	log.Println("GO-WOXY Core - Setup mod : ", mc)
 	if hook && reflect.DeepEqual(mc.EXE, ModuleExecConfig{}) {
 		core.HookAll(&mc)
-		mc.STATE = Online
+		mc.STATE = com.Online
 	}
 
 	//IF CONTAINS EXE CONFIG && NOT REMOTE
@@ -169,7 +169,7 @@ func (core *Core) Setup(mc ModuleConfig, hook bool, modulePath string) (*ModuleC
 			mc.Download(modulePath)
 			mc.copyAPIKey(core.config.SECRET)
 		}
-		mc.STATE = Loading
+		mc.STATE = com.Loading
 	}
 	return &mc, nil
 }
@@ -178,7 +178,7 @@ func (core *Core) launchServer() {
 	log.Println("GO-WOXY Core - Starting")
 
 	//AUTHENTICATION & COMMAND ENDPOINT
-	core.router.DefaultRoute = error404()
+	core.router.DefaultRoute = com.Error404()
 	core.router.Handle("/connect", core.connect(), nil, nil)
 	core.router.Handle("/cmd", core.command(), nil, nil)
 
@@ -328,7 +328,7 @@ func (core *Core) init() {
 	core.initLogs()
 
 	//Setup server router with error handling page
-	router := NewRouter(error404()) //Custom Http Router
+	router := com.NewRouter(com.Error404()) //Custom Http Router
 	router.Middlewares = append(router.Middlewares, core.logMiddleware())
 
 	//Setup CommandProcessor
@@ -392,9 +392,9 @@ func (core *Core) initLogs() {
 	}
 }
 
-func (core *Core) logMiddleware() MiddlewareFunc {
-	return func(next Handler) Handler {
-		return HandlerFunc(func(ctx *Context) {
+func (core *Core) logMiddleware() com.MiddlewareFunc {
+	return func(next com.Handler) com.Handler {
+		return com.HandlerFunc(func(ctx *com.Context) {
 			requestLog := fmt.Sprintf("%s %s %s",
 				ctx.Request.Method,
 				ctx.URL.Path,
@@ -408,9 +408,9 @@ func (core *Core) logMiddleware() MiddlewareFunc {
 				logger = core.GetLogger("core")
 				routedToLog = "internally"
 			} else {
-				logger = core.GetLogger(ctx.ModuleConfig.NAME)
-				if ctx.ModuleConfig != nil {
-					routedToLog = ctx.ModuleConfig.NAME
+				logger = core.GetLogger(ctx.RouteConfig.NAME)
+				if ctx.RouteConfig != nil {
+					routedToLog = ctx.RouteConfig.NAME
 				} else {
 					routedToLog = "NOT FOUND"
 				}
@@ -488,8 +488,8 @@ func (core *Core) registerModule(m *ModuleConfig, cr *com.ConnexionRequest) {
 	core.HookAll(m)
 }
 
-func (core *Core) connect() HandlerFunc {
-	return HandlerFunc(func(ctx *Context) {
+func (core *Core) connect() com.HandlerFunc {
+	return com.HandlerFunc(func(ctx *com.Context) {
 
 		//READ Body and try to found ConnexionRequest
 		var cr com.ConnexionRequest
@@ -517,10 +517,10 @@ func (core *Core) connect() HandlerFunc {
 			//CHECK SECRET FOR AUTH
 			rs := core.APIKeyMatch(cr.Secret)
 			if rs && cr.ModHash != "" {
-				modC.STATE = Online
+				modC.STATE = com.Online
 				core.registerModule(modC, &cr)
 			} else {
-				modC.STATE = Failed
+				modC.STATE = com.Failed
 			}
 
 			core.SaveModuleChanges(modC)
@@ -541,8 +541,8 @@ func (core *Core) connect() HandlerFunc {
 }
 
 // Command - Access point to handle module commands
-func (core *Core) command() HandlerFunc {
-	return HandlerFunc(func(ctx *Context) {
+func (core *Core) command() com.HandlerFunc {
+	return com.HandlerFunc(func(ctx *com.Context) {
 		t, b := com.GetCustomRequestType(ctx.Request)
 
 		from := ctx.Request.RemoteAddr

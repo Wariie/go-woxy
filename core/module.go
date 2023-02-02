@@ -16,7 +16,7 @@ import (
 // Download - Download module from repository ( git clone )
 func (mc *ModuleConfig) Download(moduleDir string) {
 
-	if mc.STATE != Online {
+	if mc.STATE != com.Online {
 		pathSeparator := string(os.PathSeparator)
 		log.Println("GO-WOXY Core - Downloading " + mc.NAME)
 		var listArgs []string
@@ -38,7 +38,7 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 		log.Println("GO-WOXY Core -", action, "mod :", mc, "-", string(out), err)
 
 		mc.EXE.BIN = moduleDir + mc.NAME + pathSeparator
-		mc.STATE = Downloaded
+		mc.STATE = com.Downloaded
 	} else {
 		log.Println("GO-WOXY Core - Error trying to download/update module while running. Stop it before")
 	}
@@ -108,18 +108,15 @@ func (mc *ModuleConfig) generateAPIKey() {
 	mc.API_KEY = base64.URLEncoding.EncodeToString([]byte(tools.String(64)))
 }
 
-// ErrorPage - Content description for go-woxy error page
-type ErrorPage struct {
-	Title   string
-	Code    int
-	Message string
+func (mc *ModuleConfig) getRouteConfig() *com.RouteConfig {
+	return &com.RouteConfig{BINDING: mc.BINDING, STATE: mc.STATE, NAME: mc.NAME, TYPES: mc.TYPES}
 }
 
 /*ModuleConfig - Module configuration */
 type ModuleConfig struct {
 	API_KEY      string
 	AUTH         ModuleAuthConfig
-	BINDING      ServerConfig
+	BINDING      com.ServerConfig
 	COMMANDS     []string
 	EXE          ModuleExecConfig
 	NAME         string
@@ -127,7 +124,7 @@ type ModuleConfig struct {
 	PK           string
 	RESOURCEPATH string
 	LOG          ModuleLogConfig
-	STATE        ModuleState
+	STATE        com.ModuleState
 	TYPES        string
 	VERSION      int
 }
@@ -153,40 +150,8 @@ type ModuleExecConfig struct {
 	LastPing   time.Time
 }
 
-/*ServerConfig - Server configuration*/
-type ServerConfig struct {
-	ADDRESS  string
-	PATH     []Route
-	PORT     string
-	PROTOCOL string
-	ROOT     string
-	CERT     string
-	CERT_KEY string
-}
-
 /*ModuleAuthConfig - ModuleConfig Auth configuration*/
 type ModuleAuthConfig struct {
 	ENABLED bool
 	TYPE    string
 }
-
-// Route - Route redirection
-type Route struct {
-	FROM string
-	TO   string
-}
-
-// ModuleState - ModuleConfig State
-type ModuleState int
-
-// ModuleState list
-const (
-	Stopped    ModuleState = 0
-	Unknown    ModuleState = 1
-	Online     ModuleState = 2
-	Downloaded ModuleState = 3
-	Loading    ModuleState = 4
-
-	Error  ModuleState = 999
-	Failed ModuleState = 998
-)

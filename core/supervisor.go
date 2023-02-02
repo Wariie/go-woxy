@@ -4,16 +4,18 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	com "github.com/Wariie/go-woxy/com"
 )
 
-//Supervisor -
+// Supervisor -
 type Supervisor struct {
 	mux        sync.Mutex
 	listModule []string
 	core       *Core
 }
 
-//Remove -
+// Remove -
 func (s *Supervisor) Remove(m string) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -27,14 +29,14 @@ func (s *Supervisor) Remove(m string) {
 	}
 }
 
-//Add -
+// Add -
 func (s *Supervisor) Add(m string) {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	s.listModule = append(s.listModule, m)
 }
 
-//Supervise -
+// Supervise -
 func (s *Supervisor) Supervise() {
 	//ENDLESS LOOP
 	for {
@@ -54,16 +56,16 @@ func (s *Supervisor) Supervise() {
 			var editStat bool = false
 
 			//if Loading | Unknown | Online
-			var managingState bool = mod.STATE < Downloaded && mod.STATE >= Unknown
+			var managingState bool = mod.STATE < com.Downloaded && mod.STATE >= com.Unknown
 
 			if managingState && timeBeforeLastPing.Minutes() < -5 {
-				if mod.STATE != Unknown {
-					mod.STATE = Unknown
+				if mod.STATE != com.Unknown {
+					mod.STATE = com.Unknown
 					editStat = true
 					log.Println("GO-WOXY Core - Module " + mod.NAME + " not pinging since 5 minutes")
 				}
-			} else if mod.STATE != Online && mod.STATE != Loading && mod.STATE != Downloaded {
-				mod.STATE = Online
+			} else if mod.STATE != com.Online && mod.STATE != com.Loading && mod.STATE != com.Downloaded {
+				mod.STATE = com.Online
 				editStat = true
 			}
 
@@ -75,7 +77,7 @@ func (s *Supervisor) Supervise() {
 	}
 }
 
-//SetCore - Set core
+// SetCore - Set core
 func (s *Supervisor) SetCore(core *Core) {
 	s.core = core
 }

@@ -1,4 +1,4 @@
-package core
+package com
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ import (
 )
 
 // ReverseProxyAuth - Authentication middleware
-func ReverseProxyAuth(a *auth.BasicAuth, modName string, r Route) HandlerFunc {
+func ReverseProxyAuth(a *auth.BasicAuth) HandlerFunc {
 	return HandlerFunc(func(ctx *Context) {
 		user := a.CheckAuth(ctx.Request)
 		if user == "" {
@@ -33,18 +33,18 @@ func ReverseProxy() HandlerFunc {
 
 		path := ctx.URL.Path
 
-		mod := ctx.ModuleConfig
+		routeConfig := ctx.RouteConfig
 		route := ctx.Route
 
 		//CHECK IF MODULE IS ONLINE
-		if mod != nil && mod.STATE == Online {
+		if routeConfig != nil && routeConfig.STATE == Online {
 
 			//IF ROOT IS PRESENT REDIRECT TO IT
-			if strings.Contains(mod.TYPES, "bind") && mod.BINDING.ROOT != "" {
-				http.ServeFile(ctx.ResponseWriter, ctx.Request, mod.BINDING.ROOT)
+			if strings.Contains(routeConfig.TYPES, "bind") && routeConfig.BINDING.ROOT != "" {
+				http.ServeFile(ctx.ResponseWriter, ctx.Request, routeConfig.BINDING.ROOT)
 
 				//ELSE IF BINDING IS TYPE **REVERSE**
-			} else if strings.Contains(mod.TYPES, "reverse") {
+			} else if strings.Contains(routeConfig.TYPES, "reverse") {
 
 				if route.FROM != route.TO {
 					if route.FROM != "/" {
@@ -60,7 +60,7 @@ func ReverseProxy() HandlerFunc {
 				}
 
 				//BUILD URL PROXY
-				urlProxy, err := url.Parse(mod.BINDING.PROTOCOL + "://" + mod.BINDING.ADDRESS + ":" + mod.BINDING.PORT + path)
+				urlProxy, err := url.Parse(routeConfig.BINDING.PROTOCOL + "://" + routeConfig.BINDING.ADDRESS + ":" + routeConfig.BINDING.PORT + path)
 				if err != nil {
 					log.Println(err) //TODO ERROR HANDLING
 				}
@@ -88,15 +88,15 @@ func ReverseProxy() HandlerFunc {
 			title := ""
 			code := 500
 			message := ""
-			if mod != nil && (mod.STATE == Loading || mod.STATE == Downloaded) {
+			if routeConfig != nil && (routeConfig.STATE == Loading || routeConfig.STATE == Downloaded) {
 				title = "Loading"
 				code += 3
 				message = "Module is loading ..."
-			} else if mod != nil && mod.STATE == Stopped {
+			} else if routeConfig != nil && routeConfig.STATE == Stopped {
 				title = "Stopped"
 				code = 410
 				message = "Module stopped by an administrator"
-			} else if mod == nil || mod.STATE == Error || mod.STATE == Unknown {
+			} else if routeConfig == nil || routeConfig.STATE == Error || routeConfig.STATE == Unknown {
 				title = "Error"
 				message = "Error"
 			}
@@ -139,7 +139,7 @@ func ErrorHandler(w http.ResponseWriter, r *http.Request, err error) {
 	tmpl.Execute(w, data)
 }
 
-func error404() HandlerFunc {
+func Error404() HandlerFunc {
 	return HandlerFunc(func(ctx *Context) {
 		fp := path.Join("resources/html", "404.html")
 		tmpl, err := template.ParseFiles(fp)
@@ -164,4 +164,11 @@ func Handle404Status(res *http.Response) error {
 		return errors.New("404 error from the host")
 	}
 	return nil
+}
+
+// ErrorPage - Content description for go-woxy error page
+type ErrorPage struct {
+	Title   string
+	Code    int
+	Message string
 }
