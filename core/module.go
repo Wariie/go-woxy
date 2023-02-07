@@ -23,7 +23,7 @@ func (mc *ModuleConfig) Download(moduleDir string) {
 		var action string
 		path := ""
 		if _, err := os.Stat(moduleDir + mc.NAME + pathSeparator); os.IsNotExist(err) {
-			listArgs = []string{"clone", mc.EXE.SRC}
+			listArgs = []string{"clone", mc.EXE.SRC, mc.NAME}
 			action = "Downloaded"
 			path = moduleDir
 		} else {
