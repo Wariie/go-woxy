@@ -25,6 +25,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const Version = "0.0.1"
+
 // Core - GO-WOXY Core Server
 type Core struct {
 	cp          *CommandProcessorImpl

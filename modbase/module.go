@@ -20,8 +20,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"github.com/Wariie/go-woxy/com"
 )
 
@@ -43,7 +41,7 @@ type (
 		Mode           string
 		Name           string
 		InstanceName   string
-		Router         *mux.Router
+		Router         *com.Router
 		Hash           string
 		Secret         string
 		HubServer      com.Server
